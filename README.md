@@ -70,6 +70,19 @@ Transform single-machine agent systems into a horizontally scalable cluster wher
 - Task re-routing on node failure
 - State persistence for crash recovery
 
+## ⚡ Quick Install
+
+**One-line installation:**
+```bash
+curl -fsSL https://raw.githubusercontent.com/hudsonrj/ch8-cluster-agent/master/scripts/install.sh | bash
+```
+
+This will automatically:
+- Check prerequisites (Python 3.11+, Redis)
+- Clone repository and setup environment
+- Install dependencies
+- Create helper scripts and aliases
+
 ## 🚀 Quick Start
 
 **Prerequisites:**
@@ -102,6 +115,25 @@ bash stop-cluster.sh
 ```
 
 > **Note:** The repository URL is `ch8-cluster-agent` but the local directory should be `ch8-agent` as shown above. All internal paths have been updated to use `ch8-agent`.
+
+### Using the CLI
+
+After installation, use the `ch8` command:
+
+```bash
+ch8              # Interactive CLI — start cluster
+ch8 start        # Start the cluster
+ch8 stop         # Stop the cluster
+ch8 status       # Check cluster status
+ch8 test         # Run tests
+ch8 logs         # View logs
+ch8 config       # Configure settings
+ch8 worker list  # List workers
+ch8 setup        # Run setup wizard
+ch8 update       # Update to latest version
+ch8 doctor       # Diagnose issues
+ch8 help         # Show all commands
+```
 
 For detailed testing instructions, see [TESTING.md](TESTING.md).
 
