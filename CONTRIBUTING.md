@@ -1,6 +1,6 @@
 # 🤝 Guia de Contribuição
 
-Obrigado por considerar contribuir com o Hermes Agent! 🎉
+Obrigado por considerar contribuir com o CH8 Agent! 🎉
 
 Este documento fornece diretrizes para contribuir com o projeto.
 
@@ -44,8 +44,8 @@ Este projeto adere a um código de conduta. Ao participar, você concorda em man
 ```bash
 # Clicar em "Fork" no GitHub
 # Depois clonar seu fork:
-git clone https://github.com/SEU-USUARIO/hermes-agent.git
-cd hermes-agent
+git clone https://github.com/SEU-USUARIO/ch8-agent.git
+cd ch8-agent
 ```
 
 ### 2. Criar Branch
@@ -94,7 +94,7 @@ git push origin feature/minha-feature
 
 ## Reportar Bugs
 
-Bugs são rastreados como [GitHub Issues](https://github.com/hudsonrj/hermes-agent/issues).
+Bugs são rastreados como [GitHub Issues](https://github.com/hudsonrj/ch8-agent/issues).
 
 **Antes de reportar:**
 - Verifique se o bug já foi reportado (buscar issues)
@@ -140,7 +140,7 @@ Qualquer outra informação relevante.
 
 ## Sugerir Features
 
-Features são bem-vindas! Abra uma [GitHub Issue](https://github.com/hudsonrj/hermes-agent/issues) com:
+Features são bem-vindas! Abra uma [GitHub Issue](https://github.com/hudsonrj/ch8-agent/issues) com:
 
 **Template de Feature Request:**
 

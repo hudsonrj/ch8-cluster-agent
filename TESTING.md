@@ -1,4 +1,4 @@
-# Testing Hermes Agent
+# Testing CH8 Agent
 
 ## Quick Start
 
@@ -10,7 +10,7 @@
 ### Start the Cluster
 
 ```bash
-cd /data/hermes-agent
+cd /data/ch8-agent
 bash test-cluster.sh
 ```
 

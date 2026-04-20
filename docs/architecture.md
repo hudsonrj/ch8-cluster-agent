@@ -2,7 +2,7 @@
 
 ## System Design
 
-Hermes Agent is a distributed multi-node agent system built for horizontal scalability and intelligent task coordination.
+CH8 Agent is a distributed multi-node agent system built for horizontal scalability and intelligent task coordination.
 
 ## Core Components
 

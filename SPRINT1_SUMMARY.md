@@ -1,4 +1,4 @@
-# Sprint 1 Summary - Hermes Agent
+# Sprint 1 Summary - CH8 Agent
 
 ## 🎉 Mission Accomplished!
 
@@ -69,7 +69,7 @@ Commits: 2 (inicial + Sprint 1)
 
 ### Iniciar o cluster:
 ```bash
-cd /data/hermes-agent
+cd /data/ch8-agent
 bash test-cluster.sh
 ```
 
@@ -94,7 +94,7 @@ tail -f /tmp/ch8-worker2.log
 ## 📁 Estrutura Final
 
 ```
-hermes-agent/
+ch8-agent/
 ├── cluster/
 │   ├── discovery.py       # ✨ Redis service discovery
 │   ├── master.py          # ✨ Master coordinator (completamente funcional)

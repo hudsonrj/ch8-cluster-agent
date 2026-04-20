@@ -1,4 +1,4 @@
-# Technical Decisions - Hermes Agent
+# Technical Decisions - CH8 Agent
 
 This document tracks important technical decisions made during development.
 

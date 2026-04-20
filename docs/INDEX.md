@@ -1,4 +1,4 @@
-# 📚 Índice de Documentação - Hermes Agent
+# 📚 Índice de Documentação - CH8 Agent
 
 **Versão:** 0.2.0-alpha  
 **Atualizado:** 2026-04-20
@@ -101,8 +101,8 @@
 4. Ler [TESTING.md](TESTING.md) - Como escrever e rodar testes
 5. Setup ambiente de desenvolvimento:
    ```bash
-   git clone https://github.com/hudsonrj/hermes-agent.git
-   cd hermes-agent
+   git clone https://github.com/hudsonrj/ch8-agent.git
+   cd ch8-agent
    python3 -m venv venv
    source venv/bin/activate
    pip install -r requirements.txt
@@ -223,8 +223,8 @@
 
 ## 🔗 Links Externos
 
-- **GitHub:** https://github.com/hudsonrj/hermes-agent
-- **Issues:** https://github.com/hudsonrj/hermes-agent/issues
+- **GitHub:** https://github.com/hudsonrj/ch8-agent
+- **Issues:** https://github.com/hudsonrj/ch8-agent/issues
 - **gRPC Docs:** https://grpc.io/docs/
 - **Redis Docs:** https://redis.io/docs/
 - **Ollama:** https://ollama.com/

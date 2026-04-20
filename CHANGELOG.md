@@ -124,8 +124,8 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ## Links
 
-- [Repositório GitHub](https://github.com/hudsonrj/hermes-agent)
-- [Issues](https://github.com/hudsonrj/hermes-agent/issues)
+- [Repositório GitHub](https://github.com/hudsonrj/ch8-agent)
+- [Issues](https://github.com/hudsonrj/ch8-agent/issues)
 - [Documentação Completa](docs/MANUAL.md)
 
 ---
