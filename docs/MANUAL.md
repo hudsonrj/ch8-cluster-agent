@@ -73,8 +73,8 @@ CH8 é um **sistema distribuído de agentes de IA** que permite coordenar múlti
 
 ```bash
 # 1. Clonar repositório
-git clone https://github.com/hudsonrj/ch8-agent.git
-cd ch8-agent
+git clone https://github.com/hudsonrj/ch8-cluster-agent.git
+cd ch8-cluster-agent
 
 # 2. Criar ambiente virtual
 python3 -m venv venv
@@ -1168,4 +1168,4 @@ routing:
 **Versão:** 1.0.0  
 **Status:** Sprint 1 Complete (50% do projeto)
 
-Para atualizações: `/data/ch8-agent/docs/CHANGELOG.md`
+Para atualizações: `/data/ch8-cluster-agent/docs/CHANGELOG.md`

@@ -94,7 +94,7 @@ tail -f /tmp/ch8-worker2.log
 ## 📁 Estrutura Final
 
 ```
-ch8-agent/
+ch8-cluster-agent/
 ├── cluster/
 │   ├── discovery.py       # ✨ Redis service discovery
 │   ├── master.py          # ✨ Master coordinator (completamente funcional)

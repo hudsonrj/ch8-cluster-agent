@@ -79,8 +79,8 @@ Transform single-machine agent systems into a horizontally scalable cluster wher
 
 ```bash
 # Clone and setup
-git clone https://github.com/hudsonrj/ch8-agent.git
-cd ch8-agent
+git clone https://github.com/hudsonrj/ch8-cluster-agent.git
+cd ch8-cluster-agent
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
@@ -120,7 +120,7 @@ For detailed testing instructions, see [TESTING.md](TESTING.md).
 ## 📦 Project Structure
 
 ```
-ch8-agent/
+ch8-cluster-agent/
 ├── cluster/              # Core cluster logic
 │   ├── master.py        # Master node implementation
 │   ├── worker.py        # Worker node implementation
@@ -180,8 +180,8 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 ## 🔗 Links
 
-- **Base Technology:** [CH8 Agent](https://ch8-agent.nousresearch.com/)
-- **OpenRAG:** [langflow-ai/openrag](https://github.com/langflow-ai/openrag/)
+- **Repository:** [github.com/hudsonrj/ch8-cluster-agent](https://github.com/hudsonrj/ch8-cluster-agent)
+- **Documentation:** [docs/](docs/)
 - **MCP Spec:** [Model Context Protocol](https://modelcontextprotocol.io/)
 
 ## 👥 Authors

@@ -101,8 +101,8 @@
 4. Ler [TESTING.md](TESTING.md) - Como escrever e rodar testes
 5. Setup ambiente de desenvolvimento:
    ```bash
-   git clone https://github.com/hudsonrj/ch8-agent.git
-   cd ch8-agent
+   git clone https://github.com/hudsonrj/ch8-cluster-agent.git
+   cd ch8-cluster-agent
    python3 -m venv venv
    source venv/bin/activate
    pip install -r requirements.txt
@@ -223,8 +223,8 @@
 
 ## 🔗 Links Externos
 
-- **GitHub:** https://github.com/hudsonrj/ch8-agent
-- **Issues:** https://github.com/hudsonrj/ch8-agent/issues
+- **GitHub:** https://github.com/hudsonrj/ch8-cluster-agent
+- **Issues:** https://github.com/hudsonrj/ch8-cluster-agent/issues
 - **gRPC Docs:** https://grpc.io/docs/
 - **Redis Docs:** https://redis.io/docs/
 - **Ollama:** https://ollama.com/
