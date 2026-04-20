@@ -1,10 +1,16 @@
-# Worker Node Configuration
+# Worker Node Configuration - Worker 1
 
 node_id: "worker-001"
 node_type: "worker"
 
 # Master connection
 master_url: "grpc://localhost:50051"
+
+# Worker gRPC server
+grpc_port: 50052
+
+# Max concurrent tasks
+max_concurrent_tasks: 5
 
 # Model Configuration
 models:

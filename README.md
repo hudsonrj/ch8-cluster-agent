@@ -72,20 +72,31 @@ Transform single-machine agent systems into a horizontally scalable cluster wher
 
 ## 🚀 Quick Start
 
+**Prerequisites:**
+- Python 3.12+
+- Redis (with password: 1q2w3e4r)
+- 4GB+ RAM recommended
+
 ```bash
-# Clone repository
+# Clone and setup
 git clone https://github.com/hudsonrj/ch8-agent-cluster.git
 cd ch8-agent-cluster
-
-# Install dependencies
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 
-# Start master node
-python cluster/master.py --config config/master.yaml
+# Start the cluster
+bash test-cluster.sh
 
-# Start worker node (on another machine or terminal)
-python cluster/worker.py --config config/worker.yaml --master-url grpc://master-ip:50051
+# In another terminal: Run tests
+python test-e2e.py
+python test-submit.py
+
+# Stop cluster
+bash stop-cluster.sh
 ```
+
+For detailed testing instructions, see [TESTING.md](TESTING.md).
 
 ## 📚 Documentation
 
@@ -126,11 +137,22 @@ ch8-agent-cluster/
 
 ## 🎯 Roadmap
 
-### Phase 1: Foundation (Week 1)
+### Phase 1: Foundation (Week 1) ✅ COMPLETE
 - [x] Project setup
-- [ ] Basic master-worker communication
-- [ ] Service discovery (Redis)
-- [ ] Simple task delegation
+- [x] Basic master-worker communication (gRPC)
+- [x] Service discovery (Redis)
+- [x] Simple task delegation
+- [x] **Demo:** 1 master + 2 workers running locally
+
+**Sprint 1 delivered (2026-04-20):**
+- Redis-based worker registration with TTL
+- Master gRPC server (registration, heartbeat, results)
+- Worker gRPC client (connects, registers, executes tasks)
+- End-to-end task flow working
+- Structured logging throughout
+- Testing scripts and documentation
+
+See [TESTING.md](TESTING.md) for how to run the demo!
 
 ### Phase 2: Network Distribution (Week 2)
 - [ ] gRPC implementation
@@ -169,4 +191,6 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 ---
 
-**Status:** 🚧 Active Development | **Version:** 0.1.0-alpha
+**Status:** ✅ Sprint 1 Complete | **Version:** 0.2.0-alpha | **Progress:** 50%
+
+**Last updated:** 2026-04-20 | See [docs/decisions.md](docs/decisions.md) for technical decisions

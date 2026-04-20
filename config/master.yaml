@@ -10,7 +10,7 @@ grpc_max_workers: 10
 # Service discovery
 discovery:
   type: "redis"  # redis, etcd, consul
-  redis_url: "redis://localhost:6379/0"
+  redis_url: "redis://:1q2w3e4r@127.0.0.1:6379/0"
   heartbeat_interval_seconds: 10
 
 # Task queue

@@ -1,0 +1,37 @@
+# Worker Node Configuration - Worker 2
+
+node_id: "worker-002"
+node_type: "worker"
+
+# Master connection
+master_url: "grpc://localhost:50051"
+
+# Worker gRPC server (different port!)
+grpc_port: 50053
+
+# Max concurrent tasks
+max_concurrent_tasks: 5
+
+# Model Configuration
+models:
+  default: "ollama/phi-3-mini"
+  
+  available:
+    - name: "ollama/phi-3-mini"
+      type: "local"
+      context_length: 4096
+      cost_per_1k_tokens: 0
+      privacy: "high"
+      speed: "fast"
+      
+    - name: "ollama/llama3-8b"
+      type: "local"
+      context_length: 8192
+      cost_per_1k_tokens: 0
+      privacy: "high"
+      speed: "medium"
+
+# Logging
+logging:
+  level: "INFO"
+  format: "json"
