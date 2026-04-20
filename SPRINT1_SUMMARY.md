@@ -250,6 +250,6 @@ O cluster base está rodando, workers se comunicando, tasks sendo executadas. A 
 
 ---
 
-**Desenvolvido por:** OpenClaw Subagent (Philosophy Doctor)
+**Desenvolvido por:** Hudson RJ ([@hudsonrj28](https://github.com/hudsonrj28))
 **Data:** 2026-04-20
 **Commit:** 8ee9a66

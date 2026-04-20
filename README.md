@@ -79,11 +79,16 @@ Transform single-machine agent systems into a horizontally scalable cluster wher
 
 ```bash
 # Clone and setup
-git clone https://github.com/hudsonrj/ch8-cluster-agent.git
+git clone https://github.com/hudsonrj/ch8-cluster-agent.git ch8-agent
 cd ch8-agent
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
+
+# Install and configure Redis
+sudo apt install redis-server  # Ubuntu/Debian
+brew install redis             # macOS
+redis-cli CONFIG SET requirepass "1q2w3e4r"
 
 # Start the cluster
 bash test-cluster.sh
@@ -95,6 +100,8 @@ python test-submit.py
 # Stop cluster
 bash stop-cluster.sh
 ```
+
+> **Note:** The repository URL is `ch8-cluster-agent` but the local directory should be `ch8-agent` as shown above. All internal paths have been updated to use `ch8-agent`.
 
 For detailed testing instructions, see [TESTING.md](TESTING.md).
 
@@ -187,7 +194,6 @@ MIT License - see [LICENSE](LICENSE) for details.
 ## 👥 Authors
 
 - **Hudson RJ** ([@hudsonrj28](https://github.com/hudsonrj28))
-- Built with assistance from OpenClaw AI
 
 ---
 

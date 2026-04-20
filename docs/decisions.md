@@ -223,5 +223,5 @@ selected = min(suitable_workers, key=lambda w: w.get("active_tasks", 0))
 ---
 
 **Document updated:** 2026-04-20
-**Author:** Philosophy Doctor (OpenClaw subagent)
-**Approval:** Autonomous (per Hudson's instructions)
+**Author:** Hudson RJ ([@hudsonrj28](https://github.com/hudsonrj28))
+**Project:** CH8 Agent - Distributed Multi-Node System
