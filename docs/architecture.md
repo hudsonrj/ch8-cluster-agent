@@ -2,7 +2,7 @@
 
 ## System Design
 
-CH8 Agent Cluster is a distributed multi-node agent system built for horizontal scalability and intelligent task coordination.
+CH8 Cluster Agent is a distributed multi-node agent system built for horizontal scalability and intelligent task coordination.
 
 ## Core Components
 

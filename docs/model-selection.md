@@ -2,7 +2,7 @@
 
 ## Overview
 
-CH8 Agent Cluster supports flexible model selection, allowing each worker to use different models based on task requirements, privacy concerns, and user preferences.
+CH8 Cluster Agent supports flexible model selection, allowing each worker to use different models based on task requirements, privacy concerns, and user preferences.
 
 ## Key Features
 

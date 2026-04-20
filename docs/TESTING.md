@@ -1,4 +1,4 @@
-# 🧪 CH8 Agent Cluster - Guia de Testes
+# 🧪 CH8 Cluster Agent - Guia de Testes
 
 **Versão:** 0.2.0-alpha  
 **Data:** 2026-04-20
@@ -23,7 +23,7 @@
 **Verifica que o cluster está funcionando basicamente:**
 
 ```bash
-cd /data/ch8-agent-cluster
+cd /data/ch8-cluster-agent
 
 # 1. Iniciar cluster
 bash test-cluster.sh

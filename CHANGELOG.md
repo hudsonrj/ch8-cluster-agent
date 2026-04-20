@@ -124,8 +124,8 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ## Links
 
-- [Repositório GitHub](https://github.com/hudsonrj/ch8-agent-cluster)
-- [Issues](https://github.com/hudsonrj/ch8-agent-cluster/issues)
+- [Repositório GitHub](https://github.com/hudsonrj/ch8-cluster-agent)
+- [Issues](https://github.com/hudsonrj/ch8-cluster-agent/issues)
 - [Documentação Completa](docs/MANUAL.md)
 
 ---

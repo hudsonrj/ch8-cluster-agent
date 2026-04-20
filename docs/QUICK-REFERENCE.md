@@ -1,4 +1,4 @@
-# ⚡ CH8 Agent Cluster - Quick Reference
+# ⚡ CH8 Cluster Agent - Quick Reference
 
 **Cheat sheet para comandos e configurações mais comuns.**
 
@@ -449,7 +449,7 @@ models:
 | Testes | [docs/TESTING.md](docs/TESTING.md) |
 | Contribuir | [CONTRIBUTING.md](CONTRIBUTING.md) |
 | Changelog | [CHANGELOG.md](CHANGELOG.md) |
-| GitHub Issues | https://github.com/hudsonrj/ch8-agent-cluster/issues |
+| GitHub Issues | https://github.com/hudsonrj/ch8-cluster-agent/issues |
 
 ---
 

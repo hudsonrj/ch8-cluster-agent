@@ -1,4 +1,4 @@
-# 🚀 CH8 Agent Cluster - Guia de Deployment
+# 🚀 CH8 Cluster Agent - Guia de Deployment
 
 **Versão:** 0.2.0-alpha  
 **Data:** 2026-04-20
@@ -30,8 +30,8 @@
 
 **Instalação:**
 ```bash
-git clone https://github.com/hudsonrj/ch8-agent-cluster.git
-cd ch8-agent-cluster
+git clone https://github.com/hudsonrj/ch8-cluster-agent.git
+cd ch8-cluster-agent
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
@@ -69,7 +69,7 @@ module.exports = {
       name: 'ch8-master',
       script: 'venv/bin/python',
       args: 'cluster/master.py',
-      cwd: '/data/ch8-agent-cluster',
+      cwd: '/data/ch8-cluster-agent',
       autorestart: true,
       max_memory_restart: '1G'
     },
@@ -77,7 +77,7 @@ module.exports = {
       name: 'ch8-worker-001',
       script: 'venv/bin/python',
       args: 'cluster/worker.py --config config/worker.yaml',
-      cwd: '/data/ch8-agent-cluster',
+      cwd: '/data/ch8-cluster-agent',
       autorestart: true,
       max_memory_restart: '2G'
     },
@@ -85,7 +85,7 @@ module.exports = {
       name: 'ch8-worker-002',
       script: 'venv/bin/python',
       args: 'cluster/worker.py --config config/workers/worker-002.yaml',
-      cwd: '/data/ch8-agent-cluster',
+      cwd: '/data/ch8-cluster-agent',
       autorestart: true,
       max_memory_restart: '2G'
     }
@@ -112,9 +112,9 @@ After=network.target redis.service
 [Service]
 Type=simple
 User=ch8
-WorkingDirectory=/opt/ch8-agent-cluster
-Environment="PATH=/opt/ch8-agent-cluster/venv/bin"
-ExecStart=/opt/ch8-agent-cluster/venv/bin/python cluster/master.py
+WorkingDirectory=/opt/ch8-cluster-agent
+Environment="PATH=/opt/ch8-cluster-agent/venv/bin"
+ExecStart=/opt/ch8-cluster-agent/venv/bin/python cluster/master.py
 Restart=always
 RestartSec=10
 
@@ -131,9 +131,9 @@ After=network.target redis.service ch8-master.service
 [Service]
 Type=simple
 User=ch8
-WorkingDirectory=/opt/ch8-agent-cluster
-Environment="PATH=/opt/ch8-agent-cluster/venv/bin"
-ExecStart=/opt/ch8-agent-cluster/venv/bin/python cluster/worker.py --config config/workers/worker-%i.yaml
+WorkingDirectory=/opt/ch8-cluster-agent
+Environment="PATH=/opt/ch8-cluster-agent/venv/bin"
+ExecStart=/opt/ch8-cluster-agent/venv/bin/python cluster/worker.py --config config/workers/worker-%i.yaml
 Restart=always
 RestartSec=10
 
@@ -182,9 +182,9 @@ sudo dphys-swapfile swapon
 **Instalação CH8:**
 ```bash
 cd /opt
-sudo git clone https://github.com/hudsonrj/ch8-agent-cluster.git
-sudo chown -R pi:pi ch8-agent-cluster
-cd ch8-agent-cluster
+sudo git clone https://github.com/hudsonrj/ch8-cluster-agent.git
+sudo chown -R pi:pi ch8-cluster-agent
+cd ch8-cluster-agent
 
 python3 -m venv venv
 source venv/bin/activate
@@ -260,9 +260,9 @@ After=network.target redis.service
 [Service]
 Type=simple
 User=pi
-WorkingDirectory=/opt/ch8-agent-cluster
-Environment="PATH=/opt/ch8-agent-cluster/venv/bin"
-ExecStart=/opt/ch8-agent-cluster/venv/bin/python cluster/worker.py --config config/pi-worker.yaml
+WorkingDirectory=/opt/ch8-cluster-agent
+Environment="PATH=/opt/ch8-cluster-agent/venv/bin"
+ExecStart=/opt/ch8-cluster-agent/venv/bin/python cluster/worker.py --config config/pi-worker.yaml
 Restart=always
 RestartSec=10
 
@@ -431,8 +431,8 @@ sudo apt install -y python3-pip python3-venv git
 
 # 5. Clonar repo
 cd ~
-git clone https://github.com/hudsonrj/ch8-agent-cluster.git
-cd ch8-agent-cluster
+git clone https://github.com/hudsonrj/ch8-cluster-agent.git
+cd ch8-cluster-agent
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt

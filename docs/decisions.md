@@ -1,4 +1,4 @@
-# Technical Decisions - CH8 Agent Cluster
+# Technical Decisions - CH8 Cluster Agent
 
 This document tracks important technical decisions made during development.
 
