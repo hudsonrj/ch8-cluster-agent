@@ -5,7 +5,7 @@
 Execute o script de instalação automática:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/hudsonrj/ch8-cluster-agent/master/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/hudsonrj/ch8-cluster-agent/main/scripts/install.sh | bash
 ```
 
 Este script irá:
@@ -117,7 +117,7 @@ Para instalar em múltiplas máquinas e criar um cluster distribuído:
 
 ```bash
 # Instalar
-curl -fsSL https://raw.githubusercontent.com/hudsonrj/ch8-cluster-agent/master/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/hudsonrj/ch8-cluster-agent/main/scripts/install.sh | bash
 
 # Configurar
 cd ~/ch8-agent
@@ -138,7 +138,7 @@ python cluster/master.py
 
 ```bash
 # Instalar em cada máquina worker
-curl -fsSL https://raw.githubusercontent.com/hudsonrj/ch8-cluster-agent/master/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/hudsonrj/ch8-cluster-agent/main/scripts/install.sh | bash
 
 # Configurar
 cd ~/ch8-agent

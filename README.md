@@ -74,7 +74,7 @@ Transform single-machine agent systems into a horizontally scalable cluster wher
 
 **One-line installation:**
 ```bash
-curl -fsSL https://raw.githubusercontent.com/hudsonrj/ch8-cluster-agent/master/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/hudsonrj/ch8-cluster-agent/main/scripts/install.sh | bash
 ```
 
 This will automatically:

@@ -1,6 +1,6 @@
 #!/bin/bash
 # CH8 Agent - Automated Installation Script
-# Usage: curl -fsSL https://raw.githubusercontent.com/hudsonrj/ch8-cluster-agent/master/scripts/install.sh | bash
+# Usage: curl -fsSL https://raw.githubusercontent.com/hudsonrj/ch8-cluster-agent/main/scripts/install.sh | bash
 
 set -e
 

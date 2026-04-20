@@ -144,7 +144,7 @@ Result: ~$10/month for production AI workload
 
 ### One-Line Install
 ```bash
-curl -fsSL https://raw.githubusercontent.com/hudsonrj/ch8-cluster-agent/master/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/hudsonrj/ch8-cluster-agent/main/scripts/install.sh | bash
 ```
 
 ### Using the CLI
@@ -159,7 +159,7 @@ ch8 help         # Full command list
 ### Adding More Machines
 On each new machine:
 ```bash
-curl -fsSL https://raw.githubusercontent.com/hudsonrj/ch8-cluster-agent/master/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/hudsonrj/ch8-cluster-agent/main/scripts/install.sh | bash
 # Edit config to point to master
 vim ~/ch8-agent/config/worker.yaml
 # Start worker
