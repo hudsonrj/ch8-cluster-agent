@@ -1,4 +1,4 @@
-# CH8 Distributed Agent 🌐⚡
+# Hermes Agent 🌐⚡
 
 **Distributed Multi-Node Agent System with Intelligent Coordination**
 
@@ -79,8 +79,8 @@ Transform single-machine agent systems into a horizontally scalable cluster wher
 
 ```bash
 # Clone and setup
-git clone https://github.com/hudsonrj/ch8-distributed-agent.git
-cd ch8-distributed-agent
+git clone https://github.com/hudsonrj/hermes-agent.git
+cd hermes-agent
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
@@ -120,7 +120,7 @@ For detailed testing instructions, see [TESTING.md](TESTING.md).
 ## 📦 Project Structure
 
 ```
-ch8-distributed-agent/
+hermes-agent/
 ├── cluster/              # Core cluster logic
 │   ├── master.py        # Master node implementation
 │   ├── worker.py        # Worker node implementation

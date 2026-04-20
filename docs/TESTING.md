@@ -1,4 +1,4 @@
-# 🧪 CH8 Distributed Agent - Guia de Testes
+# 🧪 Hermes Agent - Guia de Testes
 
 **Versão:** 0.2.0-alpha  
 **Data:** 2026-04-20
@@ -23,7 +23,7 @@
 **Verifica que o cluster está funcionando basicamente:**
 
 ```bash
-cd /data/ch8-distributed-agent
+cd /data/hermes-agent
 
 # 1. Iniciar cluster
 bash test-cluster.sh

@@ -1,4 +1,4 @@
-# 🚀 CH8 Distributed Agent - Guia de Deployment
+# 🚀 Hermes Agent - Guia de Deployment
 
 **Versão:** 0.2.0-alpha  
 **Data:** 2026-04-20
@@ -30,8 +30,8 @@
 
 **Instalação:**
 ```bash
-git clone https://github.com/hudsonrj/ch8-distributed-agent.git
-cd ch8-distributed-agent
+git clone https://github.com/hudsonrj/hermes-agent.git
+cd hermes-agent
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
@@ -69,7 +69,7 @@ module.exports = {
       name: 'ch8-master',
       script: 'venv/bin/python',
       args: 'cluster/master.py',
-      cwd: '/data/ch8-distributed-agent',
+      cwd: '/data/hermes-agent',
       autorestart: true,
       max_memory_restart: '1G'
     },
@@ -77,7 +77,7 @@ module.exports = {
       name: 'ch8-worker-001',
       script: 'venv/bin/python',
       args: 'cluster/worker.py --config config/worker.yaml',
-      cwd: '/data/ch8-distributed-agent',
+      cwd: '/data/hermes-agent',
       autorestart: true,
       max_memory_restart: '2G'
     },
@@ -85,7 +85,7 @@ module.exports = {
       name: 'ch8-worker-002',
       script: 'venv/bin/python',
       args: 'cluster/worker.py --config config/workers/worker-002.yaml',
-      cwd: '/data/ch8-distributed-agent',
+      cwd: '/data/hermes-agent',
       autorestart: true,
       max_memory_restart: '2G'
     }
@@ -112,9 +112,9 @@ After=network.target redis.service
 [Service]
 Type=simple
 User=ch8
-WorkingDirectory=/opt/ch8-distributed-agent
-Environment="PATH=/opt/ch8-distributed-agent/venv/bin"
-ExecStart=/opt/ch8-distributed-agent/venv/bin/python cluster/master.py
+WorkingDirectory=/opt/hermes-agent
+Environment="PATH=/opt/hermes-agent/venv/bin"
+ExecStart=/opt/hermes-agent/venv/bin/python cluster/master.py
 Restart=always
 RestartSec=10
 
@@ -131,9 +131,9 @@ After=network.target redis.service ch8-master.service
 [Service]
 Type=simple
 User=ch8
-WorkingDirectory=/opt/ch8-distributed-agent
-Environment="PATH=/opt/ch8-distributed-agent/venv/bin"
-ExecStart=/opt/ch8-distributed-agent/venv/bin/python cluster/worker.py --config config/workers/worker-%i.yaml
+WorkingDirectory=/opt/hermes-agent
+Environment="PATH=/opt/hermes-agent/venv/bin"
+ExecStart=/opt/hermes-agent/venv/bin/python cluster/worker.py --config config/workers/worker-%i.yaml
 Restart=always
 RestartSec=10
 
@@ -182,9 +182,9 @@ sudo dphys-swapfile swapon
 **Instalação CH8:**
 ```bash
 cd /opt
-sudo git clone https://github.com/hudsonrj/ch8-distributed-agent.git
-sudo chown -R pi:pi ch8-distributed-agent
-cd ch8-distributed-agent
+sudo git clone https://github.com/hudsonrj/hermes-agent.git
+sudo chown -R pi:pi hermes-agent
+cd hermes-agent
 
 python3 -m venv venv
 source venv/bin/activate
@@ -260,9 +260,9 @@ After=network.target redis.service
 [Service]
 Type=simple
 User=pi
-WorkingDirectory=/opt/ch8-distributed-agent
-Environment="PATH=/opt/ch8-distributed-agent/venv/bin"
-ExecStart=/opt/ch8-distributed-agent/venv/bin/python cluster/worker.py --config config/pi-worker.yaml
+WorkingDirectory=/opt/hermes-agent
+Environment="PATH=/opt/hermes-agent/venv/bin"
+ExecStart=/opt/hermes-agent/venv/bin/python cluster/worker.py --config config/pi-worker.yaml
 Restart=always
 RestartSec=10
 
@@ -431,8 +431,8 @@ sudo apt install -y python3-pip python3-venv git
 
 # 5. Clonar repo
 cd ~
-git clone https://github.com/hudsonrj/ch8-distributed-agent.git
-cd ch8-distributed-agent
+git clone https://github.com/hudsonrj/hermes-agent.git
+cd hermes-agent
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt

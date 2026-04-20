@@ -2,7 +2,7 @@
 
 ## System Design
 
-CH8 Distributed Agent is a distributed multi-node agent system built for horizontal scalability and intelligent task coordination.
+Hermes Agent is a distributed multi-node agent system built for horizontal scalability and intelligent task coordination.
 
 ## Core Components
 
