@@ -12,7 +12,7 @@ This demonstrates the full workflow:
 """
 import asyncio
 import sys
-sys.path.insert(0, "/data/ch8-agent-cluster")
+sys.path.insert(0, "/data/ch8-agent")
 
 from cluster.master import TaskRequest
 from cluster.discovery import RedisDiscovery

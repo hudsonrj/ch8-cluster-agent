@@ -15,7 +15,7 @@ from typing import List
 import structlog
 
 # Add cluster to path
-sys.path.insert(0, "/data/ch8-agent-cluster")
+sys.path.insert(0, "/data/ch8-agent")
 
 from cluster.master import MasterNode, TaskRequest
 import yaml
@@ -40,7 +40,7 @@ async def run_demo():
     print("="*70 + "\n")
     
     # Load master config
-    with open("/data/ch8-agent-cluster/config/master.yaml") as f:
+    with open("/data/ch8-agent/config/master.yaml") as f:
         master_config = yaml.safe_load(f)
     
     print("📍 Step 1: Starting Master Node...")
@@ -54,8 +54,8 @@ async def run_demo():
     print("📍 Step 2: Starting Worker Nodes...")
     print("   (Workers will be started separately in other terminals)")
     print("   Run these commands in separate terminals:")
-    print("   Terminal 2: cd /data/ch8-agent-cluster && source venv/bin/activate && python cluster/worker.py config/worker.yaml")
-    print("   Terminal 3: cd /data/ch8-agent-cluster && source venv/bin/activate && python cluster/worker.py config/worker2.yaml")
+    print("   Terminal 2: cd /data/ch8-agent && source venv/bin/activate && python cluster/worker.py config/worker.yaml")
+    print("   Terminal 3: cd /data/ch8-agent && source venv/bin/activate && python cluster/worker.py config/worker2.yaml")
     print("\nWaiting 10 seconds for workers to connect...")
     
     for i in range(10, 0, -1):

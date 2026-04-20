@@ -80,7 +80,7 @@ Transform single-machine agent systems into a horizontally scalable cluster wher
 ```bash
 # Clone and setup
 git clone https://github.com/hudsonrj/ch8-cluster-agent.git
-cd ch8-cluster-agent
+cd ch8-agent
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
@@ -120,7 +120,7 @@ For detailed testing instructions, see [TESTING.md](TESTING.md).
 ## 📦 Project Structure
 
 ```
-ch8-cluster-agent/
+ch8-agent/
 ├── cluster/              # Core cluster logic
 │   ├── master.py        # Master node implementation
 │   ├── worker.py        # Worker node implementation

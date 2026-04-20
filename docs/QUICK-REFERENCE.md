@@ -449,7 +449,7 @@ models:
 | Testes | [docs/TESTING.md](docs/TESTING.md) |
 | Contribuir | [CONTRIBUTING.md](CONTRIBUTING.md) |
 | Changelog | [CHANGELOG.md](CHANGELOG.md) |
-| GitHub Issues | https://github.com/hudsonrj/ch8-cluster-agent/issues |
+| GitHub Issues | https://github.com/hudsonrj/ch8-agent/issues |
 
 ---
 

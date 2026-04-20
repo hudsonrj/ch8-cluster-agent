@@ -3,7 +3,7 @@
 
 set -e
 
-cd /data/ch8-agent-cluster
+cd /data/ch8-agent
 
 echo "======================================"
 echo "  CH8 Agent Cluster - Quick Test"
@@ -35,21 +35,21 @@ echo ""
 
 # Start master
 echo "🚀 Starting Master (port 50051)..."
-PYTHONPATH=/data/ch8-agent-cluster python cluster/master.py > /tmp/ch8-master.log 2>&1 &
+PYTHONPATH=/data/ch8-agent python cluster/master.py > /tmp/ch8-master.log 2>&1 &
 MASTER_PID=$!
 echo "   PID: $MASTER_PID"
 sleep 2
 
 # Start worker 1
 echo "🚀 Starting Worker 1 (port 50052)..."
-PYTHONPATH=/data/ch8-agent-cluster python cluster/worker.py config/worker.yaml > /tmp/ch8-worker1.log 2>&1 &
+PYTHONPATH=/data/ch8-agent python cluster/worker.py config/worker.yaml > /tmp/ch8-worker1.log 2>&1 &
 WORKER1_PID=$!
 echo "   PID: $WORKER1_PID"
 sleep 2
 
 # Start worker 2
 echo "🚀 Starting Worker 2 (port 50053)..."
-PYTHONPATH=/data/ch8-agent-cluster python cluster/worker.py config/worker2.yaml > /tmp/ch8-worker2.log 2>&1 &
+PYTHONPATH=/data/ch8-agent python cluster/worker.py config/worker2.yaml > /tmp/ch8-worker2.log 2>&1 &
 WORKER2_PID=$!
 echo "   PID: $WORKER2_PID"
 sleep 3
@@ -102,7 +102,7 @@ python3 <<EOF
 import asyncio
 import grpc
 import sys
-sys.path.insert(0, "/data/ch8-agent-cluster")
+sys.path.insert(0, "/data/ch8-agent")
 
 from cluster.proto import cluster_pb2, cluster_pb2_grpc
 from cluster.master import MasterNode, TaskRequest
@@ -110,7 +110,7 @@ import yaml
 
 async def test():
     # Load config
-    with open("/data/ch8-agent-cluster/config/master.yaml") as f:
+    with open("/data/ch8-agent/config/master.yaml") as f:
         config = yaml.safe_load(f)
     
     # Connect to running master's Redis

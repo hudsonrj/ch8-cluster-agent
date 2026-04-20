@@ -30,8 +30,8 @@
 
 **Instalação:**
 ```bash
-git clone https://github.com/hudsonrj/ch8-cluster-agent.git
-cd ch8-cluster-agent
+git clone https://github.com/hudsonrj/ch8-agent.git
+cd ch8-agent
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
@@ -113,8 +113,8 @@ After=network.target redis.service
 Type=simple
 User=ch8
 WorkingDirectory=/opt/ch8-agent
-Environment="PATH=/opt/ch8-cluster-agent/venv/bin"
-ExecStart=/opt/ch8-cluster-agent/venv/bin/python cluster/master.py
+Environment="PATH=/opt/ch8-agent/venv/bin"
+ExecStart=/opt/ch8-agent/venv/bin/python cluster/master.py
 Restart=always
 RestartSec=10
 
@@ -132,8 +132,8 @@ After=network.target redis.service ch8-master.service
 Type=simple
 User=ch8
 WorkingDirectory=/opt/ch8-agent
-Environment="PATH=/opt/ch8-cluster-agent/venv/bin"
-ExecStart=/opt/ch8-cluster-agent/venv/bin/python cluster/worker.py --config config/workers/worker-%i.yaml
+Environment="PATH=/opt/ch8-agent/venv/bin"
+ExecStart=/opt/ch8-agent/venv/bin/python cluster/worker.py --config config/workers/worker-%i.yaml
 Restart=always
 RestartSec=10
 
@@ -182,9 +182,9 @@ sudo dphys-swapfile swapon
 **Instalação CH8:**
 ```bash
 cd /opt
-sudo git clone https://github.com/hudsonrj/ch8-cluster-agent.git
+sudo git clone https://github.com/hudsonrj/ch8-agent.git
 sudo chown -R pi:pi ch8-agent
-cd ch8-cluster-agent
+cd ch8-agent
 
 python3 -m venv venv
 source venv/bin/activate
@@ -261,8 +261,8 @@ After=network.target redis.service
 Type=simple
 User=pi
 WorkingDirectory=/opt/ch8-agent
-Environment="PATH=/opt/ch8-cluster-agent/venv/bin"
-ExecStart=/opt/ch8-cluster-agent/venv/bin/python cluster/worker.py --config config/pi-worker.yaml
+Environment="PATH=/opt/ch8-agent/venv/bin"
+ExecStart=/opt/ch8-agent/venv/bin/python cluster/worker.py --config config/pi-worker.yaml
 Restart=always
 RestartSec=10
 
@@ -431,8 +431,8 @@ sudo apt install -y python3-pip python3-venv git
 
 # 5. Clonar repo
 cd ~
-git clone https://github.com/hudsonrj/ch8-cluster-agent.git
-cd ch8-cluster-agent
+git clone https://github.com/hudsonrj/ch8-agent.git
+cd ch8-agent
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
