@@ -1,0 +1,33 @@
+# Worker Node Configuration
+
+node_id: "worker-001"
+node_type: "worker"
+
+# Master connection
+master_url: "grpc://localhost:50051"
+
+# gRPC client settings
+grpc:
+  max_retries: 3
+  timeout_seconds: 10
+
+# MCP servers
+mcp_servers:
+  - name: "python_execution"
+    port: 8081
+    enabled: true
+  
+  - name: "database_access"
+    port: 8082
+    enabled: true
+    connection_string: "postgresql://user:pass@localhost:5432/db"
+
+# Subagent settings
+subagents:
+  max_concurrent: 5
+  default_timeout_seconds: 600
+
+# Logging
+logging:
+  level: "INFO"
+  format: "json"

@@ -1,0 +1,29 @@
+# Master Node Configuration
+
+node_id: "master-001"
+node_type: "master"
+
+# gRPC server settings
+grpc_port: 50051
+grpc_max_workers: 10
+
+# Service discovery
+discovery:
+  type: "redis"  # redis, etcd, consul
+  redis_url: "redis://localhost:6379/0"
+  heartbeat_interval_seconds: 10
+
+# Task queue
+task_queue:
+  max_size: 1000
+  default_timeout_seconds: 300
+
+# Logging
+logging:
+  level: "INFO"
+  format: "json"
+
+# MCP settings
+mcp:
+  registry_enabled: true
+  registry_port: 8080
