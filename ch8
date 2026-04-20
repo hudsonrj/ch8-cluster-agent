@@ -20,7 +20,7 @@ class Colors:
 
 def print_logo():
     print(f"{Colors.BLUE}")
-    print("""
+    print(r"""
    _____ _   _ ___    _                    _
   / ____| | | / _ \  / \   __ _  ___ _ __ | |_
  | |    | |_| | | | / _ \ / _` |/ _ \ '_ \| __|
