@@ -6,6 +6,61 @@ node_type: "worker"
 # Master connection
 master_url: "grpc://localhost:50051"
 
+# Model Configuration
+models:
+  # Default model for this worker
+  default: "ollama/phi-3-mini"
+  
+  # Available models (worker capabilities)
+  available:
+    - name: "ollama/phi-3-mini"
+      type: "local"
+      context_length: 4096
+      cost_per_1k_tokens: 0  # Free
+      privacy: "high"
+      speed: "fast"
+      
+    - name: "ollama/llama3-8b"
+      type: "local"
+      context_length: 8192
+      cost_per_1k_tokens: 0
+      privacy: "high"
+      speed: "medium"
+      
+    - name: "openrouter/anthropic/claude-sonnet-4"
+      type: "api"
+      context_length: 200000
+      cost_per_1k_tokens: 0.003
+      privacy: "low"
+      speed: "medium"
+      api_key_env: "OPENROUTER_API_KEY"
+      
+    - name: "groq/llama-3-70b"
+      type: "api"
+      context_length: 8192
+      cost_per_1k_tokens: 0.0005
+      privacy: "low"
+      speed: "very_fast"
+      api_key_env: "GROQ_API_KEY"
+  
+  # Automatic routing rules
+  routing:
+    # Tasks < 500 tokens
+    small_tasks:
+      max_tokens: 500
+      model: "ollama/phi-3-mini"
+    
+    # Tasks marked as sensitive
+    sensitive:
+      privacy_required: "high"
+      model: "ollama/llama3-8b"
+      force_local: true
+    
+    # Complex multi-step tasks
+    complex:
+      min_steps: 3
+      model: "openrouter/anthropic/claude-sonnet-4"
+
 # gRPC client settings
 grpc:
   max_retries: 3
