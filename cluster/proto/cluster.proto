@@ -1,0 +1,100 @@
+syntax = "proto3";
+
+package cluster;
+
+// Master Service - exposed by master node
+service MasterService {
+  // Worker registers with master on startup
+  rpc RegisterWorker(WorkerRegistration) returns (RegistrationResponse);
+  
+  // Worker sends periodic heartbeat
+  rpc Heartbeat(HeartbeatRequest) returns (HeartbeatResponse);
+  
+  // Worker reports task completion
+  rpc ReportTaskResult(TaskResult) returns (Ack);
+}
+
+// Worker Service - exposed by worker nodes
+service WorkerService {
+  // Master assigns task to worker
+  rpc AssignTask(TaskAssignment) returns (TaskAck);
+  
+  // Master requests worker status
+  rpc GetStatus(StatusRequest) returns (WorkerStatus);
+  
+  // Master cancels a task
+  rpc CancelTask(TaskCancellation) returns (Ack);
+}
+
+// Messages
+
+message WorkerRegistration {
+  string worker_id = 1;
+  repeated string capabilities = 2;
+  string address = 3;
+  int32 max_concurrent_tasks = 4;
+}
+
+message RegistrationResponse {
+  bool success = 1;
+  string message = 2;
+  int32 heartbeat_interval_seconds = 3;
+}
+
+message HeartbeatRequest {
+  string worker_id = 1;
+  int32 active_tasks = 2;
+  float cpu_usage = 3;
+  float memory_usage = 4;
+}
+
+message HeartbeatResponse {
+  bool ok = 1;
+  int32 next_heartbeat_seconds = 2;
+}
+
+message TaskAssignment {
+  string task_id = 1;
+  string description = 2;
+  int32 priority = 3;
+  map<string, string> context = 4;
+  int32 timeout_seconds = 5;
+}
+
+message TaskAck {
+  bool accepted = 1;
+  string message = 2;
+}
+
+message TaskResult {
+  string task_id = 1;
+  string worker_id = 2;
+  bool success = 3;
+  string output = 4;
+  string error = 5;
+  int64 execution_time_ms = 6;
+}
+
+message StatusRequest {
+  string worker_id = 1;
+}
+
+message WorkerStatus {
+  string worker_id = 1;
+  string status = 2;  // active, idle, busy, error
+  int32 active_tasks = 3;
+  int32 completed_tasks = 4;
+  int32 failed_tasks = 5;
+  float cpu_usage = 6;
+  float memory_usage = 7;
+}
+
+message TaskCancellation {
+  string task_id = 1;
+  string reason = 2;
+}
+
+message Ack {
+  bool ok = 1;
+  string message = 2;
+}
