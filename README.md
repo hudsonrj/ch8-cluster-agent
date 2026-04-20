@@ -1,4 +1,4 @@
-# CH8 Cluster Agent 🌐⚡
+# CH8 Distributed Agent 🌐⚡
 
 **Distributed Multi-Node Agent System with Intelligent Coordination**
 
@@ -79,8 +79,8 @@ Transform single-machine agent systems into a horizontally scalable cluster wher
 
 ```bash
 # Clone and setup
-git clone https://github.com/hudsonrj/ch8-cluster-agent.git
-cd ch8-cluster-agent
+git clone https://github.com/hudsonrj/ch8-distributed-agent.git
+cd ch8-distributed-agent
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
@@ -120,7 +120,7 @@ For detailed testing instructions, see [TESTING.md](TESTING.md).
 ## 📦 Project Structure
 
 ```
-ch8-cluster-agent/
+ch8-distributed-agent/
 ├── cluster/              # Core cluster logic
 │   ├── master.py        # Master node implementation
 │   ├── worker.py        # Worker node implementation

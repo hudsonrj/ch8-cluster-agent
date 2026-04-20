@@ -1,4 +1,4 @@
-# Testing CH8 Cluster Agent
+# Testing CH8 Distributed Agent
 
 ## Quick Start
 
@@ -10,7 +10,7 @@
 ### Start the Cluster
 
 ```bash
-cd /data/ch8-cluster-agent
+cd /data/ch8-distributed-agent
 bash test-cluster.sh
 ```
 

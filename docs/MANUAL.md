@@ -1,4 +1,4 @@
-# 📖 CH8 Cluster Agent - Manual Completo
+# 📖 CH8 Distributed Agent - Manual Completo
 
 **Versão:** 0.2.0-alpha  
 **Data:** 2026-04-20  
@@ -23,7 +23,7 @@
 
 ## 1. Visão Geral
 
-### O que é o CH8 Cluster Agent?
+### O que é o CH8 Distributed Agent?
 
 CH8 é um **sistema distribuído de agentes de IA** que permite coordenar múltiplos nós computacionais (notebooks antigos, Raspberry Pi, VPS baratos) para executar tarefas de forma inteligente e escalável.
 
@@ -73,8 +73,8 @@ CH8 é um **sistema distribuído de agentes de IA** que permite coordenar múlti
 
 ```bash
 # 1. Clonar repositório
-git clone https://github.com/hudsonrj/ch8-cluster-agent.git
-cd ch8-cluster-agent
+git clone https://github.com/hudsonrj/ch8-distributed-agent.git
+cd ch8-distributed-agent
 
 # 2. Criar ambiente virtual
 python3 -m venv venv
@@ -291,21 +291,21 @@ LOG_LEVEL=INFO
 
 **Modo Interativo - Terminal 1 (Master):**
 ```bash
-cd /data/ch8-cluster-agent
+cd /data/ch8-distributed-agent
 source venv/bin/activate
 python cluster/master.py
 ```
 
 **Modo Interativo - Terminal 2 (Worker 1):**
 ```bash
-cd /data/ch8-cluster-agent
+cd /data/ch8-distributed-agent
 source venv/bin/activate
 python cluster/worker.py --config config/worker.yaml
 ```
 
 **Modo Interativo - Terminal 3 (Worker 2):**
 ```bash
-cd /data/ch8-cluster-agent
+cd /data/ch8-distributed-agent
 source venv/bin/activate
 python cluster/worker.py --config config/workers/worker-002.yaml
 ```
@@ -1168,4 +1168,4 @@ routing:
 **Versão:** 1.0.0  
 **Status:** Sprint 1 Complete (50% do projeto)
 
-Para atualizações: `/data/ch8-cluster-agent/docs/CHANGELOG.md`
+Para atualizações: `/data/ch8-distributed-agent/docs/CHANGELOG.md`
