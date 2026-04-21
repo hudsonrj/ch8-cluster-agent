@@ -1,0 +1,24 @@
+# SQL Databases
+asyncpg>=0.28.0              # PostgreSQL async driver
+aiomysql>=0.2.0             # MySQL async driver
+aiosqlite>=0.19.0           # SQLite async driver
+aioodbc>=0.5.0              # SQL Server async driver
+pyodbc>=4.0.39              # ODBC driver for SQL Server
+
+# NoSQL Databases
+motor>=3.3.0                # MongoDB async driver
+aioredis>=2.0.1             # Redis async client
+redis>=5.0.0                # Redis sync client (fallback)
+cassandra-driver>=3.28.0    # Apache Cassandra driver
+elasticsearch[async]>=8.10.0 # Elasticsearch async client
+aioboto3>=12.0.0            # AWS SDK for Python (DynamoDB)
+boto3>=1.28.0               # AWS SDK (sync fallback)
+
+# Object Storage
+minio>=7.2.0                # MinIO client
+google-cloud-storage>=2.10.0 # Google Cloud Storage
+azure-storage-blob>=12.19.0  # Azure Blob Storage
+
+# Common Dependencies
+structlog>=23.1.0           # Structured logging
+pydantic>=2.0.0             # Data validation
