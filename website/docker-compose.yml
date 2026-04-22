@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  ch8agent-website:
+    build: .
+    container_name: ch8agent-website
+    ports:
+      - "8080:80"
+    restart: unless-stopped
+    networks:
+      - web
+    labels:
+      - "com.ch8agent.description=CH8 Agent Landing Page"
+
+networks:
+  web:
+    driver: bridge
