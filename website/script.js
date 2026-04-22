@@ -1,73 +1,38 @@
-// Minimal particles - very subtle
+// Particles
 particlesJS('particles-js', {
     particles: {
-        number: {
-            value: 30,
-            density: {
-                enable: true,
-                value_area: 1500
-            }
-        },
-        color: {
-            value: '#0066ff'
-        },
-        shape: {
-            type: 'circle'
-        },
-        opacity: {
-            value: 0.15,
-            random: true
-        },
-        size: {
-            value: 2,
-            random: true
-        },
+        number: { value: 35, density: { enable: true, value_area: 1800 } },
+        color: { value: '#0070f3' },
+        shape: { type: 'circle' },
+        opacity: { value: 0.2, random: true },
+        size: { value: 2, random: true },
         line_linked: {
             enable: true,
-            distance: 150,
-            color: '#0066ff',
-            opacity: 0.08,
+            distance: 160,
+            color: '#0070f3',
+            opacity: 0.06,
             width: 1
         },
-        move: {
-            enable: true,
-            speed: 1,
-            direction: 'none',
-            random: true,
-            straight: false,
-            out_mode: 'out'
-        }
+        move: { enable: true, speed: 0.8, direction: 'none', random: true, out_mode: 'out' }
     },
     interactivity: {
         detect_on: 'canvas',
-        events: {
-            onhover: {
-                enable: false
-            },
-            onclick: {
-                enable: false
-            },
-            resize: true
-        }
+        events: { onhover: { enable: false }, onclick: { enable: false }, resize: true }
     },
     retina_detect: true
 });
 
-// Initialize AOS with minimal settings
-AOS.init({
-    duration: 600,
-    once: true,
-    offset: 50,
-    easing: 'ease-out'
-});
+// AOS
+AOS.init({ duration: 550, once: true, offset: 40, easing: 'ease-out' });
 
-// Tab functionality
+// Tabs
 document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
         const tab = btn.dataset.tab;
+        const container = btn.closest('.install-wrapper') || document;
 
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+        container.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        container.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
 
         btn.classList.add('active');
         const pane = document.getElementById(tab);
@@ -75,247 +40,181 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     });
 });
 
-// Copy to clipboard
+// Copy buttons
 document.querySelectorAll('.copy-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-        const codeBlock = btn.previousElementSibling.querySelector('code');
-        const text = codeBlock.textContent;
+        const block = btn.closest('.code-block');
+        const code = block.querySelector('code');
+        if (!code) return;
 
-        navigator.clipboard.writeText(text).then(() => {
-            const originalHTML = btn.innerHTML;
-            btn.innerHTML = '✓ Copied';
-            btn.style.background = 'rgba(0, 212, 129, 0.2)';
-
+        navigator.clipboard.writeText(code.textContent.trim()).then(() => {
+            const orig = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-check"></i>';
+            btn.style.color = '#10b981';
             setTimeout(() => {
-                btn.innerHTML = originalHTML;
-                btn.style.background = '';
+                btn.innerHTML = orig;
+                btn.style.color = '';
             }, 2000);
         });
     });
 });
 
 // Smooth scroll
-document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-    anchor.addEventListener('click', function (e) {
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+    a.addEventListener('click', e => {
         e.preventDefault();
-        const target = document.querySelector(this.getAttribute('href'));
+        const target = document.querySelector(a.getAttribute('href'));
         if (target) {
-            const offset = 80;
-            const targetPosition = target.offsetTop - offset;
-            window.scrollTo({
-                top: targetPosition,
-                behavior: 'smooth'
-            });
+            window.scrollTo({ top: target.offsetTop - 72, behavior: 'smooth' });
         }
     });
 });
 
-// Mobile menu toggle
-const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
-const navLinks = document.querySelector('.nav-links');
-
-if (mobileMenuBtn && navLinks) {
-    mobileMenuBtn.addEventListener('click', () => {
-        const isOpen = navLinks.style.display === 'flex';
-        navLinks.style.display = isOpen ? 'none' : 'flex';
-        mobileMenuBtn.innerHTML = isOpen ? '<i class="fas fa-bars"></i>' : '<i class="fas fa-times"></i>';
-    });
-}
-
-// Create cluster animation - minimal style
-function createClusterAnimation() {
-    const container = document.getElementById('clusterAnimation');
-    if (!container) return;
-
-    const svg = `
-        <svg width="100%" height="100%" viewBox="0 0 600 400" xmlns="http://www.w3.org/2000/svg">
-            <!-- Central Coordinator -->
-            <g id="coordinator">
-                <circle cx="300" cy="200" r="32" fill="#0066ff" opacity="0.9" stroke="#e5e5e5" stroke-width="1"/>
-                <text x="300" y="205" text-anchor="middle" fill="#ffffff" font-size="10" font-weight="600" font-family="system-ui">
-                    Coordinator
-                </text>
-            </g>
-
-            <!-- Worker Nodes -->
-            <g id="worker1">
-                <circle cx="150" cy="80" r="24" fill="#ffffff" stroke="#e5e5e5" stroke-width="1"/>
-                <text x="150" y="84" text-anchor="middle" fill="#666666" font-size="9" font-family="system-ui">Pi 3</text>
-                <line x1="150" y1="104" x2="300" y2="200" stroke="#e5e5e5" stroke-width="1"/>
-            </g>
-
-            <g id="worker2">
-                <circle cx="450" cy="80" r="24" fill="#ffffff" stroke="#e5e5e5" stroke-width="1"/>
-                <text x="450" y="84" text-anchor="middle" fill="#666666" font-size="9" font-family="system-ui">Laptop</text>
-                <line x1="450" y1="104" x2="300" y2="200" stroke="#e5e5e5" stroke-width="1"/>
-            </g>
-
-            <g id="worker3">
-                <circle cx="150" cy="320" r="24" fill="#ffffff" stroke="#e5e5e5" stroke-width="1"/>
-                <text x="150" y="324" text-anchor="middle" fill="#666666" font-size="9" font-family="system-ui">Android</text>
-                <line x1="150" y1="296" x2="300" y2="200" stroke="#e5e5e5" stroke-width="1"/>
-            </g>
-
-            <g id="worker4">
-                <circle cx="450" cy="320" r="24" fill="#ffffff" stroke="#e5e5e5" stroke-width="1"/>
-                <text x="450" y="324" text-anchor="middle" fill="#666666" font-size="9" font-family="system-ui">Pi Zero</text>
-                <line x1="450" y1="296" x2="300" y2="200" stroke="#e5e5e5" stroke-width="1"/>
-            </g>
-        </svg>
-    `;
-
-    container.innerHTML = svg;
-}
-
-// Architecture diagram - clean style
-function createArchDiagram() {
-    const container = document.getElementById('archDiagram');
-    if (!container) return;
-
-    const svg = `
-        <svg width="100%" height="100%" viewBox="0 0 800 500" xmlns="http://www.w3.org/2000/svg">
-            <!-- Task Input -->
-            <rect x="50" y="50" width="120" height="60" rx="6" fill="#ffffff" stroke="#e5e5e5" stroke-width="1"/>
-            <text x="110" y="75" text-anchor="middle" fill="#0a0a0a" font-size="11" font-weight="600" font-family="system-ui">Task Input</text>
-            <text x="110" y="91" text-anchor="middle" fill="#999999" font-size="9" font-family="system-ui">"Analyze data"</text>
-
-            <!-- Orchestrator -->
-            <rect x="280" y="50" width="160" height="60" rx="6" fill="#0066ff" stroke="#e5e5e5" stroke-width="1"/>
-            <text x="360" y="73" text-anchor="middle" fill="#ffffff" font-size="12" font-weight="600" font-family="system-ui">Orchestrator</text>
-            <text x="360" y="88" text-anchor="middle" fill="rgba(255,255,255,0.8)" font-size="9" font-family="system-ui">Task Decomposition</text>
-            <text x="360" y="100" text-anchor="middle" fill="rgba(255,255,255,0.8)" font-size="9" font-family="system-ui">Model Selection</text>
-
-            <!-- Arrow 1 -->
-            <line x1="170" y1="80" x2="280" y2="80" stroke="#e5e5e5" stroke-width="1.5" marker-end="url(#arrow)"/>
-
-            <!-- Small Models -->
-            <rect x="100" y="200" width="100" height="50" rx="5" fill="#ffffff" stroke="#e5e5e5" stroke-width="1"/>
-            <text x="150" y="219" text-anchor="middle" fill="#0a0a0a" font-size="10" font-weight="600" font-family="system-ui">Phi-3 Mini</text>
-            <text x="150" y="232" text-anchor="middle" fill="#0066ff" font-size="9" font-family="system-ui">0.5B</text>
-            <text x="150" y="244" text-anchor="middle" fill="#999999" font-size="8" font-family="system-ui">Reasoning</text>
-
-            <rect x="270" y="200" width="100" height="50" rx="5" fill="#ffffff" stroke="#e5e5e5" stroke-width="1"/>
-            <text x="320" y="219" text-anchor="middle" fill="#0a0a0a" font-size="10" font-weight="600" font-family="system-ui">TinyLlama</text>
-            <text x="320" y="232" text-anchor="middle" fill="#0066ff" font-size="9" font-family="system-ui">1.1B</text>
-            <text x="320" y="244" text-anchor="middle" fill="#999999" font-size="8" font-family="system-ui">Code</text>
-
-            <rect x="440" y="200" width="100" height="50" rx="5" fill="#ffffff" stroke="#e5e5e5" stroke-width="1"/>
-            <text x="490" y="219" text-anchor="middle" fill="#0a0a0a" font-size="10" font-weight="600" font-family="system-ui">Qwen2</text>
-            <text x="490" y="232" text-anchor="middle" fill="#0066ff" font-size="9" font-family="system-ui">0.5B</text>
-            <text x="490" y="244" text-anchor="middle" fill="#999999" font-size="8" font-family="system-ui">Extract</text>
-
-            <!-- Arrows to models -->
-            <line x1="360" y1="110" x2="150" y2="200" stroke="#e5e5e5" stroke-width="1.5" marker-end="url(#arrow)"/>
-            <line x1="360" y1="110" x2="320" y2="200" stroke="#e5e5e5" stroke-width="1.5" marker-end="url(#arrow)"/>
-            <line x1="360" y1="110" x2="490" y2="200" stroke="#e5e5e5" stroke-width="1.5" marker-end="url(#arrow)"/>
-
-            <!-- Aggregator -->
-            <rect x="280" y="350" width="160" height="60" rx="6" fill="#ffffff" stroke="#0066ff" stroke-width="2"/>
-            <text x="360" y="372" text-anchor="middle" fill="#0a0a0a" font-size="12" font-weight="600" font-family="system-ui">Aggregator</text>
-            <text x="360" y="387" text-anchor="middle" fill="#666666" font-size="9" font-family="system-ui">Result Synthesis</text>
-            <text x="360" y="400" text-anchor="middle" fill="#0066ff" font-size="9" font-family="system-ui">Gemma 2B</text>
-
-            <!-- Arrows to aggregator -->
-            <line x1="150" y1="250" x2="300" y2="350" stroke="#e5e5e5" stroke-width="1.5" marker-end="url(#arrow)"/>
-            <line x1="320" y1="250" x2="350" y2="350" stroke="#e5e5e5" stroke-width="1.5" marker-end="url(#arrow)"/>
-            <line x1="490" y1="250" x2="420" y2="350" stroke="#e5e5e5" stroke-width="1.5" marker-end="url(#arrow)"/>
-
-            <!-- Output -->
-            <rect x="580" y="350" width="120" height="60" rx="6" fill="#ffffff" stroke="#e5e5e5" stroke-width="1"/>
-            <text x="640" y="372" text-anchor="middle" fill="#0a0a0a" font-size="11" font-weight="600" font-family="system-ui">Final Result</text>
-            <text x="640" y="387" text-anchor="middle" fill="#0066ff" font-size="9" font-family="system-ui">High Quality</text>
-            <text x="640" y="399" text-anchor="middle" fill="#0066ff" font-size="9" font-family="system-ui">Less Tokens</text>
-
-            <!-- Arrow to output -->
-            <line x1="440" y1="380" x2="580" y2="380" stroke="#e5e5e5" stroke-width="1.5" marker-end="url(#arrow)"/>
-
-            <!-- Arrow marker -->
-            <defs>
-                <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
-                    <polygon points="0 0, 8 3, 0 6" fill="#e5e5e5" />
-                </marker>
-            </defs>
-
-            <!-- Time annotations -->
-            <text x="150" y="270" text-anchor="middle" fill="#666666" font-size="9" font-weight="500" font-family="system-ui">8s</text>
-            <text x="320" y="270" text-anchor="middle" fill="#666666" font-size="9" font-weight="500" font-family="system-ui">6s</text>
-            <text x="490" y="270" text-anchor="middle" fill="#666666" font-size="9" font-weight="500" font-family="system-ui">7s</text>
-            <text x="360" y="430" text-anchor="middle" fill="#999999" font-size="9" font-family="system-ui">2s aggregation</text>
-            <text x="360" y="445" text-anchor="middle" fill="#0a0a0a" font-size="11" font-weight="600" font-family="system-ui">Total: 10s (parallel!)</text>
-        </svg>
-    `;
-
-    container.innerHTML = svg;
-}
-
-// Initialize diagrams
-window.addEventListener('load', () => {
-    createClusterAnimation();
-    createArchDiagram();
-});
-
-// Minimal navbar scroll effect
+// Navbar scroll
+const navbar = document.querySelector('.navbar');
 window.addEventListener('scroll', () => {
-    const navbar = document.querySelector('.navbar');
-    if (window.scrollY > 50) {
-        navbar.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.08)';
-    } else {
-        navbar.style.boxShadow = 'none';
-    }
+    navbar.style.boxShadow = window.scrollY > 20
+        ? '0 1px 0 rgba(255,255,255,0.04)'
+        : 'none';
 });
 
-// Animated counter
-function animateValue(element, start, end, duration) {
-    let startTimestamp = null;
-    const step = (timestamp) => {
-        if (!startTimestamp) startTimestamp = timestamp;
-        const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-        const value = Math.floor(progress * (end - start) + start);
-        const text = element.getAttribute('data-original');
-
-        if (text && text.includes('%')) {
-            element.textContent = value + '%';
-        } else if (text && text.includes('x')) {
-            element.textContent = value + 'x';
-        } else if (text && text.includes('B')) {
-            element.textContent = text;
+// Mobile menu
+const mobileBtn = document.querySelector('.mobile-menu-btn');
+const navLinks  = document.querySelector('.nav-links');
+if (mobileBtn && navLinks) {
+    mobileBtn.addEventListener('click', () => {
+        const open = navLinks.classList.toggle('mobile-open');
+        mobileBtn.innerHTML = open
+            ? '<i class="fas fa-times"></i>'
+            : '<i class="fas fa-bars"></i>';
+        if (open) {
+            navLinks.style.cssText = `
+                display: flex;
+                flex-direction: column;
+                position: fixed;
+                top: 56px; left: 0; right: 0;
+                background: rgba(5,5,5,0.97);
+                backdrop-filter: blur(20px);
+                border-bottom: 1px solid rgba(255,255,255,0.08);
+                padding: 1.5rem;
+                gap: 1rem;
+                z-index: 99;
+            `;
         } else {
-            element.textContent = value;
-        }
-
-        if (progress < 1) {
-            window.requestAnimationFrame(step);
-        }
-    };
-    window.requestAnimationFrame(step);
-}
-
-// Observe stats
-const statsObserver = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-        if (entry.isIntersecting) {
-            document.querySelectorAll('.stat-number').forEach(stat => {
-                const text = stat.textContent;
-                stat.setAttribute('data-original', text);
-                const match = text.match(/\d+/);
-                if (match) {
-                    const num = parseInt(match[0]);
-                    animateValue(stat, 0, num, 1500);
-                }
-            });
-            statsObserver.unobserve(entry.target);
+            navLinks.style.cssText = '';
         }
     });
-}, { threshold: 0.3 });
-
-const statsSection = document.querySelector('.hero-stats');
-if (statsSection) {
-    statsObserver.observe(statsSection);
 }
 
-// Minimal console easter egg
-console.log(
-    '%cCH8 AGENT%c\nDemocratic Distributed AI\nhttps://github.com/hudsonrj/ch8-cluster-agent',
-    'color: #0066ff; font-size: 16px; font-weight: 600;',
-    'color: #666666; font-size: 12px;'
-);
+// Stat counter animation
+function animateCount(el) {
+    const text = el.textContent;
+    const match = text.match(/\d+/);
+    if (!match) return;
+    const end = parseInt(match[0]);
+    const prefix = text.slice(0, text.indexOf(match[0]));
+    const suffix = text.slice(text.indexOf(match[0]) + match[0].length);
+    const duration = 1200;
+    let start = null;
+
+    function step(ts) {
+        if (!start) start = ts;
+        const p = Math.min((ts - start) / duration, 1);
+        const val = Math.floor(p * end);
+        el.textContent = prefix + val + suffix;
+        if (p < 1) requestAnimationFrame(step);
+        else el.textContent = text;
+    }
+    requestAnimationFrame(step);
+}
+
+const io = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+        if (e.isIntersecting) {
+            e.target.querySelectorAll('.number-val').forEach(animateCount);
+            io.unobserve(e.target);
+        }
+    });
+}, { threshold: 0.4 });
+
+const nums = document.querySelector('.numbers-grid');
+if (nums) io.observe(nums);
+
+// Architecture diagram
+function buildArchDiagram() {
+    const el = document.getElementById('archDiagram');
+    if (!el) return;
+
+    el.innerHTML = `
+    <svg width="100%" viewBox="0 0 800 380" xmlns="http://www.w3.org/2000/svg" style="max-height:380px">
+      <defs>
+        <marker id="arr" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="#333"/>
+        </marker>
+        <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#0070f3"/>
+          <stop offset="100%" stop-color="#7928ca"/>
+        </linearGradient>
+      </defs>
+
+      <!-- Input -->
+      <rect x="30" y="155" width="120" height="50" rx="8" fill="#141414" stroke="#222" stroke-width="1"/>
+      <text x="90" y="176" text-anchor="middle" fill="#a1a1aa" font-size="11" font-family="Inter,sans-serif" font-weight="600">Task Input</text>
+      <text x="90" y="193" text-anchor="middle" fill="#555" font-size="10" font-family="Inter,sans-serif">"Analyze data"</text>
+
+      <!-- Orchestrator -->
+      <rect x="240" y="145" width="160" height="60" rx="8" fill="url(#grad)" opacity="0.9"/>
+      <text x="320" y="169" text-anchor="middle" fill="#fff" font-size="12" font-family="Inter,sans-serif" font-weight="700">Orchestrator</text>
+      <text x="320" y="186" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="9.5" font-family="Inter,sans-serif">Task decomposition</text>
+      <text x="320" y="199" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="9.5" font-family="Inter,sans-serif">Model selection</text>
+
+      <!-- arrow input -> orchestrator -->
+      <line x1="150" y1="180" x2="240" y2="175" stroke="#333" stroke-width="1.5" marker-end="url(#arr)"/>
+
+      <!-- Agents -->
+      <rect x="100" y="280" width="110" height="50" rx="6" fill="#141414" stroke="#222" stroke-width="1"/>
+      <text x="155" y="301" text-anchor="middle" fill="#f5f5f5" font-size="10.5" font-family="Inter,sans-serif" font-weight="600">Agent 1</text>
+      <text x="155" y="315" text-anchor="middle" fill="#0070f3" font-size="9" font-family="Inter,sans-serif">Phi-3 Mini</text>
+      <text x="155" y="327" text-anchor="middle" fill="#555" font-size="8.5" font-family="Inter,sans-serif">Reasoning</text>
+
+      <rect x="285" y="280" width="110" height="50" rx="6" fill="#141414" stroke="#222" stroke-width="1"/>
+      <text x="340" y="301" text-anchor="middle" fill="#f5f5f5" font-size="10.5" font-family="Inter,sans-serif" font-weight="600">Agent 2</text>
+      <text x="340" y="315" text-anchor="middle" fill="#0070f3" font-size="9" font-family="Inter,sans-serif">TinyLlama</text>
+      <text x="340" y="327" text-anchor="middle" fill="#555" font-size="8.5" font-family="Inter,sans-serif">Extraction</text>
+
+      <rect x="470" y="280" width="110" height="50" rx="6" fill="#141414" stroke="#222" stroke-width="1"/>
+      <text x="525" y="301" text-anchor="middle" fill="#f5f5f5" font-size="10.5" font-family="Inter,sans-serif" font-weight="600">Agent 3</text>
+      <text x="525" y="315" text-anchor="middle" fill="#0070f3" font-size="9" font-family="Inter,sans-serif">Qwen2</text>
+      <text x="525" y="327" text-anchor="middle" fill="#555" font-size="8.5" font-family="Inter,sans-serif">Analysis</text>
+
+      <!-- arrows orchestrator -> agents -->
+      <line x1="320" y1="205" x2="155" y2="280" stroke="#333" stroke-width="1.5" marker-end="url(#arr)"/>
+      <line x1="320" y1="205" x2="340" y2="280" stroke="#333" stroke-width="1.5" marker-end="url(#arr)"/>
+      <line x1="320" y1="205" x2="525" y2="280" stroke="#333" stroke-width="1.5" marker-end="url(#arr)"/>
+
+      <!-- Aggregator -->
+      <rect x="560" y="145" width="150" height="60" rx="8" fill="#141414" stroke="#0070f3" stroke-width="1.5"/>
+      <text x="635" y="169" text-anchor="middle" fill="#f5f5f5" font-size="12" font-family="Inter,sans-serif" font-weight="700">Aggregator</text>
+      <text x="635" y="186" text-anchor="middle" fill="#a1a1aa" font-size="9.5" font-family="Inter,sans-serif">Result synthesis</text>
+      <text x="635" y="199" text-anchor="middle" fill="#0070f3" font-size="9.5" font-family="Inter,sans-serif">Gemma 2B</text>
+
+      <!-- arrows agents -> aggregator -->
+      <line x1="210" y1="305" x2="590" y2="205" stroke="#333" stroke-width="1.5" marker-end="url(#arr)"/>
+      <line x1="395" y1="305" x2="610" y2="205" stroke="#333" stroke-width="1.5" marker-end="url(#arr)"/>
+      <line x1="525" y1="280" x2="625" y2="205" stroke="#333" stroke-width="1.5" marker-end="url(#arr)"/>
+
+      <!-- Time labels -->
+      <text x="155" y="258" text-anchor="middle" fill="#555" font-size="9" font-family="Inter,sans-serif">8s</text>
+      <text x="340" y="258" text-anchor="middle" fill="#555" font-size="9" font-family="Inter,sans-serif">6s</text>
+      <text x="525" y="258" text-anchor="middle" fill="#555" font-size="9" font-family="Inter,sans-serif">7s</text>
+
+      <!-- Total -->
+      <text x="635" y="228" text-anchor="middle" fill="#a1a1aa" font-size="9" font-family="Inter,sans-serif">Total: 10s (parallel)</text>
+      <text x="635" y="243" text-anchor="middle" fill="#10b981" font-size="10" font-family="Inter,sans-serif" font-weight="600">vs 45s sequential</text>
+    </svg>`;
+}
+
+window.addEventListener('load', buildArchDiagram);
+
+console.log('%cCH8 AGENT', 'color:#0070f3;font-size:18px;font-weight:700;');
+console.log('%cAutonomous AI Orchestration\nhttps://github.com/hudsonrj/ch8-cluster-agent', 'color:#71717a;font-size:12px;');
