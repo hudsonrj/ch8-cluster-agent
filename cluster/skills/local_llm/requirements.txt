@@ -1,0 +1,21 @@
+# Local LLM Integration Requirements
+
+# Core HTTP client
+aiohttp>=3.9.0
+
+# Optional: For direct integration (not required for HTTP API)
+# ollama>=0.1.0              # Ollama Python client (optional)
+# vllm>=0.3.0                # vLLM (optional, for direct integration)
+# exllamav2>=0.0.12          # ExLlamaV2 (optional)
+
+# Common dependencies
+structlog>=23.1.0            # Structured logging
+pydantic>=2.0.0              # Data validation (if needed)
+
+# Note: Most integrations use HTTP APIs, so direct library installation
+# is optional. You only need to run the inference servers:
+#
+# - Ollama: Install from https://ollama.ai
+# - vLLM: pip install vllm, then run server
+# - llama.cpp: Compile from https://github.com/ggerganov/llama.cpp
+# - ExLlamaV2: pip install exllamav2
