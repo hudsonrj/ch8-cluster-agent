@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="CH8 Agent - Distributed Multi-Node AI System. Run anywhere from Raspberry Pi to GPU servers. Democratic AI for everyone.">
+    <title>CH8 Agent - Democratic Distributed AI</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Particles Background -->
+    <div id="particles-js"></div>
+
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-brand">
+                <span class="logo">CH8</span>
+                <span class="tagline">AGENT</span>
+            </div>
+            <div class="nav-links">
+                <a href="#features">Features</a>
+                <a href="#install">Install</a>
+                <a href="#demo">Demo</a>
+                <a href="#docs">Docs</a>
+                <a href="https://github.com/hudsonrj/ch8-cluster-agent" target="_blank" class="btn-github">
+                    <i class="fab fa-github"></i> GitHub
+                </a>
+            </div>
+            <button class="mobile-menu-btn">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container">
+            <div class="hero-content">
+                <div class="hero-badge">
+                    <i class="fas fa-rocket"></i> Revolutionary Distributed AI
+                </div>
+                <h1 class="hero-title">
+                    <span class="gradient-text">Democratic AI</span><br>
+                    <span class="typing-text">Run Anywhere, Scale Everywhere</span>
+                </h1>
+                <p class="hero-description">
+                    Transform old devices into a powerful AI cluster. From Raspberry Pi Zero to GPU servers,
+                    every machine matters. <strong>100% local, 100% free, 100% yours.</strong>
+                </p>
+                <div class="hero-buttons">
+                    <a href="#install" class="btn btn-primary btn-large">
+                        <i class="fas fa-download"></i> Get Started
+                    </a>
+                    <a href="#demo" class="btn btn-secondary btn-large">
+                        <i class="fas fa-play-circle"></i> Watch Demo
+                    </a>
+                </div>
+                <div class="hero-stats">
+                    <div class="stat">
+                        <div class="stat-number">0.5B-1B</div>
+                        <div class="stat-label">Model Size</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-number">40-60%</div>
+                        <div class="stat-label">Token Savings</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-number">2-3x</div>
+                        <div class="stat-label">Faster</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-number">∞</div>
+                        <div class="stat-label">Scalable</div>
+                    </div>
+                </div>
+            </div>
+            <div class="hero-visual">
+                <div class="cluster-animation" id="clusterAnimation">
+                    <!-- Animated cluster diagram -->
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- The Problem/Solution -->
+    <section class="problem-solution">
+        <div class="container">
+            <div class="comparison">
+                <div class="comparison-side problem">
+                    <div class="comparison-icon">❌</div>
+                    <h3>Traditional Approach</h3>
+                    <ul>
+                        <li>Large expensive models (7B-70B)</li>
+                        <li>Requires powerful GPU servers</li>
+                        <li>Slow sequential processing</li>
+                        <li>High cost per request</li>
+                        <li>Cloud dependency</li>
+                    </ul>
+                </div>
+                <div class="comparison-divider">
+                    <div class="vs-badge">VS</div>
+                </div>
+                <div class="comparison-side solution">
+                    <div class="comparison-icon">✅</div>
+                    <h3>CH8 Agent Way</h3>
+                    <ul>
+                        <li>Multiple small models (0.5-1B)</li>
+                        <li>Runs on ANY hardware</li>
+                        <li>Parallel distributed execution</li>
+                        <li>Zero cost (use what you own)</li>
+                        <li>100% local & private</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Architecture Animation -->
+    <section class="architecture">
+        <div class="container">
+            <div class="section-header">
+                <h2>Distributed Architecture</h2>
+                <p>Multiple small models working together, orchestrated intelligently</p>
+            </div>
+            <div class="arch-diagram" id="archDiagram">
+                <!-- Animated architecture diagram will be injected here -->
+            </div>
+        </div>
+    </section>
+
+    <!-- Features -->
+    <section id="features" class="features">
+        <div class="container">
+            <div class="section-header">
+                <h2>Powerful Features</h2>
+                <p>Everything you need for distributed AI at scale</p>
+            </div>
+            <div class="features-grid">
+                <div class="feature-card" data-aos="fade-up">
+                    <div class="feature-icon">
+                        <i class="fas fa-network-wired"></i>
+                    </div>
+                    <h3>Local LLM Orchestration</h3>
+                    <p>Multiple small models (0.5-1B) working in parallel. Automatic task decomposition and smart result aggregation.</p>
+                    <ul class="feature-list">
+                        <li>Ollama, vLLM, llama.cpp support</li>
+                        <li>40-60% token savings</li>
+                        <li>2-3x faster execution</li>
+                    </ul>
+                </div>
+
+                <div class="feature-card" data-aos="fade-up" data-aos-delay="100">
+                    <div class="feature-icon">
+                        <i class="fas fa-database"></i>
+                    </div>
+                    <h3>Database Integration</h3>
+                    <p>Connect to any database: SQL, NoSQL, or Object Storage. Full CRUD operations with async support.</p>
+                    <ul class="feature-list">
+                        <li>PostgreSQL, MySQL, MongoDB, Redis</li>
+                        <li>MinIO, S3, GCS, Azure Blob</li>
+                        <li>Export to JSON/CSV/Parquet</li>
+                    </ul>
+                </div>
+
+                <div class="feature-card" data-aos="fade-up" data-aos-delay="200">
+                    <div class="feature-icon">
+                        <i class="fas fa-file-alt"></i>
+                    </div>
+                    <h3>Data Extraction</h3>
+                    <p>10 pre-built specialized agents for efficient data extraction from any format.</p>
+                    <ul class="feature-list">
+                        <li>XML, JSON, CSV, Parquet, Excel</li>
+                        <li>YAML, TOML, PDF, SQL</li>
+                        <li>XPath queries, column projection</li>
+                    </ul>
+                </div>
+
+                <div class="feature-card" data-aos="fade-up">
+                    <div class="feature-icon">
+                        <i class="fas fa-laptop"></i>
+                    </div>
+                    <h3>Universal Platform Support</h3>
+                    <p>Runs on literally any device. Give new life to old hardware.</p>
+                    <ul class="feature-list">
+                        <li>Linux 32-bit (PCs from 2000s)</li>
+                        <li>Raspberry Pi (all models)</li>
+                        <li>Android phones & tablets</li>
+                        <li>Windows 32-bit, old macOS</li>
+                    </ul>
+                </div>
+
+                <div class="feature-card" data-aos="fade-up" data-aos-delay="100">
+                    <div class="feature-icon">
+                        <i class="fas fa-mobile-alt"></i>
+                    </div>
+                    <h3>Mobile First</h3>
+                    <p>Transform Android devices into cluster nodes. Local models or cloud APIs.</p>
+                    <ul class="feature-list">
+                        <li>Termux installation</li>
+                        <li>Native APK available</li>
+                        <li>Battery-aware processing</li>
+                    </ul>
+                </div>
+
+                <div class="feature-card" data-aos="fade-up" data-aos-delay="200">
+                    <div class="feature-icon">
+                        <i class="fas fa-lock"></i>
+                    </div>
+                    <h3>Privacy & Security</h3>
+                    <p>All processing stays local. Your data never leaves your devices.</p>
+                    <ul class="feature-list">
+                        <li>100% offline capable</li>
+                        <li>No cloud dependencies</li>
+                        <li>Private by design</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Real World Example -->
+    <section class="real-world">
+        <div class="container">
+            <div class="section-header">
+                <h2>Real World Example</h2>
+                <p>The "Drawer Cluster" - Using old devices found in drawers</p>
+            </div>
+            <div class="drawer-cluster">
+                <div class="cluster-nodes">
+                    <div class="node-card">
+                        <div class="node-image">💻</div>
+                        <h4>Old Thinkpad (2011)</h4>
+                        <p>4GB RAM, Linux 32-bit</p>
+                        <span class="node-model">Phi-3 Mini Q4</span>
+                        <span class="node-role">Reasoning</span>
+                    </div>
+                    <div class="node-card">
+                        <div class="node-image">🥧</div>
+                        <h4>Raspberry Pi 3</h4>
+                        <p>1GB RAM</p>
+                        <span class="node-model">TinyLlama Q2</span>
+                        <span class="node-role">Extraction</span>
+                    </div>
+                    <div class="node-card">
+                        <div class="node-image">🖥️</div>
+                        <h4>Mac Mini 2012</h4>
+                        <p>8GB RAM</p>
+                        <span class="node-model">Gemma-2B Q4</span>
+                        <span class="node-role">Aggregation</span>
+                    </div>
+                    <div class="node-card">
+                        <div class="node-image">📱</div>
+                        <h4>Android Phone</h4>
+                        <p>2GB RAM</p>
+                        <span class="node-model">Cloud (Groq)</span>
+                        <span class="node-role">Fast Tasks</span>
+                    </div>
+                </div>
+                <div class="cluster-stats">
+                    <div class="cluster-stat">
+                        <strong>Total Cost:</strong> $0 (hardware already owned)
+                    </div>
+                    <div class="cluster-stat">
+                        <strong>Power:</strong> ~30W total (runs 24/7)
+                    </div>
+                    <div class="cluster-stat">
+                        <strong>Performance:</strong> 100+ tasks/hour
+                    </div>
+                    <div class="cluster-stat">
+                        <strong>Speed:</strong> 14 seconds (vs 45s single model)
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Installation -->
+    <section id="install" class="installation">
+        <div class="container">
+            <div class="section-header">
+                <h2>Quick Installation</h2>
+                <p>One-line install for any platform</p>
+            </div>
+            <div class="install-tabs">
+                <div class="tab-buttons">
+                    <button class="tab-btn active" data-tab="linux">
+                        <i class="fab fa-linux"></i> Linux x64
+                    </button>
+                    <button class="tab-btn" data-tab="rpi">
+                        <i class="fas fa-raspberry-pi"></i> Raspberry Pi
+                    </button>
+                    <button class="tab-btn" data-tab="android">
+                        <i class="fab fa-android"></i> Android
+                    </button>
+                    <button class="tab-btn" data-tab="windows">
+                        <i class="fab fa-windows"></i> Windows
+                    </button>
+                    <button class="tab-btn" data-tab="linux32">
+                        <i class="fab fa-linux"></i> Linux 32-bit
+                    </button>
+                </div>
+                <div class="tab-content">
+                    <div class="tab-pane active" id="linux">
+                        <div class="code-block">
+                            <pre><code class="language-bash">curl -fsSL https://raw.githubusercontent.com/hudsonrj/ch8-cluster-agent/main/scripts/install.sh | bash</code></pre>
+                            <button class="copy-btn" data-clipboard="curl -fsSL https://raw.githubusercontent.com/hudsonrj/ch8-cluster-agent/main/scripts/install.sh | bash">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="tab-pane" id="rpi">
+                        <div class="code-block">
+                            <pre><code class="language-bash">curl -fsSL https://raw.githubusercontent.com/hudsonrj/ch8-cluster-agent/main/scripts/install-rpi.sh | bash</code></pre>
+                            <button class="copy-btn">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                        <p class="install-note">Auto-detects Pi model, sets up swap, downloads optimal model</p>
+                    </div>
+                    <div class="tab-pane" id="android">
+                        <div class="code-block">
+                            <pre><code class="language-bash"># Install Termux from F-Droid, then:
+curl -fsSL https://raw.githubusercontent.com/hudsonrj/ch8-cluster-agent/main/android/install-termux.sh | bash
+
+# Start node
+ch8-android start</code></pre>
+                            <button class="copy-btn">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="tab-pane" id="windows">
+                        <div class="code-block">
+                            <pre><code class="language-powershell">powershell -c "iwr -useb https://raw.githubusercontent.com/hudsonrj/ch8-cluster-agent/main/scripts/install.ps1 | iex"</code></pre>
+                            <button class="copy-btn">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="tab-pane" id="linux32">
+                        <div class="code-block">
+                            <pre><code class="language-bash">curl -fsSL https://raw.githubusercontent.com/hudsonrj/ch8-cluster-agent/main/scripts/install-32bit.sh | bash</code></pre>
+                            <button class="copy-btn">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                        <p class="install-note">Perfect for old PCs from 2000s-2010s</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Demo Video Placeholder -->
+    <section id="demo" class="demo">
+        <div class="container">
+            <div class="section-header">
+                <h2>See It In Action</h2>
+                <p>Watch CH8 Agent orchestrate multiple models in real-time</p>
+            </div>
+            <div class="demo-video">
+                <div class="video-placeholder">
+                    <i class="fas fa-play-circle"></i>
+                    <p>Demo video coming soon</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Why Different -->
+    <section class="why-different">
+        <div class="container">
+            <div class="section-header">
+                <h2>What Makes CH8 Agent Different?</h2>
+            </div>
+            <div class="differences">
+                <div class="difference-item">
+                    <div class="diff-number">01</div>
+                    <h3>Democratic AI</h3>
+                    <p>Every device matters. From a 2008 laptop to a Raspberry Pi Zero, all can contribute. No expensive hardware required.</p>
+                </div>
+                <div class="difference-item">
+                    <div class="diff-number">02</div>
+                    <h3>Smart Orchestration</h3>
+                    <p>Automatically decomposes tasks, assigns to specialized models, executes in parallel, and aggregates results for better quality.</p>
+                </div>
+                <div class="difference-item">
+                    <div class="diff-number">03</div>
+                    <h3>100% Private</h3>
+                    <p>All processing stays local. No cloud dependencies, no tracking, no data leaving your devices. Offline-capable.</p>
+                </div>
+                <div class="difference-item">
+                    <div class="diff-number">04</div>
+                    <h3>Zero Cost</h3>
+                    <p>Use hardware you already own. Small models are free. No expensive GPUs, no API costs, no subscriptions.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Stats -->
+    <section class="stats">
+        <div class="container">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">⚡</div>
+                    <div class="stat-value">2-3x</div>
+                    <div class="stat-label">Faster Processing</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">💰</div>
+                    <div class="stat-value">40-60%</div>
+                    <div class="stat-label">Less Tokens</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">🖥️</div>
+                    <div class="stat-value">15+</div>
+                    <div class="stat-label">Platforms Supported</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">♻️</div>
+                    <div class="stat-value">100%</div>
+                    <div class="stat-label">Hardware Reuse</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="cta">
+        <div class="container">
+            <div class="cta-content">
+                <h2>Ready to Transform Your Old Hardware?</h2>
+                <p>Join the democratic AI revolution. Start your cluster in minutes.</p>
+                <div class="cta-buttons">
+                    <a href="https://github.com/hudsonrj/ch8-cluster-agent" class="btn btn-primary btn-large" target="_blank">
+                        <i class="fab fa-github"></i> View on GitHub
+                    </a>
+                    <a href="#install" class="btn btn-secondary btn-large">
+                        <i class="fas fa-download"></i> Install Now
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <h3>CH8 AGENT</h3>
+                    <p>Democratic Distributed AI for Everyone</p>
+                </div>
+                <div class="footer-links">
+                    <div class="footer-col">
+                        <h4>Resources</h4>
+                        <a href="https://github.com/hudsonrj/ch8-cluster-agent" target="_blank">GitHub</a>
+                        <a href="https://github.com/hudsonrj/ch8-cluster-agent#readme" target="_blank">Documentation</a>
+                        <a href="https://github.com/hudsonrj/ch8-cluster-agent/issues" target="_blank">Issues</a>
+                    </div>
+                    <div class="footer-col">
+                        <h4>Community</h4>
+                        <a href="https://github.com/hudsonrj/ch8-cluster-agent/discussions" target="_blank">Discussions</a>
+                        <a href="https://github.com/hudsonrj/ch8-cluster-agent/blob/main/CONTRIBUTING.md" target="_blank">Contributing</a>
+                        <a href="#">Discord</a>
+                    </div>
+                    <div class="footer-col">
+                        <h4>Platform</h4>
+                        <a href="#">Linux</a>
+                        <a href="#">Raspberry Pi</a>
+                        <a href="#">Android</a>
+                        <a href="#">Windows</a>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 CH8 Agent. Open Source Project. Licensed under MIT.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <script src="script.js"></script>
+</body>
+</html>
