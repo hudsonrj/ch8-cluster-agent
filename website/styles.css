@@ -739,15 +739,50 @@ section { position: relative; z-index: 1; padding: 6rem 0; }
 /* ============ Code Showcase ============ */
 .code-showcase {
     background: var(--bg-card);
-    border: 1px solid var(--border);
+    border: 1px solid var(--border-md);
     border-radius: 12px;
     overflow: hidden;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.4);
 }
 
 .code-showcase-header {
-    padding: 0.875rem 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.25rem;
     background: var(--bg-2);
     border-bottom: 1px solid var(--border);
+}
+
+.code-showcase-title {
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--text-2);
+    font-family: 'JetBrains Mono', monospace;
+    margin-left: 0.375rem;
+}
+
+.code-showcase-badge {
+    margin-left: auto;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--blue);
+    background: rgba(0,112,243,0.08);
+    border: 1px solid rgba(0,112,243,0.2);
+    padding: 0.2rem 0.625rem;
+    border-radius: 50px;
+}
+
+.code-showcase .code-block {
+    border: none;
+    border-radius: 0;
+    background: #0d0d0d;
+}
+
+.code-showcase .code-block pre code {
+    font-size: 0.9rem;
+    line-height: 1.8;
+    padding: 1.5rem 2rem;
 }
 
 .code-badge {
