@@ -1,90 +1,64 @@
-// Initialize particles.js with refined settings
+// Minimal particles - very subtle
 particlesJS('particles-js', {
     particles: {
         number: {
-            value: 60,
+            value: 30,
             density: {
                 enable: true,
-                value_area: 1000
+                value_area: 1500
             }
         },
         color: {
-            value: '#00d4ff'
+            value: '#0066ff'
         },
         shape: {
             type: 'circle'
         },
         opacity: {
-            value: 0.3,
-            random: true,
-            anim: {
-                enable: true,
-                speed: 0.5,
-                opacity_min: 0.1,
-                sync: false
-            }
+            value: 0.15,
+            random: true
         },
         size: {
-            value: 2.5,
-            random: true,
-            anim: {
-                enable: true,
-                speed: 2,
-                size_min: 0.5,
-                sync: false
-            }
+            value: 2,
+            random: true
         },
         line_linked: {
             enable: true,
-            distance: 120,
-            color: '#00d4ff',
-            opacity: 0.15,
+            distance: 150,
+            color: '#0066ff',
+            opacity: 0.08,
             width: 1
         },
         move: {
             enable: true,
-            speed: 1.5,
+            speed: 1,
             direction: 'none',
             random: true,
             straight: false,
-            out_mode: 'out',
-            bounce: false
+            out_mode: 'out'
         }
     },
     interactivity: {
         detect_on: 'canvas',
         events: {
             onhover: {
-                enable: true,
-                mode: 'grab'
+                enable: false
             },
             onclick: {
-                enable: true,
-                mode: 'push'
+                enable: false
             },
             resize: true
-        },
-        modes: {
-            grab: {
-                distance: 140,
-                line_linked: {
-                    opacity: 0.3
-                }
-            },
-            push: {
-                particles_nb: 3
-            }
         }
     },
     retina_detect: true
 });
 
-// Initialize AOS (Animate on Scroll) with refined settings
+// Initialize AOS with minimal settings
 AOS.init({
-    duration: 800,
+    duration: 600,
     once: true,
-    offset: 80,
-    easing: 'ease-out-cubic'
+    offset: 50,
+    easing: 'ease-out'
 });
 
 // Tab functionality
@@ -92,17 +66,16 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
         const tab = btn.dataset.tab;
 
-        // Remove active class from all buttons and panes
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
         document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
 
-        // Add active class to clicked button and corresponding pane
         btn.classList.add('active');
-        document.getElementById(tab).classList.add('active');
+        const pane = document.getElementById(tab);
+        if (pane) pane.classList.add('active');
     });
 });
 
-// Copy to clipboard functionality with better feedback
+// Copy to clipboard
 document.querySelectorAll('.copy-btn').forEach(btn => {
     btn.addEventListener('click', () => {
         const codeBlock = btn.previousElementSibling.querySelector('code');
@@ -110,22 +83,18 @@ document.querySelectorAll('.copy-btn').forEach(btn => {
 
         navigator.clipboard.writeText(text).then(() => {
             const originalHTML = btn.innerHTML;
-            btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
-            btn.style.background = 'rgba(16, 185, 129, 0.15)';
-            btn.style.borderColor = '#10b981';
-            btn.style.color = '#10b981';
+            btn.innerHTML = '✓ Copied';
+            btn.style.background = 'rgba(0, 212, 129, 0.2)';
 
             setTimeout(() => {
                 btn.innerHTML = originalHTML;
                 btn.style.background = '';
-                btn.style.borderColor = '';
-                btn.style.color = '';
             }, 2000);
         });
     });
 });
 
-// Smooth scroll for anchor links
+// Smooth scroll
 document.querySelectorAll('a[href^="#"]').forEach(anchor => {
     anchor.addEventListener('click', function (e) {
         e.preventDefault();
@@ -141,11 +110,11 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
     });
 });
 
-// Mobile menu toggle with animation
+// Mobile menu toggle
 const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
 const navLinks = document.querySelector('.nav-links');
 
-if (mobileMenuBtn) {
+if (mobileMenuBtn && navLinks) {
     mobileMenuBtn.addEventListener('click', () => {
         const isOpen = navLinks.style.display === 'flex';
         navLinks.style.display = isOpen ? 'none' : 'flex';
@@ -153,223 +122,163 @@ if (mobileMenuBtn) {
     });
 }
 
-// Typing animation for hero title
-const typingText = document.querySelector('.typing-text');
-if (typingText) {
-    const text = typingText.textContent;
-    typingText.textContent = '';
-    let i = 0;
-
-    function typeWriter() {
-        if (i < text.length) {
-            typingText.textContent += text.charAt(i);
-            i++;
-            setTimeout(typeWriter, 80);
-        }
-    }
-
-    setTimeout(typeWriter, 800);
-}
-
-// Animated cluster diagram
+// Create cluster animation - minimal style
 function createClusterAnimation() {
     const container = document.getElementById('clusterAnimation');
     if (!container) return;
 
     const svg = `
-        <svg width="100%" height="100%" viewBox="0 0 600 480" xmlns="http://www.w3.org/2000/svg">
+        <svg width="100%" height="100%" viewBox="0 0 600 400" xmlns="http://www.w3.org/2000/svg">
             <!-- Central Coordinator -->
             <g id="coordinator">
-                <circle cx="300" cy="240" r="36" fill="url(#grad1)" class="pulse" stroke="rgba(0,212,255,0.3)" stroke-width="2">
-                    <animate attributeName="r" values="36;40;36" dur="2.5s" repeatCount="indefinite"/>
-                </circle>
-                <text x="300" y="243" text-anchor="middle" fill="#fff" font-size="11" font-weight="bold" font-family="Inter, sans-serif">
+                <circle cx="300" cy="200" r="32" fill="#0066ff" opacity="0.9" stroke="#e5e5e5" stroke-width="1"/>
+                <text x="300" y="205" text-anchor="middle" fill="#ffffff" font-size="10" font-weight="600" font-family="system-ui">
                     Coordinator
                 </text>
             </g>
 
             <!-- Worker Nodes -->
-            <g id="worker1" class="worker-node">
-                <circle cx="140" cy="100" r="28" fill="#6366f1" opacity="0.85" stroke="rgba(99,102,241,0.3)" stroke-width="2"/>
-                <text x="140" y="104" text-anchor="middle" fill="#fff" font-size="9.5" font-family="Inter, sans-serif">
-                    Pi 3
-                </text>
-                <line x1="140" y1="128" x2="300" y2="240" stroke="#00d4ff" stroke-width="1.5" opacity="0.4">
-                    <animate attributeName="opacity" values="0.15;0.7;0.15" dur="3.5s" repeatCount="indefinite"/>
-                </line>
+            <g id="worker1">
+                <circle cx="150" cy="80" r="24" fill="#ffffff" stroke="#e5e5e5" stroke-width="1"/>
+                <text x="150" y="84" text-anchor="middle" fill="#666666" font-size="9" font-family="system-ui">Pi 3</text>
+                <line x1="150" y1="104" x2="300" y2="200" stroke="#e5e5e5" stroke-width="1"/>
             </g>
 
-            <g id="worker2" class="worker-node">
-                <circle cx="460" cy="100" r="28" fill="#6366f1" opacity="0.85" stroke="rgba(99,102,241,0.3)" stroke-width="2"/>
-                <text x="460" y="104" text-anchor="middle" fill="#fff" font-size="9.5" font-family="Inter, sans-serif">
-                    Laptop
-                </text>
-                <line x1="460" y1="128" x2="300" y2="240" stroke="#00d4ff" stroke-width="1.5" opacity="0.4">
-                    <animate attributeName="opacity" values="0.15;0.7;0.15" dur="3.5s" repeatCount="indefinite" begin="0.6s"/>
-                </line>
+            <g id="worker2">
+                <circle cx="450" cy="80" r="24" fill="#ffffff" stroke="#e5e5e5" stroke-width="1"/>
+                <text x="450" y="84" text-anchor="middle" fill="#666666" font-size="9" font-family="system-ui">Laptop</text>
+                <line x1="450" y1="104" x2="300" y2="200" stroke="#e5e5e5" stroke-width="1"/>
             </g>
 
-            <g id="worker3" class="worker-node">
-                <circle cx="140" cy="380" r="28" fill="#6366f1" opacity="0.85" stroke="rgba(99,102,241,0.3)" stroke-width="2"/>
-                <text x="140" y="384" text-anchor="middle" fill="#fff" font-size="9.5" font-family="Inter, sans-serif">
-                    Android
-                </text>
-                <line x1="140" y1="352" x2="300" y2="240" stroke="#00d4ff" stroke-width="1.5" opacity="0.4">
-                    <animate attributeName="opacity" values="0.15;0.7;0.15" dur="3.5s" repeatCount="indefinite" begin="1.2s"/>
-                </line>
+            <g id="worker3">
+                <circle cx="150" cy="320" r="24" fill="#ffffff" stroke="#e5e5e5" stroke-width="1"/>
+                <text x="150" y="324" text-anchor="middle" fill="#666666" font-size="9" font-family="system-ui">Android</text>
+                <line x1="150" y1="296" x2="300" y2="200" stroke="#e5e5e5" stroke-width="1"/>
             </g>
 
-            <g id="worker4" class="worker-node">
-                <circle cx="460" cy="380" r="28" fill="#6366f1" opacity="0.85" stroke="rgba(99,102,241,0.3)" stroke-width="2"/>
-                <text x="460" y="384" text-anchor="middle" fill="#fff" font-size="9.5" font-family="Inter, sans-serif">
-                    Pi Zero
-                </text>
-                <line x1="460" y1="352" x2="300" y2="240" stroke="#00d4ff" stroke-width="1.5" opacity="0.4">
-                    <animate attributeName="opacity" values="0.15;0.7;0.15" dur="3.5s" repeatCount="indefinite" begin="1.8s"/>
-                </line>
+            <g id="worker4">
+                <circle cx="450" cy="320" r="24" fill="#ffffff" stroke="#e5e5e5" stroke-width="1"/>
+                <text x="450" y="324" text-anchor="middle" fill="#666666" font-size="9" font-family="system-ui">Pi Zero</text>
+                <line x1="450" y1="296" x2="300" y2="200" stroke="#e5e5e5" stroke-width="1"/>
             </g>
-
-            <!-- Gradient definitions -->
-            <defs>
-                <radialGradient id="grad1">
-                    <stop offset="0%" style="stop-color:#00d4ff;stop-opacity:1" />
-                    <stop offset="100%" style="stop-color:#6366f1;stop-opacity:1" />
-                </radialGradient>
-            </defs>
         </svg>
     `;
 
     container.innerHTML = svg;
 }
 
-// Architecture diagram animation
+// Architecture diagram - clean style
 function createArchDiagram() {
     const container = document.getElementById('archDiagram');
     if (!container) return;
 
     const svg = `
-        <svg width="100%" height="100%" viewBox="0 0 800 580" xmlns="http://www.w3.org/2000/svg">
+        <svg width="100%" height="100%" viewBox="0 0 800 500" xmlns="http://www.w3.org/2000/svg">
             <!-- Task Input -->
-            <g id="task-input">
-                <rect x="50" y="50" width="140" height="70" rx="8" fill="#1a1d29" stroke="#00d4ff" stroke-width="1.5"/>
-                <text x="120" y="78" text-anchor="middle" fill="#fff" font-size="13" font-weight="600" font-family="Inter, sans-serif">Task Input</text>
-                <text x="120" y="96" text-anchor="middle" fill="#94a3b8" font-size="11" font-family="Inter, sans-serif">"Analyze data"</text>
-            </g>
+            <rect x="50" y="50" width="120" height="60" rx="6" fill="#ffffff" stroke="#e5e5e5" stroke-width="1"/>
+            <text x="110" y="75" text-anchor="middle" fill="#0a0a0a" font-size="11" font-weight="600" font-family="system-ui">Task Input</text>
+            <text x="110" y="91" text-anchor="middle" fill="#999999" font-size="9" font-family="system-ui">"Analyze data"</text>
 
             <!-- Orchestrator -->
-            <g id="orchestrator">
-                <rect x="310" y="50" width="180" height="70" rx="8" fill="#1a1d29" stroke="#6366f1" stroke-width="2"/>
-                <text x="400" y="74" text-anchor="middle" fill="#fff" font-size="14" font-weight="700" font-family="Inter, sans-serif">Orchestrator</text>
-                <text x="400" y="91" text-anchor="middle" fill="#94a3b8" font-size="10.5" font-family="Inter, sans-serif">Task Decomposition</text>
-                <text x="400" y="106" text-anchor="middle" fill="#94a3b8" font-size="10.5" font-family="Inter, sans-serif">Model Selection</text>
-            </g>
+            <rect x="280" y="50" width="160" height="60" rx="6" fill="#0066ff" stroke="#e5e5e5" stroke-width="1"/>
+            <text x="360" y="73" text-anchor="middle" fill="#ffffff" font-size="12" font-weight="600" font-family="system-ui">Orchestrator</text>
+            <text x="360" y="88" text-anchor="middle" fill="rgba(255,255,255,0.8)" font-size="9" font-family="system-ui">Task Decomposition</text>
+            <text x="360" y="100" text-anchor="middle" fill="rgba(255,255,255,0.8)" font-size="9" font-family="system-ui">Model Selection</text>
 
             <!-- Arrow 1 -->
-            <line x1="190" y1="85" x2="310" y2="85" stroke="#00d4ff" stroke-width="2" marker-end="url(#arrowhead)"/>
+            <line x1="170" y1="80" x2="280" y2="80" stroke="#e5e5e5" stroke-width="1.5" marker-end="url(#arrow)"/>
 
-            <!-- Small Models (Parallel) -->
-            <g id="models">
-                <rect x="100" y="240" width="110" height="55" rx="7" fill="#1a1d29" stroke="#00d4ff" stroke-width="1.5"/>
-                <text x="155" y="262" text-anchor="middle" fill="#fff" font-size="11.5" font-weight="600" font-family="Inter, sans-serif">Phi-3 Mini</text>
-                <text x="155" y="276" text-anchor="middle" fill="#00d4ff" font-size="9.5" font-weight="600" font-family="Inter, sans-serif">0.5B</text>
-                <text x="155" y="289" text-anchor="middle" fill="#94a3b8" font-size="9.5" font-family="Inter, sans-serif">Reasoning</text>
+            <!-- Small Models -->
+            <rect x="100" y="200" width="100" height="50" rx="5" fill="#ffffff" stroke="#e5e5e5" stroke-width="1"/>
+            <text x="150" y="219" text-anchor="middle" fill="#0a0a0a" font-size="10" font-weight="600" font-family="system-ui">Phi-3 Mini</text>
+            <text x="150" y="232" text-anchor="middle" fill="#0066ff" font-size="9" font-family="system-ui">0.5B</text>
+            <text x="150" y="244" text-anchor="middle" fill="#999999" font-size="8" font-family="system-ui">Reasoning</text>
 
-                <rect x="285" y="240" width="110" height="55" rx="7" fill="#1a1d29" stroke="#00d4ff" stroke-width="1.5"/>
-                <text x="340" y="262" text-anchor="middle" fill="#fff" font-size="11.5" font-weight="600" font-family="Inter, sans-serif">TinyLlama</text>
-                <text x="340" y="276" text-anchor="middle" fill="#00d4ff" font-size="9.5" font-weight="600" font-family="Inter, sans-serif">1.1B</text>
-                <text x="340" y="289" text-anchor="middle" fill="#94a3b8" font-size="9.5" font-family="Inter, sans-serif">Code</text>
+            <rect x="270" y="200" width="100" height="50" rx="5" fill="#ffffff" stroke="#e5e5e5" stroke-width="1"/>
+            <text x="320" y="219" text-anchor="middle" fill="#0a0a0a" font-size="10" font-weight="600" font-family="system-ui">TinyLlama</text>
+            <text x="320" y="232" text-anchor="middle" fill="#0066ff" font-size="9" font-family="system-ui">1.1B</text>
+            <text x="320" y="244" text-anchor="middle" fill="#999999" font-size="8" font-family="system-ui">Code</text>
 
-                <rect x="470" y="240" width="110" height="55" rx="7" fill="#1a1d29" stroke="#00d4ff" stroke-width="1.5"/>
-                <text x="525" y="262" text-anchor="middle" fill="#fff" font-size="11.5" font-weight="600" font-family="Inter, sans-serif">Qwen2</text>
-                <text x="525" y="276" text-anchor="middle" fill="#00d4ff" font-size="9.5" font-weight="600" font-family="Inter, sans-serif">0.5B</text>
-                <text x="525" y="289" text-anchor="middle" fill="#94a3b8" font-size="9.5" font-family="Inter, sans-serif">Extract</text>
-            </g>
+            <rect x="440" y="200" width="100" height="50" rx="5" fill="#ffffff" stroke="#e5e5e5" stroke-width="1"/>
+            <text x="490" y="219" text-anchor="middle" fill="#0a0a0a" font-size="10" font-weight="600" font-family="system-ui">Qwen2</text>
+            <text x="490" y="232" text-anchor="middle" fill="#0066ff" font-size="9" font-family="system-ui">0.5B</text>
+            <text x="490" y="244" text-anchor="middle" fill="#999999" font-size="8" font-family="system-ui">Extract</text>
 
             <!-- Arrows to models -->
-            <line x1="400" y1="120" x2="155" y2="240" stroke="#6366f1" stroke-width="1.5" marker-end="url(#arrowhead)"/>
-            <line x1="400" y1="120" x2="340" y2="240" stroke="#6366f1" stroke-width="1.5" marker-end="url(#arrowhead)"/>
-            <line x1="400" y1="120" x2="525" y2="240" stroke="#6366f1" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+            <line x1="360" y1="110" x2="150" y2="200" stroke="#e5e5e5" stroke-width="1.5" marker-end="url(#arrow)"/>
+            <line x1="360" y1="110" x2="320" y2="200" stroke="#e5e5e5" stroke-width="1.5" marker-end="url(#arrow)"/>
+            <line x1="360" y1="110" x2="490" y2="200" stroke="#e5e5e5" stroke-width="1.5" marker-end="url(#arrow)"/>
 
             <!-- Aggregator -->
-            <g id="aggregator">
-                <rect x="310" y="410" width="180" height="70" rx="8" fill="#1a1d29" stroke="#ec4899" stroke-width="2"/>
-                <text x="400" y="434" text-anchor="middle" fill="#fff" font-size="14" font-weight="700" font-family="Inter, sans-serif">Aggregator</text>
-                <text x="400" y="450" text-anchor="middle" fill="#94a3b8" font-size="10.5" font-family="Inter, sans-serif">Result Synthesis</text>
-                <text x="400" y="466" text-anchor="middle" fill="#00d4ff" font-size="10.5" font-weight="600" font-family="Inter, sans-serif">Gemma 2B</text>
-            </g>
+            <rect x="280" y="350" width="160" height="60" rx="6" fill="#ffffff" stroke="#0066ff" stroke-width="2"/>
+            <text x="360" y="372" text-anchor="middle" fill="#0a0a0a" font-size="12" font-weight="600" font-family="system-ui">Aggregator</text>
+            <text x="360" y="387" text-anchor="middle" fill="#666666" font-size="9" font-family="system-ui">Result Synthesis</text>
+            <text x="360" y="400" text-anchor="middle" fill="#0066ff" font-size="9" font-family="system-ui">Gemma 2B</text>
 
             <!-- Arrows to aggregator -->
-            <line x1="155" y1="295" x2="310" y2="445" stroke="#00d4ff" stroke-width="1.5" marker-end="url(#arrowhead)"/>
-            <line x1="340" y1="295" x2="380" y2="410" stroke="#00d4ff" stroke-width="1.5" marker-end="url(#arrowhead)"/>
-            <line x1="525" y1="295" x2="420" y2="410" stroke="#00d4ff" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+            <line x1="150" y1="250" x2="300" y2="350" stroke="#e5e5e5" stroke-width="1.5" marker-end="url(#arrow)"/>
+            <line x1="320" y1="250" x2="350" y2="350" stroke="#e5e5e5" stroke-width="1.5" marker-end="url(#arrow)"/>
+            <line x1="490" y1="250" x2="420" y2="350" stroke="#e5e5e5" stroke-width="1.5" marker-end="url(#arrow)"/>
 
             <!-- Output -->
-            <g id="output">
-                <rect x="610" y="410" width="140" height="70" rx="8" fill="#1a1d29" stroke="#00d4ff" stroke-width="1.5"/>
-                <text x="680" y="433" text-anchor="middle" fill="#fff" font-size="13" font-weight="600" font-family="Inter, sans-serif">Final Result</text>
-                <text x="680" y="451" text-anchor="middle" fill="#00d4ff" font-size="10.5" font-family="Inter, sans-serif">High Quality</text>
-                <text x="680" y="466" text-anchor="middle" fill="#00d4ff" font-size="10.5" font-family="Inter, sans-serif">Less Tokens</text>
-            </g>
+            <rect x="580" y="350" width="120" height="60" rx="6" fill="#ffffff" stroke="#e5e5e5" stroke-width="1"/>
+            <text x="640" y="372" text-anchor="middle" fill="#0a0a0a" font-size="11" font-weight="600" font-family="system-ui">Final Result</text>
+            <text x="640" y="387" text-anchor="middle" fill="#0066ff" font-size="9" font-family="system-ui">High Quality</text>
+            <text x="640" y="399" text-anchor="middle" fill="#0066ff" font-size="9" font-family="system-ui">Less Tokens</text>
 
             <!-- Arrow to output -->
-            <line x1="490" y1="445" x2="610" y2="445" stroke="#ec4899" stroke-width="2" marker-end="url(#arrowhead)"/>
+            <line x1="440" y1="380" x2="580" y2="380" stroke="#e5e5e5" stroke-width="1.5" marker-end="url(#arrow)"/>
 
             <!-- Arrow marker -->
             <defs>
-                <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
-                    <polygon points="0 0, 10 3, 0 6" fill="#00d4ff" />
+                <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+                    <polygon points="0 0, 8 3, 0 6" fill="#e5e5e5" />
                 </marker>
             </defs>
 
             <!-- Time annotations -->
-            <text x="155" y="318" text-anchor="middle" fill="#00d4ff" font-size="10" font-weight="600" font-family="Inter, sans-serif">8s</text>
-            <text x="340" y="318" text-anchor="middle" fill="#00d4ff" font-size="10" font-weight="600" font-family="Inter, sans-serif">6s</text>
-            <text x="525" y="318" text-anchor="middle" fill="#00d4ff" font-size="10" font-weight="600" font-family="Inter, sans-serif">7s</text>
-            <text x="400" y="505" text-anchor="middle" fill="#ec4899" font-size="10" font-weight="600" font-family="Inter, sans-serif">2s aggregation</text>
-            <text x="400" y="525" text-anchor="middle" fill="#fff" font-size="13" font-weight="700" font-family="Inter, sans-serif">Total: 10s (parallel!)</text>
+            <text x="150" y="270" text-anchor="middle" fill="#666666" font-size="9" font-weight="500" font-family="system-ui">8s</text>
+            <text x="320" y="270" text-anchor="middle" fill="#666666" font-size="9" font-weight="500" font-family="system-ui">6s</text>
+            <text x="490" y="270" text-anchor="middle" fill="#666666" font-size="9" font-weight="500" font-family="system-ui">7s</text>
+            <text x="360" y="430" text-anchor="middle" fill="#999999" font-size="9" font-family="system-ui">2s aggregation</text>
+            <text x="360" y="445" text-anchor="middle" fill="#0a0a0a" font-size="11" font-weight="600" font-family="system-ui">Total: 10s (parallel!)</text>
         </svg>
     `;
 
     container.innerHTML = svg;
 }
 
-// Initialize animations when page loads
+// Initialize diagrams
 window.addEventListener('load', () => {
     createClusterAnimation();
     createArchDiagram();
 });
 
-// Navbar scroll effect
-let lastScroll = 0;
-const navbar = document.querySelector('.navbar');
-
+// Minimal navbar scroll effect
 window.addEventListener('scroll', () => {
-    const currentScroll = window.pageYOffset;
-
-    if (currentScroll > 50) {
-        navbar.classList.add('scrolled');
+    const navbar = document.querySelector('.navbar');
+    if (window.scrollY > 50) {
+        navbar.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.08)';
     } else {
-        navbar.classList.remove('scrolled');
+        navbar.style.boxShadow = 'none';
     }
-
-    lastScroll = currentScroll;
 });
 
-// Animated counter for stats
+// Animated counter
 function animateValue(element, start, end, duration) {
     let startTimestamp = null;
     const step = (timestamp) => {
         if (!startTimestamp) startTimestamp = timestamp;
         const progress = Math.min((timestamp - startTimestamp) / duration, 1);
         const value = Math.floor(progress * (end - start) + start);
-        const text = element.textContent;
+        const text = element.getAttribute('data-original');
 
-        if (text.includes('%')) {
+        if (text && text.includes('%')) {
             element.textContent = value + '%';
-        } else if (text.includes('x')) {
+        } else if (text && text.includes('x')) {
             element.textContent = value + 'x';
-        } else if (text.includes('+')) {
-            element.textContent = value + '+';
+        } else if (text && text.includes('B')) {
+            element.textContent = text;
         } else {
             element.textContent = value;
         }
@@ -381,16 +290,17 @@ function animateValue(element, start, end, duration) {
     window.requestAnimationFrame(step);
 }
 
-// Observe stats section and trigger animation
+// Observe stats
 const statsObserver = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
         if (entry.isIntersecting) {
             document.querySelectorAll('.stat-number').forEach(stat => {
                 const text = stat.textContent;
+                stat.setAttribute('data-original', text);
                 const match = text.match(/\d+/);
                 if (match) {
                     const num = parseInt(match[0]);
-                    animateValue(stat, 0, num, 2000);
+                    animateValue(stat, 0, num, 1500);
                 }
             });
             statsObserver.unobserve(entry.target);
@@ -403,45 +313,9 @@ if (statsSection) {
     statsObserver.observe(statsSection);
 }
 
-// Console easter egg with refined styling
-console.log(`
-%c   _____ _    _  ___
-  / ____| |  | |/ _ \\
- | |    | |__| | (_) |
- | |    |  __  |> _ <
- | |____| |  | | (_) |
-  \\_____!_|  |_|\\___/
-
-%c CH8 AGENT - Democratic Distributed AI
-%c https://github.com/hudsonrj/ch8-cluster-agent
-
-`, 'color: #00d4ff; font-family: monospace; font-size: 12px;', 'color: #6366f1; font-weight: bold; font-size: 14px;', 'color: #94a3b8; font-size: 12px;');
-
-console.log('%cInterested in the code? Check out our GitHub! 🚀', 'color: #00d4ff; font-size: 13px; font-weight: bold;');
-
-// Parallax effect for hero section
-window.addEventListener('scroll', () => {
-    const scrolled = window.pageYOffset;
-    const heroVisual = document.querySelector('.hero-visual');
-    if (heroVisual) {
-        heroVisual.style.transform = `translateY(${scrolled * 0.3}px)`;
-    }
-});
-
-// Add loading animation
-window.addEventListener('load', () => {
-    document.body.classList.add('loaded');
-});
-
-// Smooth reveal animation for sections
-const revealObserver = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-        if (entry.isIntersecting) {
-            entry.target.classList.add('revealed');
-        }
-    });
-}, { threshold: 0.1 });
-
-document.querySelectorAll('section').forEach(section => {
-    revealObserver.observe(section);
-});
+// Minimal console easter egg
+console.log(
+    '%cCH8 AGENT%c\nDemocratic Distributed AI\nhttps://github.com/hudsonrj/ch8-cluster-agent',
+    'color: #0066ff; font-size: 16px; font-weight: 600;',
+    'color: #666666; font-size: 12px;'
+);
