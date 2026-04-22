@@ -1,39 +1,51 @@
-// Initialize particles.js
+// Initialize particles.js with refined settings
 particlesJS('particles-js', {
     particles: {
         number: {
-            value: 80,
+            value: 60,
             density: {
                 enable: true,
-                value_area: 800
+                value_area: 1000
             }
         },
         color: {
-            value: '#00f2ff'
+            value: '#00d4ff'
         },
         shape: {
             type: 'circle'
         },
         opacity: {
-            value: 0.5,
-            random: false
+            value: 0.3,
+            random: true,
+            anim: {
+                enable: true,
+                speed: 0.5,
+                opacity_min: 0.1,
+                sync: false
+            }
         },
         size: {
-            value: 3,
-            random: true
+            value: 2.5,
+            random: true,
+            anim: {
+                enable: true,
+                speed: 2,
+                size_min: 0.5,
+                sync: false
+            }
         },
         line_linked: {
             enable: true,
-            distance: 150,
-            color: '#00f2ff',
-            opacity: 0.2,
+            distance: 120,
+            color: '#00d4ff',
+            opacity: 0.15,
             width: 1
         },
         move: {
             enable: true,
-            speed: 2,
+            speed: 1.5,
             direction: 'none',
-            random: false,
+            random: true,
             straight: false,
             out_mode: 'out',
             bounce: false
@@ -44,23 +56,35 @@ particlesJS('particles-js', {
         events: {
             onhover: {
                 enable: true,
-                mode: 'repulse'
+                mode: 'grab'
             },
             onclick: {
                 enable: true,
                 mode: 'push'
             },
             resize: true
+        },
+        modes: {
+            grab: {
+                distance: 140,
+                line_linked: {
+                    opacity: 0.3
+                }
+            },
+            push: {
+                particles_nb: 3
+            }
         }
     },
     retina_detect: true
 });
 
-// Initialize AOS (Animate on Scroll)
+// Initialize AOS (Animate on Scroll) with refined settings
 AOS.init({
-    duration: 1000,
+    duration: 800,
     once: true,
-    offset: 100
+    offset: 80,
+    easing: 'ease-out-cubic'
 });
 
 // Tab functionality
@@ -78,16 +102,24 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     });
 });
 
-// Copy to clipboard functionality
+// Copy to clipboard functionality with better feedback
 document.querySelectorAll('.copy-btn').forEach(btn => {
     btn.addEventListener('click', () => {
         const codeBlock = btn.previousElementSibling.querySelector('code');
         const text = codeBlock.textContent;
 
         navigator.clipboard.writeText(text).then(() => {
-            btn.innerHTML = '<i class="fas fa-check"></i>';
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+            btn.style.background = 'rgba(16, 185, 129, 0.15)';
+            btn.style.borderColor = '#10b981';
+            btn.style.color = '#10b981';
+
             setTimeout(() => {
-                btn.innerHTML = '<i class="fas fa-copy"></i>';
+                btn.innerHTML = originalHTML;
+                btn.style.background = '';
+                btn.style.borderColor = '';
+                btn.style.color = '';
             }, 2000);
         });
     });
@@ -99,19 +131,27 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         e.preventDefault();
         const target = document.querySelector(this.getAttribute('href'));
         if (target) {
-            target.scrollIntoView({
-                behavior: 'smooth',
-                block: 'start'
+            const offset = 80;
+            const targetPosition = target.offsetTop - offset;
+            window.scrollTo({
+                top: targetPosition,
+                behavior: 'smooth'
             });
         }
     });
 });
 
-// Mobile menu toggle
-document.querySelector('.mobile-menu-btn').addEventListener('click', () => {
-    const navLinks = document.querySelector('.nav-links');
-    navLinks.style.display = navLinks.style.display === 'flex' ? 'none' : 'flex';
-});
+// Mobile menu toggle with animation
+const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
+const navLinks = document.querySelector('.nav-links');
+
+if (mobileMenuBtn) {
+    mobileMenuBtn.addEventListener('click', () => {
+        const isOpen = navLinks.style.display === 'flex';
+        navLinks.style.display = isOpen ? 'none' : 'flex';
+        mobileMenuBtn.innerHTML = isOpen ? '<i class="fas fa-bars"></i>' : '<i class="fas fa-times"></i>';
+    });
+}
 
 // Typing animation for hero title
 const typingText = document.querySelector('.typing-text');
@@ -124,11 +164,11 @@ if (typingText) {
         if (i < text.length) {
             typingText.textContent += text.charAt(i);
             i++;
-            setTimeout(typeWriter, 100);
+            setTimeout(typeWriter, 80);
         }
     }
 
-    setTimeout(typeWriter, 1000);
+    setTimeout(typeWriter, 800);
 }
 
 // Animated cluster diagram
@@ -137,63 +177,63 @@ function createClusterAnimation() {
     if (!container) return;
 
     const svg = `
-        <svg width="100%" height="100%" viewBox="0 0 600 500" xmlns="http://www.w3.org/2000/svg">
+        <svg width="100%" height="100%" viewBox="0 0 600 480" xmlns="http://www.w3.org/2000/svg">
             <!-- Central Coordinator -->
             <g id="coordinator">
-                <circle cx="300" cy="250" r="40" fill="url(#grad1)" class="pulse">
-                    <animate attributeName="r" values="40;45;40" dur="2s" repeatCount="indefinite"/>
+                <circle cx="300" cy="240" r="36" fill="url(#grad1)" class="pulse" stroke="rgba(0,212,255,0.3)" stroke-width="2">
+                    <animate attributeName="r" values="36;40;36" dur="2.5s" repeatCount="indefinite"/>
                 </circle>
-                <text x="300" y="255" text-anchor="middle" fill="#fff" font-size="12" font-weight="bold">
+                <text x="300" y="243" text-anchor="middle" fill="#fff" font-size="11" font-weight="bold" font-family="Inter, sans-serif">
                     Coordinator
                 </text>
             </g>
 
             <!-- Worker Nodes -->
             <g id="worker1" class="worker-node">
-                <circle cx="150" cy="100" r="30" fill="#7000ff" opacity="0.8"/>
-                <text x="150" y="105" text-anchor="middle" fill="#fff" font-size="10">
+                <circle cx="140" cy="100" r="28" fill="#6366f1" opacity="0.85" stroke="rgba(99,102,241,0.3)" stroke-width="2"/>
+                <text x="140" y="104" text-anchor="middle" fill="#fff" font-size="9.5" font-family="Inter, sans-serif">
                     Pi 3
                 </text>
-                <line x1="150" y1="130" x2="300" y2="250" stroke="#00f2ff" stroke-width="2" opacity="0.5">
-                    <animate attributeName="opacity" values="0.2;0.8;0.2" dur="3s" repeatCount="indefinite"/>
+                <line x1="140" y1="128" x2="300" y2="240" stroke="#00d4ff" stroke-width="1.5" opacity="0.4">
+                    <animate attributeName="opacity" values="0.15;0.7;0.15" dur="3.5s" repeatCount="indefinite"/>
                 </line>
             </g>
 
             <g id="worker2" class="worker-node">
-                <circle cx="450" cy="100" r="30" fill="#7000ff" opacity="0.8"/>
-                <text x="450" y="105" text-anchor="middle" fill="#fff" font-size="10">
+                <circle cx="460" cy="100" r="28" fill="#6366f1" opacity="0.85" stroke="rgba(99,102,241,0.3)" stroke-width="2"/>
+                <text x="460" y="104" text-anchor="middle" fill="#fff" font-size="9.5" font-family="Inter, sans-serif">
                     Laptop
                 </text>
-                <line x1="450" y1="130" x2="300" y2="250" stroke="#00f2ff" stroke-width="2" opacity="0.5">
-                    <animate attributeName="opacity" values="0.2;0.8;0.2" dur="3s" repeatCount="indefinite" begin="0.5s"/>
+                <line x1="460" y1="128" x2="300" y2="240" stroke="#00d4ff" stroke-width="1.5" opacity="0.4">
+                    <animate attributeName="opacity" values="0.15;0.7;0.15" dur="3.5s" repeatCount="indefinite" begin="0.6s"/>
                 </line>
             </g>
 
             <g id="worker3" class="worker-node">
-                <circle cx="150" cy="400" r="30" fill="#7000ff" opacity="0.8"/>
-                <text x="150" y="405" text-anchor="middle" fill="#fff" font-size="10">
+                <circle cx="140" cy="380" r="28" fill="#6366f1" opacity="0.85" stroke="rgba(99,102,241,0.3)" stroke-width="2"/>
+                <text x="140" y="384" text-anchor="middle" fill="#fff" font-size="9.5" font-family="Inter, sans-serif">
                     Android
                 </text>
-                <line x1="150" y1="370" x2="300" y2="250" stroke="#00f2ff" stroke-width="2" opacity="0.5">
-                    <animate attributeName="opacity" values="0.2;0.8;0.2" dur="3s" repeatCount="indefinite" begin="1s"/>
+                <line x1="140" y1="352" x2="300" y2="240" stroke="#00d4ff" stroke-width="1.5" opacity="0.4">
+                    <animate attributeName="opacity" values="0.15;0.7;0.15" dur="3.5s" repeatCount="indefinite" begin="1.2s"/>
                 </line>
             </g>
 
             <g id="worker4" class="worker-node">
-                <circle cx="450" cy="400" r="30" fill="#7000ff" opacity="0.8"/>
-                <text x="450" y="405" text-anchor="middle" fill="#fff" font-size="10">
+                <circle cx="460" cy="380" r="28" fill="#6366f1" opacity="0.85" stroke="rgba(99,102,241,0.3)" stroke-width="2"/>
+                <text x="460" y="384" text-anchor="middle" fill="#fff" font-size="9.5" font-family="Inter, sans-serif">
                     Pi Zero
                 </text>
-                <line x1="450" y1="370" x2="300" y2="250" stroke="#00f2ff" stroke-width="2" opacity="0.5">
-                    <animate attributeName="opacity" values="0.2;0.8;0.2" dur="3s" repeatCount="indefinite" begin="1.5s"/>
+                <line x1="460" y1="352" x2="300" y2="240" stroke="#00d4ff" stroke-width="1.5" opacity="0.4">
+                    <animate attributeName="opacity" values="0.15;0.7;0.15" dur="3.5s" repeatCount="indefinite" begin="1.8s"/>
                 </line>
             </g>
 
             <!-- Gradient definitions -->
             <defs>
                 <radialGradient id="grad1">
-                    <stop offset="0%" style="stop-color:#00f2ff;stop-opacity:1" />
-                    <stop offset="100%" style="stop-color:#7000ff;stop-opacity:1" />
+                    <stop offset="0%" style="stop-color:#00d4ff;stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:#6366f1;stop-opacity:1" />
                 </radialGradient>
             </defs>
         </svg>
@@ -208,87 +248,85 @@ function createArchDiagram() {
     if (!container) return;
 
     const svg = `
-        <svg width="100%" height="100%" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg">
+        <svg width="100%" height="100%" viewBox="0 0 800 580" xmlns="http://www.w3.org/2000/svg">
             <!-- Task Input -->
             <g id="task-input">
-                <rect x="50" y="50" width="150" height="80" rx="10" fill="#131826" stroke="#00f2ff" stroke-width="2"/>
-                <text x="125" y="80" text-anchor="middle" fill="#fff" font-size="14">Task Input</text>
-                <text x="125" y="100" text-anchor="middle" fill="#a0aec0" font-size="12">"Analyze data"</text>
+                <rect x="50" y="50" width="140" height="70" rx="8" fill="#1a1d29" stroke="#00d4ff" stroke-width="1.5"/>
+                <text x="120" y="78" text-anchor="middle" fill="#fff" font-size="13" font-weight="600" font-family="Inter, sans-serif">Task Input</text>
+                <text x="120" y="96" text-anchor="middle" fill="#94a3b8" font-size="11" font-family="Inter, sans-serif">"Analyze data"</text>
             </g>
 
             <!-- Orchestrator -->
             <g id="orchestrator">
-                <rect x="300" y="50" width="200" height="80" rx="10" fill="#131826" stroke="#7000ff" stroke-width="3"/>
-                <text x="400" y="75" text-anchor="middle" fill="#fff" font-size="16" font-weight="bold">Orchestrator</text>
-                <text x="400" y="95" text-anchor="middle" fill="#a0aec0" font-size="12">Task Decomposition</text>
-                <text x="400" y="110" text-anchor="middle" fill="#a0aec0" font-size="12">Model Selection</text>
+                <rect x="310" y="50" width="180" height="70" rx="8" fill="#1a1d29" stroke="#6366f1" stroke-width="2"/>
+                <text x="400" y="74" text-anchor="middle" fill="#fff" font-size="14" font-weight="700" font-family="Inter, sans-serif">Orchestrator</text>
+                <text x="400" y="91" text-anchor="middle" fill="#94a3b8" font-size="10.5" font-family="Inter, sans-serif">Task Decomposition</text>
+                <text x="400" y="106" text-anchor="middle" fill="#94a3b8" font-size="10.5" font-family="Inter, sans-serif">Model Selection</text>
             </g>
 
             <!-- Arrow 1 -->
-            <line x1="200" y1="90" x2="300" y2="90" stroke="#00f2ff" stroke-width="2" marker-end="url(#arrowhead)">
-                <animate attributeName="stroke-dashoffset" values="20;0" dur="2s" repeatCount="indefinite"/>
-            </line>
+            <line x1="190" y1="85" x2="310" y2="85" stroke="#00d4ff" stroke-width="2" marker-end="url(#arrowhead)"/>
 
             <!-- Small Models (Parallel) -->
             <g id="models">
-                <rect x="100" y="250" width="120" height="60" rx="8" fill="#131826" stroke="#00f2ff" stroke-width="2"/>
-                <text x="160" y="275" text-anchor="middle" fill="#fff" font-size="12">Phi-3 Mini</text>
-                <text x="160" y="290" text-anchor="middle" fill="#00f2ff" font-size="10">0.5B</text>
-                <text x="160" y="303" text-anchor="middle" fill="#a0aec0" font-size="10">Reasoning</text>
+                <rect x="100" y="240" width="110" height="55" rx="7" fill="#1a1d29" stroke="#00d4ff" stroke-width="1.5"/>
+                <text x="155" y="262" text-anchor="middle" fill="#fff" font-size="11.5" font-weight="600" font-family="Inter, sans-serif">Phi-3 Mini</text>
+                <text x="155" y="276" text-anchor="middle" fill="#00d4ff" font-size="9.5" font-weight="600" font-family="Inter, sans-serif">0.5B</text>
+                <text x="155" y="289" text-anchor="middle" fill="#94a3b8" font-size="9.5" font-family="Inter, sans-serif">Reasoning</text>
 
-                <rect x="280" y="250" width="120" height="60" rx="8" fill="#131826" stroke="#00f2ff" stroke-width="2"/>
-                <text x="340" y="275" text-anchor="middle" fill="#fff" font-size="12">TinyLlama</text>
-                <text x="340" y="290" text-anchor="middle" fill="#00f2ff" font-size="10">1.1B</text>
-                <text x="340" y="303" text-anchor="middle" fill="#a0aec0" font-size="10">Code</text>
+                <rect x="285" y="240" width="110" height="55" rx="7" fill="#1a1d29" stroke="#00d4ff" stroke-width="1.5"/>
+                <text x="340" y="262" text-anchor="middle" fill="#fff" font-size="11.5" font-weight="600" font-family="Inter, sans-serif">TinyLlama</text>
+                <text x="340" y="276" text-anchor="middle" fill="#00d4ff" font-size="9.5" font-weight="600" font-family="Inter, sans-serif">1.1B</text>
+                <text x="340" y="289" text-anchor="middle" fill="#94a3b8" font-size="9.5" font-family="Inter, sans-serif">Code</text>
 
-                <rect x="460" y="250" width="120" height="60" rx="8" fill="#131826" stroke="#00f2ff" stroke-width="2"/>
-                <text x="520" y="275" text-anchor="middle" fill="#fff" font-size="12">Qwen2</text>
-                <text x="520" y="290" text-anchor="middle" fill="#00f2ff" font-size="10">0.5B</text>
-                <text x="520" y="303" text-anchor="middle" fill="#a0aec0" font-size="10">Extract</text>
+                <rect x="470" y="240" width="110" height="55" rx="7" fill="#1a1d29" stroke="#00d4ff" stroke-width="1.5"/>
+                <text x="525" y="262" text-anchor="middle" fill="#fff" font-size="11.5" font-weight="600" font-family="Inter, sans-serif">Qwen2</text>
+                <text x="525" y="276" text-anchor="middle" fill="#00d4ff" font-size="9.5" font-weight="600" font-family="Inter, sans-serif">0.5B</text>
+                <text x="525" y="289" text-anchor="middle" fill="#94a3b8" font-size="9.5" font-family="Inter, sans-serif">Extract</text>
             </g>
 
             <!-- Arrows to models -->
-            <line x1="400" y1="130" x2="160" y2="250" stroke="#7000ff" stroke-width="2" marker-end="url(#arrowhead)"/>
-            <line x1="400" y1="130" x2="340" y2="250" stroke="#7000ff" stroke-width="2" marker-end="url(#arrowhead)"/>
-            <line x1="400" y1="130" x2="520" y2="250" stroke="#7000ff" stroke-width="2" marker-end="url(#arrowhead)"/>
+            <line x1="400" y1="120" x2="155" y2="240" stroke="#6366f1" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+            <line x1="400" y1="120" x2="340" y2="240" stroke="#6366f1" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+            <line x1="400" y1="120" x2="525" y2="240" stroke="#6366f1" stroke-width="1.5" marker-end="url(#arrowhead)"/>
 
             <!-- Aggregator -->
             <g id="aggregator">
-                <rect x="300" y="400" width="200" height="80" rx="10" fill="#131826" stroke="#ff00ff" stroke-width="3"/>
-                <text x="400" y="425" text-anchor="middle" fill="#fff" font-size="16" font-weight="bold">Aggregator</text>
-                <text x="400" y="445" text-anchor="middle" fill="#a0aec0" font-size="12">Result Synthesis</text>
-                <text x="400" y="460" text-anchor="middle" fill="#00f2ff" font-size="12">Gemma 2B</text>
+                <rect x="310" y="410" width="180" height="70" rx="8" fill="#1a1d29" stroke="#ec4899" stroke-width="2"/>
+                <text x="400" y="434" text-anchor="middle" fill="#fff" font-size="14" font-weight="700" font-family="Inter, sans-serif">Aggregator</text>
+                <text x="400" y="450" text-anchor="middle" fill="#94a3b8" font-size="10.5" font-family="Inter, sans-serif">Result Synthesis</text>
+                <text x="400" y="466" text-anchor="middle" fill="#00d4ff" font-size="10.5" font-weight="600" font-family="Inter, sans-serif">Gemma 2B</text>
             </g>
 
             <!-- Arrows to aggregator -->
-            <line x1="160" y1="310" x2="300" y2="440" stroke="#00f2ff" stroke-width="2" marker-end="url(#arrowhead)"/>
-            <line x1="340" y1="310" x2="380" y2="400" stroke="#00f2ff" stroke-width="2" marker-end="url(#arrowhead)"/>
-            <line x1="520" y1="310" x2="500" y2="400" stroke="#00f2ff" stroke-width="2" marker-end="url(#arrowhead)"/>
+            <line x1="155" y1="295" x2="310" y2="445" stroke="#00d4ff" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+            <line x1="340" y1="295" x2="380" y2="410" stroke="#00d4ff" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+            <line x1="525" y1="295" x2="420" y2="410" stroke="#00d4ff" stroke-width="1.5" marker-end="url(#arrowhead)"/>
 
             <!-- Output -->
             <g id="output">
-                <rect x="600" y="400" width="150" height="80" rx="10" fill="#131826" stroke="#00f2ff" stroke-width="2"/>
-                <text x="675" y="425" text-anchor="middle" fill="#fff" font-size="14">Final Result</text>
-                <text x="675" y="445" text-anchor="middle" fill="#00f2ff" font-size="12">High Quality</text>
-                <text x="675" y="460" text-anchor="middle" fill="#00f2ff" font-size="12">Less Tokens</text>
+                <rect x="610" y="410" width="140" height="70" rx="8" fill="#1a1d29" stroke="#00d4ff" stroke-width="1.5"/>
+                <text x="680" y="433" text-anchor="middle" fill="#fff" font-size="13" font-weight="600" font-family="Inter, sans-serif">Final Result</text>
+                <text x="680" y="451" text-anchor="middle" fill="#00d4ff" font-size="10.5" font-family="Inter, sans-serif">High Quality</text>
+                <text x="680" y="466" text-anchor="middle" fill="#00d4ff" font-size="10.5" font-family="Inter, sans-serif">Less Tokens</text>
             </g>
 
             <!-- Arrow to output -->
-            <line x1="500" y1="440" x2="600" y2="440" stroke="#ff00ff" stroke-width="2" marker-end="url(#arrowhead)"/>
+            <line x1="490" y1="445" x2="610" y2="445" stroke="#ec4899" stroke-width="2" marker-end="url(#arrowhead)"/>
 
             <!-- Arrow marker -->
             <defs>
                 <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
-                    <polygon points="0 0, 10 3, 0 6" fill="#00f2ff" />
+                    <polygon points="0 0, 10 3, 0 6" fill="#00d4ff" />
                 </marker>
             </defs>
 
             <!-- Time annotations -->
-            <text x="160" y="330" text-anchor="middle" fill="#00f2ff" font-size="11">8s</text>
-            <text x="340" y="330" text-anchor="middle" fill="#00f2ff" font-size="11">6s</text>
-            <text x="520" y="330" text-anchor="middle" fill="#00f2ff" font-size="11">7s</text>
-            <text x="400" y="500" text-anchor="middle" fill="#ff00ff" font-size="11">2s aggregation</text>
-            <text x="400" y="515" text-anchor="middle" fill="#fff" font-size="14" font-weight="bold">Total: 10s (parallel!)</text>
+            <text x="155" y="318" text-anchor="middle" fill="#00d4ff" font-size="10" font-weight="600" font-family="Inter, sans-serif">8s</text>
+            <text x="340" y="318" text-anchor="middle" fill="#00d4ff" font-size="10" font-weight="600" font-family="Inter, sans-serif">6s</text>
+            <text x="525" y="318" text-anchor="middle" fill="#00d4ff" font-size="10" font-weight="600" font-family="Inter, sans-serif">7s</text>
+            <text x="400" y="505" text-anchor="middle" fill="#ec4899" font-size="10" font-weight="600" font-family="Inter, sans-serif">2s aggregation</text>
+            <text x="400" y="525" text-anchor="middle" fill="#fff" font-size="13" font-weight="700" font-family="Inter, sans-serif">Total: 10s (parallel!)</text>
         </svg>
     `;
 
@@ -302,15 +340,19 @@ window.addEventListener('load', () => {
 });
 
 // Navbar scroll effect
+let lastScroll = 0;
+const navbar = document.querySelector('.navbar');
+
 window.addEventListener('scroll', () => {
-    const navbar = document.querySelector('.navbar');
-    if (window.scrollY > 50) {
-        navbar.style.background = 'rgba(10, 14, 26, 0.95)';
-        navbar.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.3)';
+    const currentScroll = window.pageYOffset;
+
+    if (currentScroll > 50) {
+        navbar.classList.add('scrolled');
     } else {
-        navbar.style.background = 'rgba(10, 14, 26, 0.9)';
-        navbar.style.boxShadow = 'none';
+        navbar.classList.remove('scrolled');
     }
+
+    lastScroll = currentScroll;
 });
 
 // Animated counter for stats
@@ -320,7 +362,18 @@ function animateValue(element, start, end, duration) {
         if (!startTimestamp) startTimestamp = timestamp;
         const progress = Math.min((timestamp - startTimestamp) / duration, 1);
         const value = Math.floor(progress * (end - start) + start);
-        element.textContent = value;
+        const text = element.textContent;
+
+        if (text.includes('%')) {
+            element.textContent = value + '%';
+        } else if (text.includes('x')) {
+            element.textContent = value + 'x';
+        } else if (text.includes('+')) {
+            element.textContent = value + '+';
+        } else {
+            element.textContent = value;
+        }
+
         if (progress < 1) {
             window.requestAnimationFrame(step);
         }
@@ -334,34 +387,61 @@ const statsObserver = new IntersectionObserver((entries) => {
         if (entry.isIntersecting) {
             document.querySelectorAll('.stat-number').forEach(stat => {
                 const text = stat.textContent;
-                if (text.includes('%')) {
-                    const num = parseInt(text);
+                const match = text.match(/\d+/);
+                if (match) {
+                    const num = parseInt(match[0]);
                     animateValue(stat, 0, num, 2000);
-                    stat.textContent += '%';
                 }
             });
             statsObserver.unobserve(entry.target);
         }
     });
-});
+}, { threshold: 0.3 });
 
 const statsSection = document.querySelector('.hero-stats');
 if (statsSection) {
     statsObserver.observe(statsSection);
 }
 
-// Console easter egg
+// Console easter egg with refined styling
 console.log(`
 %c   _____ _    _  ___
   / ____| |  | |/ _ \\
  | |    | |__| | (_) |
  | |    |  __  |> _ <
  | |____| |  | | (_) |
-  \\_____|_|  |_|\\___/
+  \\_____!_|  |_|\\___/
 
 %c CH8 AGENT - Democratic Distributed AI
 %c https://github.com/hudsonrj/ch8-cluster-agent
 
-`, 'color: #00f2ff; font-family: monospace', 'color: #7000ff; font-weight: bold', 'color: #a0aec0');
+`, 'color: #00d4ff; font-family: monospace; font-size: 12px;', 'color: #6366f1; font-weight: bold; font-size: 14px;', 'color: #94a3b8; font-size: 12px;');
 
-console.log('%cInterested in the code? Check out our GitHub! 🚀', 'color: #00f2ff; font-size: 14px; font-weight: bold');
+console.log('%cInterested in the code? Check out our GitHub! 🚀', 'color: #00d4ff; font-size: 13px; font-weight: bold;');
+
+// Parallax effect for hero section
+window.addEventListener('scroll', () => {
+    const scrolled = window.pageYOffset;
+    const heroVisual = document.querySelector('.hero-visual');
+    if (heroVisual) {
+        heroVisual.style.transform = `translateY(${scrolled * 0.3}px)`;
+    }
+});
+
+// Add loading animation
+window.addEventListener('load', () => {
+    document.body.classList.add('loaded');
+});
+
+// Smooth reveal animation for sections
+const revealObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) {
+            entry.target.classList.add('revealed');
+        }
+    });
+}, { threshold: 0.1 });
+
+document.querySelectorAll('section').forEach(section => {
+    revealObserver.observe(section);
+});
