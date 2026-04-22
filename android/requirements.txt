@@ -1,0 +1,19 @@
+# CH8 Agent - Android Requirements
+# Minimal dependencies for Android/Termux
+
+# Core
+aiohttp>=3.9.0
+pyyaml>=6.0
+structlog>=23.1.0
+psutil>=5.9.0
+
+# For cloud APIs
+requests>=2.31.0
+certifi>=2023.7.22
+
+# Optional: For Kivy UI
+# kivy>=2.2.0
+# kivymd>=1.1.0
+
+# Optional: For local models
+# llama-cpp-python>=0.2.0  # If building from source
