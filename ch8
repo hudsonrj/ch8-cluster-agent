@@ -34,22 +34,193 @@ def print_logo():
 def cmd_help():
     """Show help message"""
     print_logo()
-    print(f"{Colors.GREEN}CH8 Agent Commands:{Colors.NC}\n")
-    print(f"  {Colors.YELLOW}ch8{Colors.NC}                - Interactive mode (start cluster)")
+    print(f"{Colors.GREEN}Connect (Tailscale-style mesh){Colors.NC}\n")
+    print(f"  {Colors.YELLOW}ch8 login{Colors.NC}              - Authenticate (opens browser)")
+    print(f"  {Colors.YELLOW}ch8 up{Colors.NC}                 - Connect this node to your network")
+    print(f"  {Colors.YELLOW}ch8 up --token TOKEN{Colors.NC}   - Connect using a pre-auth token (headless)")
+    print(f"  {Colors.YELLOW}ch8 down{Colors.NC}               - Disconnect this node")
+    print(f"  {Colors.YELLOW}ch8 nodes{Colors.NC}              - List connected nodes")
+    print(f"  {Colors.YELLOW}ch8 token create{Colors.NC}       - Create a pre-auth token")
+    print(f"  {Colors.YELLOW}ch8 logout{Colors.NC}             - Remove saved credentials")
+    print()
+    print(f"{Colors.GREEN}Cluster{Colors.NC}\n")
     print(f"  {Colors.YELLOW}ch8 start{Colors.NC}          - Start the cluster (master + workers)")
     print(f"  {Colors.YELLOW}ch8 stop{Colors.NC}           - Stop all cluster components")
     print(f"  {Colors.YELLOW}ch8 status{Colors.NC}         - Check cluster status")
-    print(f"  {Colors.YELLOW}ch8 test{Colors.NC}           - Run end-to-end tests")
     print(f"  {Colors.YELLOW}ch8 logs{Colors.NC}           - View cluster logs")
-    print(f"  {Colors.YELLOW}ch8 config{Colors.NC}         - Configure cluster settings")
     print(f"  {Colors.YELLOW}ch8 worker add{Colors.NC}     - Add a new worker node")
     print(f"  {Colors.YELLOW}ch8 worker list{Colors.NC}    - List all workers")
-    print(f"  {Colors.YELLOW}ch8 master{Colors.NC}         - Start master node only")
+    print()
+    print(f"{Colors.GREEN}System{Colors.NC}\n")
     print(f"  {Colors.YELLOW}ch8 setup{Colors.NC}          - Run full setup wizard")
     print(f"  {Colors.YELLOW}ch8 update{Colors.NC}         - Update to latest version")
     print(f"  {Colors.YELLOW}ch8 doctor{Colors.NC}         - Diagnose system issues")
     print(f"  {Colors.YELLOW}ch8 help{Colors.NC}           - Show this help message")
     print()
+
+
+# ------------------------------------------------------------------ #
+# Connect commands (Tailscale-style)
+
+def cmd_login():
+    """Authenticate with CH8 network (device-code flow)."""
+    sys.path.insert(0, str(Path(__file__).parent))
+    from connect.auth import is_authenticated, login_interactive, get_node_id
+
+    if is_authenticated():
+        print(f"{Colors.GREEN}Already authenticated.{Colors.NC} Run `ch8 nodes` to see your cluster.")
+        return
+
+    print(f"{Colors.BLUE}Authenticating with CH8 network...{Colors.NC}\n")
+    try:
+        auth = login_interactive()
+        print(f"\n{Colors.GREEN}✓ Authenticated!{Colors.NC}")
+        print(f"  Node ID:    {auth['node_id']}")
+        print(f"  Network:    {auth['network_id']}")
+        print(f"\nRun {Colors.YELLOW}ch8 up{Colors.NC} to connect to your cluster.")
+    except Exception as e:
+        print(f"{Colors.RED}Login failed: {e}{Colors.NC}")
+        sys.exit(1)
+
+
+def cmd_up(token=None):
+    """Start the connect daemon — auto-joins the network."""
+    sys.path.insert(0, str(Path(__file__).parent))
+    from connect.auth import is_authenticated, login_with_token
+    from connect.daemon import is_daemon_running
+
+    # Authenticate via token if provided and not yet authenticated
+    if token and not is_authenticated():
+        print(f"{Colors.BLUE}Authenticating with pre-auth token...{Colors.NC}")
+        try:
+            auth = login_with_token(token)
+            print(f"{Colors.GREEN}✓ Authenticated  network={auth['network_id']}{Colors.NC}")
+        except Exception as e:
+            print(f"{Colors.RED}Token auth failed: {e}{Colors.NC}")
+            sys.exit(1)
+
+    if not is_authenticated():
+        print(f"{Colors.RED}Not authenticated. Run `ch8 login` or `ch8 up --token TOKEN`{Colors.NC}")
+        sys.exit(1)
+
+    if is_daemon_running():
+        print(f"{Colors.YELLOW}CH8 Connect is already running.{Colors.NC} Run `ch8 nodes` to see peers.")
+        return
+
+    print(f"{Colors.GREEN}Starting CH8 Connect...{Colors.NC}")
+    # Launch daemon as background subprocess
+    daemon_proc = subprocess.Popen(
+        [sys.executable, "-m", "connect.daemon"],
+        cwd=str(Path(__file__).parent),
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        start_new_session=True,
+    )
+    # Brief wait and check
+    import time; time.sleep(2)
+    from connect.daemon import is_daemon_running, read_state
+    if is_daemon_running():
+        state = read_state()
+        print(f"{Colors.GREEN}✓ CH8 Connect is up!{Colors.NC}")
+        print(f"  Peers online: {len(state.get('peers', []))}")
+        print(f"\nRun {Colors.YELLOW}ch8 nodes{Colors.NC} to see your cluster.")
+    else:
+        print(f"{Colors.RED}Daemon failed to start. Check logs with: journalctl -u ch8{Colors.NC}")
+
+
+def cmd_down():
+    """Stop the connect daemon."""
+    sys.path.insert(0, str(Path(__file__).parent))
+    from connect.daemon import get_daemon_pid, is_daemon_running
+    import signal as _signal
+
+    pid = get_daemon_pid()
+    if not pid or not is_daemon_running():
+        print(f"{Colors.YELLOW}CH8 Connect is not running.{Colors.NC}")
+        return
+
+    try:
+        os.kill(pid, _signal.SIGTERM)
+        print(f"{Colors.GREEN}✓ CH8 Connect stopped.{Colors.NC}")
+    except OSError as e:
+        print(f"{Colors.RED}Could not stop daemon: {e}{Colors.NC}")
+
+
+def cmd_nodes():
+    """List connected nodes."""
+    sys.path.insert(0, str(Path(__file__).parent))
+    from connect.auth import is_authenticated, get_node_id
+    from connect.daemon import is_daemon_running, read_state
+
+    if not is_authenticated():
+        print(f"{Colors.RED}Not authenticated. Run `ch8 login` first.{Colors.NC}")
+        sys.exit(1)
+
+    state = read_state()
+    running = is_daemon_running()
+
+    status_color = Colors.GREEN if running else Colors.RED
+    status_text  = "online" if running else "offline"
+    print(f"\n{Colors.BLUE}CH8 Connect{Colors.NC}  status: {status_color}{status_text}{Colors.NC}\n")
+    print(f"  This node:  {get_node_id()}")
+
+    peers = state.get("peers", [])
+    if not peers:
+        print(f"\n  {Colors.YELLOW}No peers online yet.{Colors.NC}")
+        if not running:
+            print(f"  Run {Colors.YELLOW}ch8 up{Colors.NC} to connect.")
+    else:
+        print(f"\n  {'NODE ID':<20} {'HOST':<20} {'ADDRESS':<18} {'CAPS'}")
+        print(f"  {'-'*70}")
+        for p in peers:
+            caps  = ",".join(p.get("capabilities", []))
+            addr  = f"{p.get('address','?')}:{p.get('port',7878)}"
+            host  = p.get("hostname", "?")[:18]
+            nid   = p.get("node_id", "?")[:18]
+            print(f"  {nid:<20} {host:<20} {addr:<18} {caps}")
+    print()
+
+
+def cmd_logout():
+    """Remove saved credentials."""
+    sys.path.insert(0, str(Path(__file__).parent))
+    from connect.auth import clear_auth, is_authenticated
+    from connect.daemon import is_daemon_running
+    if is_daemon_running():
+        cmd_down()
+    clear_auth()
+    print(f"{Colors.GREEN}✓ Logged out.{Colors.NC}")
+
+
+def cmd_token(action=None):
+    """Manage pre-auth tokens."""
+    sys.path.insert(0, str(Path(__file__).parent))
+    from connect.auth import is_authenticated
+
+    if not is_authenticated():
+        print(f"{Colors.RED}Not authenticated. Run `ch8 login` first.{Colors.NC}")
+        sys.exit(1)
+
+    if action == "create":
+        import asyncio
+        from connect.coordinator import ControlClient
+
+        label = input("Token label (optional): ").strip()
+        ttl   = input("Validity in hours [168]: ").strip() or "168"
+
+        async def _create():
+            c = ControlClient()
+            return await c.create_preauth_token(label=label, ttl_hours=int(ttl))
+
+        result = asyncio.run(_create())
+        print(f"\n{Colors.GREEN}✓ Token created:{Colors.NC}\n")
+        print(f"  {Colors.YELLOW}{result['token']}{Colors.NC}")
+        print(f"\n  Expires: {result['expires_at']}")
+        print(f"  Use on any machine:")
+        print(f"    ch8 up --token {result['token']}\n")
+    else:
+        print(f"{Colors.YELLOW}Token commands:{Colors.NC}")
+        print(f"  ch8 token create   - Create a new pre-auth token")
 
 def cmd_start():
     """Start the cluster"""
@@ -227,27 +398,37 @@ def main():
     os.chdir(script_dir)
 
     parser = argparse.ArgumentParser(
-        description='CH8 Agent - Distributed Multi-Node Agent System',
+        description='CH8 Agent - Autonomous AI Orchestration',
         add_help=False
     )
     parser.add_argument('command', nargs='?', default='help')
     parser.add_argument('subcommand', nargs='?', default=None)
+    parser.add_argument('--token', default=None, help='Pre-auth token for headless enrollment')
 
     args = parser.parse_args()
 
     commands = {
-        'help': cmd_help,
-        'start': cmd_start,
-        'stop': cmd_stop,
+        # Connect (Tailscale-style)
+        'login':  cmd_login,
+        'up':     lambda: cmd_up(token=args.token),
+        'down':   cmd_down,
+        'nodes':  cmd_nodes,
+        'logout': cmd_logout,
+        'token':  lambda: cmd_token(args.subcommand),
+        # Cluster
+        'start':  cmd_start,
+        'stop':   cmd_stop,
         'status': cmd_status,
-        'test': cmd_test,
-        'logs': lambda: cmd_logs(args.subcommand),
+        'test':   cmd_test,
+        'logs':   lambda: cmd_logs(args.subcommand),
         'config': lambda: cmd_config(args.subcommand),
         'worker': lambda: cmd_worker(args.subcommand),
         'master': cmd_master,
-        'setup': cmd_setup,
+        # System
+        'setup':  cmd_setup,
         'update': cmd_update,
         'doctor': cmd_doctor,
+        'help':   cmd_help,
     }
 
     if args.command in commands:

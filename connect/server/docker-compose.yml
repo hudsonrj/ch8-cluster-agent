@@ -1,0 +1,17 @@
+version: "3.9"
+
+services:
+  control-server:
+    build:
+      context: ../..
+      dockerfile: connect/server/Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - CH8_CONTROL_BASE_URL=https://control.ch8ai.com.br
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
