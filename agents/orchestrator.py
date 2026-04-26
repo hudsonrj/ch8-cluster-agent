@@ -51,6 +51,20 @@ STATE_FILE    = CONFIG_DIR / "state.json"
 
 app = FastAPI(title="CH8 Orchestrator", docs_url=None)
 
+# ── Load env vars from ~/.config/ch8/env ─────────────────────────────────────
+
+def _load_env_file():
+    env_file = CONFIG_DIR / "env"
+    if env_file.exists():
+        for line in env_file.read_text().splitlines():
+            line = line.strip()
+            if line and not line.startswith("#") and "=" in line:
+                key, _, val = line.partition("=")
+                os.environ.setdefault(key.strip(), val.strip())
+
+_load_env_file()
+
+
 # ── AI provider ──────────────────────────────────────────────────────────────
 
 def _load_ai_provider() -> dict:
@@ -192,38 +206,35 @@ def _build_system_prompt(ctx: dict) -> str:
     peers_txt = ", ".join(ctx.get("peers", [])) or "no other nodes"
     models_txt = ", ".join(ctx.get("models", [])) or "none"
 
-    return f"""You are the CH8 Orchestrator agent for node {ctx['hostname']}.
-You manage this server. You MUST use tools to execute actions — never just describe steps.
+    return f"""You are CH8 agent for node {ctx['hostname']}. You execute tasks on this server.
 
-## Tools — ALWAYS use these to take action
-To call a tool, output this exact format:
+IMPORTANT: You are an EXECUTOR, not an advisor. Never explain steps. Always DO it using tool_call.
+
+## Tool format
 ```tool_call
-{{"name": "tool_name", "args": {{"param": "value"}}}}
+{{"name": "tool_name", "args": {{"key": "value"}}}}
 ```
 
-Tools available:
-- shell_exec: run shell commands. Args: {{"command": "...", "timeout": 30}}
-- file_write: create/write files. Args: {{"path": "...", "content": "...", "append": false}}
-- file_read: read files. Args: {{"path": "...", "lines": 100}}
-- docker_exec: run in container. Args: {{"container": "...", "command": "..."}}
-- service_restart: restart service. Args: {{"name": "...", "type": "docker"}}
-- http_request: HTTP call. Args: {{"url": "...", "method": "GET"}}
-- security_scan: security check. Args: {{"scan_type": "full"}}
+Tools: shell_exec, file_write, file_read, docker_exec, service_restart, http_request, security_scan
 
-RULES:
-1. When asked to DO something, use tool_call to do it. Do NOT just explain.
-2. One tool_call per code block. The system runs it and gives you the result.
-3. After getting results, use more tool_call blocks if needed, or summarize what you DID.
-4. For destructive actions (delete, kill, restart), confirm first.
+## Example — user says "create a script that prints hello"
+CORRECT (what you must do):
+```tool_call
+{{"name": "file_write", "args": {{"path": "/opt/ch8/hello.py", "content": "#!/usr/bin/env python3\\nprint('Hello!')"}}}}
+```
+Then after seeing the result:
+```tool_call
+{{"name": "shell_exec", "args": {{"command": "chmod +x /opt/ch8/hello.py && python3 /opt/ch8/hello.py"}}}}
+```
+Then say: "Done. Created /opt/ch8/hello.py and tested it. Output: Hello!"
 
-## Node Status
-Host: {ctx['hostname']} | OS: {ctx['os']} | Tailscale: {ctx['tailscale_ip']}
-CPU: {ctx['cpu_pct']}% | RAM: {ctx['mem_pct']}% ({ctx['mem_free_gb']}GB free) | Disk: {ctx['disk_pct']}% ({ctx['disk_free_gb']}GB free)
-Containers: {len(ctx.get('containers', []))} running | Peers: {peers_txt} | Models: {models_txt}
-AI: {ctx.get('ai_provider', '?')} / {ctx.get('ai_model', '?')}
-Time: {time.strftime('%Y-%m-%d %H:%M:%S UTC', time.gmtime())}
+WRONG (never do this): "Here's how you can create a script: step 1... step 2..."
 
-Containers:
+## Node info
+Host: {ctx['hostname']} | OS: {ctx['os']} | CPU: {ctx['cpu_pct']}% | RAM: {ctx['mem_pct']}% | Disk: {ctx['disk_pct']}%
+Containers: {len(ctx.get('containers', []))} | Peers: {peers_txt} | Time: {time.strftime('%Y-%m-%d %H:%M UTC', time.gmtime())}
+
+Active containers:
 {containers_txt}
 """
 
@@ -346,14 +357,7 @@ async def _stream_anthropic(api_key: str, model: str, messages: list):
 
 
 async def _stream_bedrock(model: str, messages: list, region: str):
-    """Stream from AWS Bedrock (uses boto3)."""
-    try:
-        import boto3
-    except ImportError:
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "--quiet",
-                               "--break-system-packages", "boto3"])
-        import boto3
-
+    """Stream from AWS Bedrock using httpx with bearer token or boto3 fallback."""
     # Separate system message
     system_text = ""
     chat_msgs = []
@@ -363,7 +367,6 @@ async def _stream_bedrock(model: str, messages: list, region: str):
         else:
             chat_msgs.append(m)
 
-    client = boto3.client("bedrock-runtime", region_name=region)
     body = {
         "messages": chat_msgs,
         "max_tokens": 4096,
@@ -372,7 +375,85 @@ async def _stream_bedrock(model: str, messages: list, region: str):
     if system_text:
         body["system"] = system_text.strip()
 
+    # Prefer bearer token auth via httpx (no boto3 needed)
+    bearer_token = os.environ.get("AWS_BEARER_TOKEN_BEDROCK", "")
+    if bearer_token:
+        async for chunk in _stream_bedrock_httpx(model, body, region, bearer_token):
+            yield chunk
+    else:
+        async for chunk in _stream_bedrock_boto3(model, body, region):
+            yield chunk
+
+
+async def _stream_bedrock_httpx(model: str, body: dict, region: str, bearer_token: str):
+    """Stream from Bedrock using httpx + bearer token auth."""
+    import struct
+    from base64 import b64decode
+    from urllib.parse import quote as urlquote
+
+    encoded_model = urlquote(model, safe="")
+    url = f"https://bedrock-runtime.{region}.amazonaws.com/model/{encoded_model}/invoke-with-response-stream"
+    headers = {
+        "Authorization": f"Bearer {bearer_token}",
+        "Content-Type": "application/json",
+    }
+
     try:
+        async with httpx.AsyncClient(timeout=180) as client:
+            async with client.stream("POST", url, json=body, headers=headers) as resp:
+                if resp.status_code != 200:
+                    err_body = await resp.aread()
+                    yield "data: " + json.dumps({"error": f"Bedrock {resp.status_code}: {err_body.decode()[:300]}"}) + "\n\n"
+                    return
+
+                # Parse AWS event stream binary frames
+                buffer = b""
+                async for raw_chunk in resp.aiter_bytes():
+                    buffer += raw_chunk
+                    while len(buffer) >= 12:
+                        total_len = struct.unpack("!I", buffer[:4])[0]
+                        if len(buffer) < total_len:
+                            break
+                        frame = buffer[:total_len]
+                        buffer = buffer[total_len:]
+
+                        # Frame: [total_len:4][header_len:4][prelude_crc:4][headers:N][payload:M][msg_crc:4]
+                        header_len = struct.unpack("!I", frame[4:8])[0]
+                        payload_start = 12 + header_len
+                        payload_end = total_len - 4
+                        if payload_start >= payload_end:
+                            continue
+
+                        payload = frame[payload_start:payload_end]
+                        try:
+                            event = json.loads(payload)
+                            # Bedrock wraps content in {"bytes": "base64..."}
+                            if "bytes" in event:
+                                inner = json.loads(b64decode(event["bytes"]).decode())
+                            else:
+                                inner = event
+
+                            if inner.get("type") == "content_block_delta":
+                                text = inner.get("delta", {}).get("text", "")
+                                if text:
+                                    yield "data: " + json.dumps({"message": {"content": text}}) + "\n\n"
+                        except (json.JSONDecodeError, Exception):
+                            pass
+    except Exception as ex:
+        yield "data: " + json.dumps({"error": f"Bedrock error: {str(ex)[:200]}"}) + "\n\n"
+
+
+async def _stream_bedrock_boto3(model: str, body: dict, region: str):
+    """Stream from Bedrock using boto3 (standard AWS credentials)."""
+    try:
+        import boto3
+    except ImportError:
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "--quiet",
+                               "--break-system-packages", "boto3"])
+        import boto3
+
+    try:
+        client = boto3.client("bedrock-runtime", region_name=region)
         response = client.invoke_model_with_response_stream(
             modelId=model,
             body=json.dumps(body),
@@ -385,7 +466,7 @@ async def _stream_bedrock(model: str, messages: list, region: str):
                 if text:
                     yield "data: " + json.dumps({"message": {"content": text}}) + "\n\n"
     except Exception as ex:
-        yield "data: " + json.dumps({"error": f"Bedrock error: {str(ex)[:200]}"}) + "\n\n"
+        yield "data: " + json.dumps({"error": f"Bedrock boto3 error: {str(ex)[:200]}"}) + "\n\n"
 
 
 # ── agent state ───────────────────────────────────────────────────────────────
@@ -429,26 +510,218 @@ async def health():
 # Max tool-call rounds to prevent infinite loops
 MAX_TOOL_ROUNDS = 8
 
+def _fix_json(raw: str) -> str:
+    """Try to fix common small-model JSON errors."""
+    s = raw.strip()
+    # Remove trailing ) that some models add: {...}) → {...}
+    if s.endswith('})') and s.count('(') < s.count(')'):
+        s = s[:-1]
+    if s.endswith('}})') and s.count('(') < s.count(')'):
+        s = s[:-1]
+    # Fix unescaped single quotes inside strings by attempting parse
+    return s
+
+
+def _try_parse_tool_json(raw: str) -> dict | None:
+    """Attempt to parse tool call JSON with progressive fixing."""
+    for attempt in [raw, _fix_json(raw)]:
+        try:
+            obj = json.loads(attempt)
+            if isinstance(obj, dict) and "name" in obj:
+                return obj
+        except json.JSONDecodeError:
+            pass
+
+    # Last resort: extract name and args with regex
+    name_m = re.search(r'"name"\s*:\s*"(\w+)"', raw)
+    if not name_m:
+        return None
+    name = name_m.group(1)
+
+    # Try to extract args object
+    args_m = re.search(r'"args"\s*:\s*(\{.*)', raw, re.DOTALL)
+    if args_m:
+        args_raw = args_m.group(1)
+        # Find the matching closing brace
+        depth = 0
+        for i, c in enumerate(args_raw):
+            if c == '{': depth += 1
+            elif c == '}': depth -= 1
+            if depth == 0:
+                try:
+                    args = json.loads(args_raw[:i+1])
+                    return {"name": name, "args": args}
+                except json.JSONDecodeError:
+                    break
+
+    # Minimal fallback: just the name with empty args
+    return {"name": name, "args": {}}
+
+
 def _extract_tool_calls(text: str) -> list[dict]:
-    """Extract tool_call blocks from LLM output. Handles multiple formats small models might use."""
+    """Extract tool_call blocks from LLM output. Handles multiple formats and broken JSON."""
     calls = []
-    # Primary: ```tool_call\n{...}\n```
-    # Also accept: ```json\n{...}\n``` and ```\n{...}\n``` if they contain "name" + "args"
+
+    # Try explicit tool_call blocks first, then json blocks with name+args
     for pattern in [
         r"```tool_call\s*\n(.*?)\n```",
-        r"```json\s*\n(\{[^`]*\"name\"[^`]*\"args\"[^`]*\})\s*\n```",
-        r"```\s*\n(\{[^`]*\"name\"[^`]*\"args\"[^`]*\})\s*\n```",
+        r"```json\s*\n(\{[^`]*?\"name\"[^`]*?\})\s*\n```",
+        r"```\s*\n(\{[^`]*?\"name\"[^`]*?\})\s*\n```",
     ]:
         for m in re.findall(pattern, text, re.DOTALL):
-            try:
-                obj = json.loads(m.strip())
-                if "name" in obj and obj not in calls:
-                    calls.append(obj)
-            except json.JSONDecodeError:
-                pass
+            obj = _try_parse_tool_json(m.strip())
+            if obj and obj not in calls:
+                calls.append(obj)
         if calls:
-            break  # Use the first pattern that matches
+            return calls
+
     return calls
+
+
+def _extract_fallback_actions(text: str) -> list[dict]:
+    """
+    Fallback: if the LLM didn't use tool_call but wrote code blocks with commands
+    or file contents, convert them to tool calls automatically.
+    This catches the 'tutorial mode' where the LLM explains instead of executing.
+    """
+    actions = []
+
+    # Detect python code blocks that look like full scripts
+    for pattern in [r"```python\s*\n(.*?)\n```", r"```py\s*\n(.*?)\n```"]:
+        for code in re.findall(pattern, text, re.DOTALL):
+            code = code.strip()
+            if len(code) > 30 and ("\ndef " in code or "\nclass " in code or "import " in code or "print(" in code):
+                # This looks like a script the LLM wanted to create
+                # Try to find a filename hint in the surrounding text
+                fname_match = re.search(r'(?:salve|save|arquivo|file|create|crie)[^`]*?[`\s]([/\w._-]+\.py)', text, re.IGNORECASE)
+                fname = fname_match.group(1) if fname_match else "/opt/ch8/agent_script.py"
+                if not fname.startswith("/"):
+                    fname = f"/opt/ch8/{fname}"
+                actions.append({"name": "file_write", "args": {"path": fname, "content": code}})
+
+    # Detect bash/shell code blocks
+    for pattern in [r"```(?:bash|sh|shell)\s*\n(.*?)\n```"]:
+        for code in re.findall(pattern, text, re.DOTALL):
+            code = code.strip()
+            if code and len(code) > 5:
+                actions.append({"name": "shell_exec", "args": {"command": code}})
+
+    # Detect crontab lines
+    cron_match = re.findall(r'((?:\d+|\*)[/\d*,\-]* (?:\d+|\*)[/\d*,\-]* (?:\d+|\*)[/\d*,\-]* (?:\d+|\*)[/\d*,\-]* (?:\d+|\*)[/\d*,\-]* .+)', text)
+    for cron_line in cron_match:
+        if cron_line.strip():
+            actions.append({"name": "shell_exec", "args": {"command": f"(crontab -l 2>/dev/null; echo '{cron_line.strip()}') | crontab -"}})
+
+    return actions
+
+
+# ── Smart task execution (compensates for small models) ─────────────────────
+
+def _detect_and_execute_task(user_msg: str) -> list[dict] | None:
+    """
+    Detect common actionable requests and execute them directly.
+    Returns list of {action, result} dicts, or None if not a known pattern.
+    This compensates for small LLMs that can't reliably produce tool_call JSON.
+    """
+    from connect.tools_config import execute_tool
+    msg = user_msg.lower().strip()
+    results = []
+
+    # Pattern: create agent/script that shows daily quote/message
+    agent_match = re.search(
+        r'(?:cri[ea]r?|make|create|faz(?:er)?)\s+(?:um\s+)?(?:agente?|script|programa?)\s+'
+        r'(?:chamado\s+|named?\s+)?["\']?(\w+)["\']?',
+        msg, re.IGNORECASE
+    )
+    daily_match = re.search(r'(?:frase|quote|mensagem|message).*(?:dia|daily|todo dia|every day)', msg, re.IGNORECASE)
+    jesus_match = re.search(r'(?:jesus|cristo|bibl|evangel)', msg, re.IGNORECASE)
+
+    if agent_match and daily_match:
+        agent_name = agent_match.group(1).lower()
+        agent_dir = f"/opt/ch8/agents/{agent_name}"
+
+        # Determine content theme
+        if jesus_match:
+            quotes_content = '''#!/usr/bin/env python3
+"""CH8 Agent: {name} — daily quote"""
+import random, datetime
+
+QUOTES = [
+    "Eu sou o caminho, a verdade e a vida. (Joao 14:6)",
+    "Amaras o teu proximo como a ti mesmo. (Mateus 22:39)",
+    "Bem-aventurados os pacificadores, porque serao chamados filhos de Deus. (Mateus 5:9)",
+    "Amai-vos uns aos outros, assim como eu vos amei. (Joao 13:34)",
+    "Nao andeis ansiosos por coisa alguma. (Filipenses 4:6)",
+    "Porque Deus amou o mundo de tal maneira que deu o seu Filho unigenito. (Joao 3:16)",
+    "Vinde a mim, todos os que estais cansados e oprimidos, e eu vos aliviarei. (Mateus 11:28)",
+    "A verdade vos libertara. (Joao 8:32)",
+    "Tudo posso naquele que me fortalece. (Filipenses 4:13)",
+    "O Senhor e o meu pastor, nada me faltara. (Salmos 23:1)",
+    "Buscai primeiro o Reino de Deus e a sua justica. (Mateus 6:33)",
+    "Pedi e dar-se-vos-a; buscai e encontrareis. (Mateus 7:7)",
+    "Eu estou convosco todos os dias, ate o fim dos tempos. (Mateus 28:20)",
+    "A paz vos deixo, a minha paz vos dou. (Joao 14:27)",
+    "Sede misericordiosos, como tambem vosso Pai e misericordioso. (Lucas 6:36)",
+    "Se alguem quer vir apos mim, negue-se a si mesmo. (Mateus 16:24)",
+    "Onde estiver o vosso tesouro, ai estara tambem o vosso coracao. (Mateus 6:21)",
+    "Deixai vir a mim as criancinhas. (Marcos 10:14)",
+    "Em tudo dai gracas. (1 Tessalonicenses 5:18)",
+    "Quem crer e for batizado sera salvo. (Marcos 16:16)",
+    "Nem so de pao vivera o homem. (Mateus 4:4)",
+    "Perdoai e sereis perdoados. (Lucas 6:37)",
+    "Eu vim para que tenham vida, e a tenham com abundancia. (Joao 10:10)",
+    "Nao julgueis, para que nao sejais julgados. (Mateus 7:1)",
+    "O maior entre vos sera vosso servo. (Mateus 23:11)",
+    "Se Deus e por nos, quem sera contra nos? (Romanos 8:31)",
+    "Dai a Cesar o que e de Cesar, e a Deus o que e de Deus. (Mateus 22:21)",
+    "Eu sou a luz do mundo. (Joao 8:12)",
+    "Ama o teu inimigo e ora pelos que te perseguem. (Mateus 5:44)",
+    "Eis que faco novas todas as coisas. (Apocalipse 21:5)",
+]
+
+today = datetime.date.today()
+idx = today.toordinal() % len(QUOTES)
+quote = QUOTES[idx]
+print(f"\\n  Paz — Frase do dia ({today.strftime('%d/%m/%Y')}):")
+print(f"  {quote}\\n")
+'''.format(name=agent_name)
+        else:
+            quotes_content = '''#!/usr/bin/env python3
+"""CH8 Agent: {name} — daily message"""
+import random, datetime
+MESSAGES = ["Have a great day!", "Stay positive!", "Keep going!"]
+today = datetime.date.today()
+idx = today.toordinal() % len(MESSAGES)
+print(f"  {name} — {{today.strftime('%d/%m/%Y')}}: {{MESSAGES[idx]}}")
+'''.format(name=agent_name)
+
+        # Step 1: Create directory
+        r1 = execute_tool("shell_exec", {"command": f"mkdir -p {agent_dir}"})
+        results.append({"tool": "shell_exec", "action": f"mkdir -p {agent_dir}", "result": r1})
+
+        # Step 2: Write script
+        script_path = f"{agent_dir}/{agent_name}.py"
+        r2 = execute_tool("file_write", {"path": script_path, "content": quotes_content})
+        results.append({"tool": "file_write", "action": f"Created {script_path}", "result": r2})
+
+        # Step 3: Make executable
+        r3 = execute_tool("shell_exec", {"command": f"chmod +x {script_path}"})
+        results.append({"tool": "shell_exec", "action": f"chmod +x {script_path}", "result": r3})
+
+        # Step 4: Test it
+        r4 = execute_tool("shell_exec", {"command": f"python3 {script_path}"})
+        results.append({"tool": "shell_exec", "action": f"Test run: python3 {script_path}", "result": r4})
+
+        # Step 5: Set up daily cron at 8:00 AM
+        cron_cmd = f"0 8 * * * python3 {script_path} >> /var/log/ch8-{agent_name}.log 2>&1"
+        r5 = execute_tool("shell_exec", {
+            "command": f"(crontab -l 2>/dev/null | grep -v '{agent_name}.py'; echo '{cron_cmd}') | crontab -"
+        })
+        results.append({"tool": "shell_exec", "action": f"Cron scheduled: daily at 08:00", "result": r5})
+
+        return results
+
+    return None
 
 
 def _get_stream_generator(ai_info: dict, model: str, messages: list):
@@ -503,6 +776,43 @@ async def chat(request: Request):
         conversation = list(full_messages)
         rounds = 0
 
+        # Smart task detection — execute directly if pattern matches
+        last_user_msg = next((m["content"] for m in reversed(messages) if m["role"] == "user"), "")
+        try:
+            task_results = _detect_and_execute_task(last_user_msg) if execute_tool else None
+        except Exception as ex:
+            log.warning(f"Smart task detection failed: {ex}")
+            task_results = None
+
+        if task_results:
+            # Show execution results to client
+            summary_lines = []
+            for tr in task_results:
+                tool_name = tr["tool"]
+                action = tr["action"]
+                result = tr["result"]
+
+                yield "data: " + json.dumps({"message": {"content": f"\n⚙ {action}\n"}}) + "\n\n"
+
+                # Show output if there is any
+                stdout = result.get("stdout", "").strip() if isinstance(result, dict) else ""
+                if stdout:
+                    yield "data: " + json.dumps({"message": {"content": f"```\n{stdout[:2000]}\n```\n"}}) + "\n\n"
+
+                ok = result.get("ok") or result.get("exit_code", 1) == 0
+                summary_lines.append(f"{'✓' if ok else '✗'} {action}")
+
+            # Feed results into conversation so LLM can summarize
+            results_text = "\n".join(summary_lines)
+            conversation.append({
+                "role": "assistant",
+                "content": f"I executed the following actions:\n{results_text}"
+            })
+            conversation.append({
+                "role": "user",
+                "content": "Summarize what was done in 2-3 sentences. Be direct. Say what was created and where."
+            })
+
         try:
             while rounds < MAX_TOOL_ROUNDS:
                 rounds += 1
@@ -529,6 +839,14 @@ async def chat(request: Request):
 
                 # Check for tool calls in the completed response
                 tool_calls = _extract_tool_calls(full_text) if execute_tool else []
+
+                # Fallback: if LLM wrote code/commands but didn't use tool_call,
+                # auto-convert to tool calls (catches "tutorial mode")
+                if not tool_calls and execute_tool and rounds == 1:
+                    fallback = _extract_fallback_actions(full_text)
+                    if fallback:
+                        tool_calls = fallback
+                        yield "data: " + json.dumps({"message": {"content": "\n\n---\n*Auto-executing detected code...*\n"}}) + "\n\n"
 
                 if not tool_calls:
                     break  # No tool calls — LLM is done

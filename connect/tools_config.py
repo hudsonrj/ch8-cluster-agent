@@ -215,8 +215,12 @@ def _exec_file_read(args: dict) -> dict:
 
 
 def _exec_file_write(args: dict) -> dict:
-    path = args["path"]
-    content = args["content"]
+    path = args.get("path", "")
+    content = args.get("content", "")
+    if not path:
+        return {"error": "Missing 'path' argument"}
+    if not content:
+        return {"error": "Missing 'content' argument"}
     append = args.get("append", False)
     try:
         p = Path(path)
