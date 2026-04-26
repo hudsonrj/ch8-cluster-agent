@@ -178,12 +178,17 @@ def cmd_up(token=None):
 
     print(f"{Colors.GREEN}Starting CH8 Connect...{Colors.NC}")
 
-    # Launch daemon as background subprocess
+    # Launch daemon as background subprocess — log to file for debugging
+    log_dir = Path.home() / ".config" / "ch8"
+    log_dir.mkdir(parents=True, exist_ok=True)
+    daemon_log = log_dir / "daemon.log"
+    daemon_fh = open(daemon_log, "w")
+
     subprocess.Popen(
         [sys.executable, "-m", "connect.daemon"],
         cwd=str(Path(__file__).parent),
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
+        stdout=daemon_fh,
+        stderr=daemon_fh,
         start_new_session=True,
     )
 
@@ -191,16 +196,34 @@ def cmd_up(token=None):
     _start_agent("orchestrator", "orchestrator.py")
     _start_agent("server-monitor", "server_monitor.py")
 
-    # Brief wait and check
-    import time; time.sleep(2)
+    # Wait for daemon to write its PID (up to 8s)
+    import time
     from connect.daemon import is_daemon_running, read_state
-    if is_daemon_running():
+    started = False
+    for _ in range(16):
+        time.sleep(0.5)
+        if is_daemon_running():
+            started = True
+            break
+
+    if started:
         state = read_state()
         print(f"{Colors.GREEN}✓ CH8 Connect is up!{Colors.NC}")
         print(f"  Peers online: {len(state.get('peers', []))}")
         print(f"\nRun {Colors.YELLOW}ch8 nodes{Colors.NC} to see your cluster.")
     else:
-        print(f"{Colors.RED}Daemon failed to start. Check logs with: journalctl -u ch8{Colors.NC}")
+        print(f"{Colors.RED}Daemon failed to start.{Colors.NC}")
+        # Show last lines of daemon log
+        try:
+            lines = daemon_log.read_text().strip().splitlines()
+            if lines:
+                print(f"  {Colors.DIM if hasattr(Colors,'DIM') else ''}Log ({daemon_log}):{Colors.NC}")
+                for line in lines[-10:]:
+                    print(f"    {line}")
+            else:
+                print(f"  No output. Check: {daemon_log}")
+        except Exception:
+            print(f"  Check log: {daemon_log}")
 
 
 def cmd_down():
