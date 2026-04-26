@@ -1,17 +1,21 @@
-version: "3.9"
-
 services:
   control-server:
     build:
-      context: ../..
-      dockerfile: connect/server/Dockerfile
+      context: .
+      dockerfile: Dockerfile
+    container_name: ch8-control
     ports:
-      - "8000:8000"
+      - "8081:8000"
     environment:
       - CH8_CONTROL_BASE_URL=https://control.ch8ai.com.br
+    volumes:
+      - ch8-control-data:/data
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
       interval: 30s
       timeout: 5s
       retries: 3
+
+volumes:
+  ch8-control-data:
