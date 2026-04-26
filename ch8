@@ -263,37 +263,58 @@ def cmd_down():
 
 
 def cmd_nodes():
-    """List connected nodes."""
+    """List all nodes in the network (including this one)."""
     sys.path.insert(0, str(Path(__file__).parent))
-    from connect.auth import is_authenticated, get_node_id
+    from connect.auth import is_authenticated, get_node_id, get_access_token, get_network_id, CONTROL_URL
     from connect.daemon import is_daemon_running, read_state
 
     if not is_authenticated():
         print(f"{Colors.RED}Not authenticated. Run `ch8 login` first.{Colors.NC}")
         sys.exit(1)
 
-    state = read_state()
     running = is_daemon_running()
+    my_id   = get_node_id()
 
     status_color = Colors.GREEN if running else Colors.RED
     status_text  = "online" if running else "offline"
     print(f"\n{Colors.BLUE}CH8 Connect{Colors.NC}  status: {status_color}{status_text}{Colors.NC}\n")
-    print(f"  This node:  {get_node_id()}")
+    print(f"  This node:  {my_id}")
 
-    peers = state.get("peers", [])
-    if not peers:
-        print(f"\n  {Colors.YELLOW}No peers online yet.{Colors.NC}")
+    # Fetch all nodes from control server (includes self)
+    all_nodes = []
+    try:
+        import httpx
+        resp = httpx.get(
+            f"{CONTROL_URL}/nodes",
+            params={"network_id": get_network_id()},
+            headers={"Authorization": f"Bearer {get_access_token()}"},
+            timeout=10,
+        )
+        if resp.status_code == 200:
+            all_nodes = resp.json().get("nodes", [])
+    except Exception:
+        pass
+
+    # Fallback to local state peers if API fails
+    if not all_nodes:
+        all_nodes = read_state().get("peers", [])
+
+    if not all_nodes:
+        print(f"\n  {Colors.YELLOW}No nodes online yet.{Colors.NC}")
         if not running:
             print(f"  Run {Colors.YELLOW}ch8 up{Colors.NC} to connect.")
     else:
-        print(f"\n  {'NODE ID':<20} {'HOST':<20} {'ADDRESS':<18} {'CAPS'}")
-        print(f"  {'-'*70}")
-        for p in peers:
-            caps  = ",".join(p.get("capabilities", []))
-            addr  = f"{p.get('address','?')}:{p.get('port',7878)}"
-            host  = p.get("hostname", "?")[:18]
-            nid   = p.get("node_id", "?")[:18]
-            print(f"  {nid:<20} {host:<20} {addr:<18} {caps}")
+        print(f"\n  {'NODE ID':<20} {'HOST':<20} {'ADDRESS':<18} {'STATUS':<8} {'CAPS'}")
+        print(f"  {'-'*80}")
+        for p in sorted(all_nodes, key=lambda n: n.get("node_id", "")):
+            caps   = ",".join(p.get("capabilities", []))
+            addr   = f"{p.get('address','?')}:{p.get('port',7878)}"
+            host   = p.get("hostname", "?")[:18]
+            nid    = p.get("node_id", "?")[:18]
+            status = p.get("status", "?")
+            is_me  = " (you)" if p.get("node_id") == my_id else ""
+            sc     = Colors.GREEN if status == "online" else Colors.RED
+            print(f"  {nid:<20} {host:<20} {addr:<18} {sc}{status:<8}{Colors.NC} {caps}{is_me}")
     print()
 
 
