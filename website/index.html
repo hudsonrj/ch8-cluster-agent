@@ -548,6 +548,17 @@
                 <p>One command for any platform. Auto-detects hardware and downloads the optimal model.</p>
             </div>
 
+            <!-- Tailscale prerequisite notice -->
+            <div class="prereq-notice" data-aos="fade-up">
+                <div class="prereq-icon"><i class="fas fa-network-wired"></i></div>
+                <div class="prereq-text">
+                    <strong>Prerequisite: Tailscale</strong>
+                    For nodes on different networks to communicate, <a href="https://tailscale.com/download" target="_blank" rel="noopener">Tailscale</a> must be installed and running on every node.
+                    CH8 automatically detects your Tailscale IP and registers it with the control server.
+                </div>
+                <a href="https://tailscale.com/download" target="_blank" rel="noopener" class="prereq-btn">Install Tailscale <i class="fas fa-arrow-right"></i></a>
+            </div>
+
             <div class="install-wrapper" data-aos="fade-up" data-aos-delay="100">
                 <div class="tab-buttons">
                     <button class="tab-btn active" data-tab="linux"><i class="fab fa-linux"></i> Linux</button>
@@ -599,9 +610,11 @@ curl -fsSL https://raw.githubusercontent.com/hudsonrj/ch8-cluster-agent/main/and
                 </div>
 
                 <div class="after-install">
-                    <p class="after-label">After install, start your first agent:</p>
+                    <p class="after-label">Connect this node to your cluster:</p>
                     <div class="code-block code-inline">
-                        <pre><code>ch8 run "summarize all CSV files in ~/data and save to report.md"</code></pre>
+                        <pre><code>tailscale up          # connect to Tailscale first
+ch8 up                # authenticate &amp; join your CH8 network
+ch8 nodes             # see all connected nodes</code></pre>
                         <button class="copy-btn"><i class="fas fa-copy"></i></button>
                     </div>
                 </div>

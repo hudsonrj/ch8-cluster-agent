@@ -55,6 +55,7 @@ class ControlClient:
             "os":         platform.system().lower(),
             "arch":       platform.machine(),
             "capabilities": capabilities,
+            "models":     [],  # populated via first heartbeat
             "version":    _get_version(),
         }
         resp = await client.post("/nodes/register", json=payload, headers=self._headers())
@@ -70,6 +71,9 @@ class ControlClient:
             "ts":         int(time.time()),
             **(metrics or {}),
         }
+        # ensure services/models are always lists
+        payload.setdefault("models", [])
+        payload.setdefault("services", [])
         resp = await client.put(
             f"/nodes/{self.node_id}/heartbeat",
             json=payload,
