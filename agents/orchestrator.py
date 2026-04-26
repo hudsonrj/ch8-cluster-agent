@@ -356,8 +356,21 @@ async def _stream_anthropic(api_key: str, model: str, messages: list):
                     pass
 
 
+def _normalize_bedrock_model(model: str) -> str:
+    """Map short/invalid model IDs to valid Bedrock model ARN-style IDs."""
+    _MAP = {
+        "anthropic.claude-sonnet-4-6-v1": "us.anthropic.claude-sonnet-4-20250514-v1:0",
+        "claude-sonnet-4-6": "us.anthropic.claude-sonnet-4-20250514-v1:0",
+        "claude-sonnet-4": "us.anthropic.claude-sonnet-4-20250514-v1:0",
+        "claude-haiku-4-5": "us.anthropic.claude-haiku-4-5-20251001-v1:0",
+        "anthropic.claude-haiku-4-5-v1": "us.anthropic.claude-haiku-4-5-20251001-v1:0",
+    }
+    return _MAP.get(model, model)
+
+
 async def _stream_bedrock(model: str, messages: list, region: str):
     """Stream from AWS Bedrock using httpx with bearer token or boto3 fallback."""
+    model = _normalize_bedrock_model(model)
     # Separate system message
     system_text = ""
     chat_msgs = []
