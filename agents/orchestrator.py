@@ -4,7 +4,7 @@ CH8 Orchestrator Agent — default agent for every node.
 
 Runs as an HTTP server on port 7879.
 Answers questions about this node using live system context injected
-into the system prompt. Uses the local Ollama model as its brain.
+into the system prompt. Supports multiple AI backends.
 
 Starts automatically via `ch8 up`.
 """
@@ -37,6 +37,9 @@ except ImportError:
     from fastapi.responses import StreamingResponse, JSONResponse
     import uvicorn
 
+# Add parent to path for connect.ai_config
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 log = logging.getLogger("ch8.orchestrator")
 
 AGENT_PORT    = int(os.environ.get("CH8_AGENT_PORT", "7879"))
@@ -46,6 +49,24 @@ CONFIG_DIR    = Path.home() / ".config" / "ch8"
 STATE_FILE    = CONFIG_DIR / "state.json"
 
 app = FastAPI(title="CH8 Orchestrator", docs_url=None)
+
+# ── AI provider ──────────────────────────────────────────────────────────────
+
+def _load_ai_provider() -> dict:
+    """Load AI provider config. Falls back to Ollama if not configured."""
+    try:
+        from connect.ai_config import get_provider_info
+        return get_provider_info()
+    except Exception:
+        return {
+            "provider": "ollama",
+            "name": "Ollama (local)",
+            "api_key": "",
+            "api_url": OLLAMA_URL,
+            "model": DEFAULT_MODEL,
+            "aws_region": "",
+        }
+
 
 # ── context collection ────────────────────────────────────────────────────────
 
@@ -71,13 +92,16 @@ def _get_context() -> dict:
     cpu = psutil.cpu_percent(interval=0.3)
     mem = psutil.virtual_memory()
     dsk = psutil.disk_usage("/")
-    ld  = os.getloadavg()
+    try:
+        ld = os.getloadavg()
+        ctx["load"] = f"{ld[0]:.2f} {ld[1]:.2f} {ld[2]:.2f}"
+    except (OSError, AttributeError):
+        ctx["load"] = "N/A"
     ctx["cpu_pct"]   = cpu
     ctx["mem_pct"]   = round(mem.percent, 1)
     ctx["mem_free_gb"] = round(mem.available / 1e9, 1)
     ctx["disk_pct"]  = round(dsk.percent, 1)
     ctx["disk_free_gb"] = round(dsk.free / 1e9, 1)
-    ctx["load"]      = f"{ld[0]:.2f} {ld[1]:.2f} {ld[2]:.2f}"
 
     # Top processes
     procs = []
@@ -117,7 +141,7 @@ def _get_context() -> dict:
         pass
     ctx["containers"] = containers
 
-    # Ollama models
+    # Ollama models (local)
     models = []
     try:
         r = httpx.get(f"{OLLAMA_URL}/api/tags", timeout=3)
@@ -148,6 +172,11 @@ def _get_context() -> dict:
     except Exception:
         ctx["tailscale_ip"] = "unavailable"
 
+    # AI provider info
+    ai = _load_ai_provider()
+    ctx["ai_provider"] = ai["name"]
+    ctx["ai_model"]    = ai["model"]
+
     _ctx_cache = ctx
     _ctx_ts    = time.time()
     return ctx
@@ -155,12 +184,12 @@ def _get_context() -> dict:
 
 def _build_system_prompt(ctx: dict) -> str:
     containers_txt = "\n".join(
-        f"  • {c['name']} [{c['image']}] {c['status']}  {c['ports']}"
+        f"  - {c['name']} [{c['image']}] {c['status']}  {c['ports']}"
         for c in ctx.get("containers", [])
     ) or "  (none detected)"
 
     procs_txt = "\n".join(
-        f"  • PID {p['pid']} {p['name']}  CPU:{p['cpu']}%  MEM:{p['mem']}%"
+        f"  - PID {p['pid']} {p['name']}  CPU:{p['cpu']}%  MEM:{p['mem']}%"
         for p in ctx.get("top_procs", [])[:8]
     ) or "  (none)"
 
@@ -177,6 +206,7 @@ You are the primary AI agent responsible for administering and operating this se
 - CPU:           {ctx['cpu_pct']}%  (load: {ctx['load']})
 - Memory:        {ctx['mem_pct']}% used  ({ctx['mem_free_gb']} GB free)
 - Disk:          {ctx['disk_pct']}% used  ({ctx['disk_free_gb']} GB free)
+- AI Provider:   {ctx.get('ai_provider', '?')} — model: {ctx.get('ai_model', '?')}
 
 ## Running Containers
 {containers_txt}
@@ -209,13 +239,16 @@ You are the primary AI agent responsible for administering and operating this se
 # ── model selection ───────────────────────────────────────────────────────────
 
 def _best_model() -> str:
+    ai = _load_ai_provider()
+    if ai.get("model"):
+        return ai["model"]
     if DEFAULT_MODEL:
         return DEFAULT_MODEL
+    # Ollama auto-detect
     ctx = _get_context()
     models = ctx.get("models", [])
     if not models:
         return "llama3.2"
-    # Prefer larger models
     for pref in ["llama3", "qwen2.5:7b", "gemma3:4b", "mistral"]:
         for m in models:
             if pref in m:
@@ -223,21 +256,162 @@ def _best_model() -> str:
     return models[0]
 
 
+# ── streaming backends ───────────────────────────────────────────────────────
+
+async def _stream_ollama(model: str, messages: list):
+    """Stream from local Ollama."""
+    async with httpx.AsyncClient(timeout=120) as client:
+        async with client.stream(
+            "POST", f"{OLLAMA_URL}/api/chat",
+            json={"model": model, "messages": messages, "stream": True},
+        ) as resp:
+            if resp.status_code != 200:
+                yield "data: " + json.dumps({"error": f"Ollama error {resp.status_code}"}) + "\n\n"
+                return
+            async for line in resp.aiter_lines():
+                if line.strip():
+                    yield "data: " + line + "\n\n"
+
+
+async def _stream_openai_compatible(api_url: str, api_key: str, model: str, messages: list):
+    """Stream from any OpenAI-compatible API (OpenAI, Groq, custom)."""
+    headers = {"Authorization": f"Bearer {api_key}"} if api_key else {}
+    headers["Content-Type"] = "application/json"
+    async with httpx.AsyncClient(timeout=120) as client:
+        async with client.stream(
+            "POST", f"{api_url}/chat/completions",
+            json={"model": model, "messages": messages, "stream": True},
+            headers=headers,
+        ) as resp:
+            if resp.status_code != 200:
+                body = await resp.aread()
+                yield "data: " + json.dumps({"error": f"API error {resp.status_code}: {body.decode()[:200]}"}) + "\n\n"
+                return
+            async for line in resp.aiter_lines():
+                line = line.strip()
+                if not line or line == "data: [DONE]":
+                    continue
+                if line.startswith("data: "):
+                    raw = line[6:]
+                    try:
+                        obj = json.loads(raw)
+                        delta = obj.get("choices", [{}])[0].get("delta", {})
+                        content = delta.get("content", "")
+                        if content:
+                            # Convert to Ollama-like format for the dashboard
+                            yield "data: " + json.dumps({"message": {"content": content}}) + "\n\n"
+                    except json.JSONDecodeError:
+                        pass
+
+
+async def _stream_anthropic(api_key: str, model: str, messages: list):
+    """Stream from Anthropic Claude API."""
+    # Separate system message
+    system_text = ""
+    chat_msgs = []
+    for m in messages:
+        if m["role"] == "system":
+            system_text += m["content"] + "\n"
+        else:
+            chat_msgs.append(m)
+
+    headers = {
+        "x-api-key": api_key,
+        "anthropic-version": "2023-06-01",
+        "Content-Type": "application/json",
+    }
+    body = {
+        "model": model,
+        "max_tokens": 4096,
+        "stream": True,
+        "messages": chat_msgs,
+    }
+    if system_text:
+        body["system"] = system_text.strip()
+
+    async with httpx.AsyncClient(timeout=120) as client:
+        async with client.stream(
+            "POST", "https://api.anthropic.com/v1/messages",
+            json=body, headers=headers,
+        ) as resp:
+            if resp.status_code != 200:
+                err_body = await resp.aread()
+                yield "data: " + json.dumps({"error": f"Anthropic error {resp.status_code}: {err_body.decode()[:200]}"}) + "\n\n"
+                return
+            async for line in resp.aiter_lines():
+                line = line.strip()
+                if not line.startswith("data: "):
+                    continue
+                raw = line[6:]
+                try:
+                    obj = json.loads(raw)
+                    if obj.get("type") == "content_block_delta":
+                        text = obj.get("delta", {}).get("text", "")
+                        if text:
+                            yield "data: " + json.dumps({"message": {"content": text}}) + "\n\n"
+                except json.JSONDecodeError:
+                    pass
+
+
+async def _stream_bedrock(model: str, messages: list, region: str):
+    """Stream from AWS Bedrock (uses boto3)."""
+    try:
+        import boto3
+    except ImportError:
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "--quiet",
+                               "--break-system-packages", "boto3"])
+        import boto3
+
+    # Separate system message
+    system_text = ""
+    chat_msgs = []
+    for m in messages:
+        if m["role"] == "system":
+            system_text += m["content"] + "\n"
+        else:
+            chat_msgs.append(m)
+
+    client = boto3.client("bedrock-runtime", region_name=region)
+    body = {
+        "messages": chat_msgs,
+        "max_tokens": 4096,
+        "anthropic_version": "bedrock-2023-05-31",
+    }
+    if system_text:
+        body["system"] = system_text.strip()
+
+    try:
+        response = client.invoke_model_with_response_stream(
+            modelId=model,
+            body=json.dumps(body),
+            contentType="application/json",
+        )
+        for event in response["body"]:
+            chunk = json.loads(event["chunk"]["bytes"])
+            if chunk.get("type") == "content_block_delta":
+                text = chunk.get("delta", {}).get("text", "")
+                if text:
+                    yield "data: " + json.dumps({"message": {"content": text}}) + "\n\n"
+    except Exception as ex:
+        yield "data: " + json.dumps({"error": f"Bedrock error: {str(ex)[:200]}"}) + "\n\n"
+
+
 # ── agent state ───────────────────────────────────────────────────────────────
 
 def _update_agent_state(status: str, task: str) -> None:
     try:
+        ai = _load_ai_provider()
         CONFIG_DIR.mkdir(parents=True, exist_ok=True)
         state = {}
         if STATE_FILE.exists():
             state = json.loads(STATE_FILE.read_text())
         agents = [a for a in state.get("agents", []) if a.get("name") != "orchestrator"]
-        agents.insert(0, {   # orchestrator is always first
+        agents.insert(0, {
             "name":       "orchestrator",
             "status":     status,
             "task":       task,
-            "model":      _best_model(),
-            "platform":   "ollama",
+            "model":      ai.get("model") or _best_model(),
+            "platform":   ai.get("provider", "ollama"),
             "updated_at": int(time.time()),
         })
         state["agents"] = agents
@@ -250,7 +424,14 @@ def _update_agent_state(status: str, task: str) -> None:
 
 @app.get("/health")
 async def health():
-    return {"status": "ok", "agent": "orchestrator", "ts": int(time.time())}
+    ai = _load_ai_provider()
+    return {
+        "status": "ok",
+        "agent": "orchestrator",
+        "provider": ai["provider"],
+        "model": ai.get("model", ""),
+        "ts": int(time.time()),
+    }
 
 
 @app.post("/chat")
@@ -258,7 +439,7 @@ async def chat(request: Request):
     """
     Stream a conversation with the orchestrator.
     Body: { "messages": [{role, content}, ...], "model": "optional" }
-    Returns: SSE stream (Ollama format).
+    Returns: SSE stream.
     """
     body     = await request.json()
     messages = body.get("messages", [])
@@ -271,27 +452,34 @@ async def chat(request: Request):
     full_messages = [{"role": "system", "content": sys_msg}] + messages
 
     last_user = next((m["content"] for m in reversed(messages)
-                      if m["role"] == "user"), "…")
+                      if m["role"] == "user"), "...")
     _update_agent_state("running", last_user[:80])
+
+    ai = _load_ai_provider()
+    provider = ai["provider"]
 
     async def stream_gen():
         try:
-            async with httpx.AsyncClient(timeout=120) as client:
-                async with client.stream(
-                    "POST", f"{OLLAMA_URL}/api/chat",
-                    json={"model": model, "messages": full_messages, "stream": True},
-                ) as resp:
-                    if resp.status_code != 200:
-                        err = "Ollama error " + str(resp.status_code)
-                        yield "data: " + json.dumps({"error": err}) + "\n\n"
-                        return
-                    async for line in resp.aiter_lines():
-                        if line.strip():
-                            yield "data: " + line + "\n\n"
+            if provider == "ollama":
+                async for chunk in _stream_ollama(model, full_messages):
+                    yield chunk
+            elif provider in ("openai", "groq", "custom"):
+                api_url = ai["api_url"]
+                api_key = ai["api_key"]
+                async for chunk in _stream_openai_compatible(api_url, api_key, model, full_messages):
+                    yield chunk
+            elif provider == "anthropic":
+                async for chunk in _stream_anthropic(ai["api_key"], model, full_messages):
+                    yield chunk
+            elif provider == "bedrock":
+                async for chunk in _stream_bedrock(model, full_messages, ai.get("aws_region", "us-east-1")):
+                    yield chunk
+            else:
+                yield "data: " + json.dumps({"error": f"Unknown provider: {provider}"}) + "\n\n"
         except httpx.ConnectError:
-            yield "data: " + json.dumps({"error": "Ollama not reachable"}) + "\n\n"
+            yield "data: " + json.dumps({"error": f"{ai['name']} not reachable"}) + "\n\n"
         except Exception as ex:
-            yield "data: " + json.dumps({"error": str(ex)}) + "\n\n"
+            yield "data: " + json.dumps({"error": str(ex)[:200]}) + "\n\n"
         finally:
             _update_agent_state("idle", "waiting for tasks")
         yield "data: [DONE]\n\n"
@@ -307,6 +495,18 @@ async def chat(request: Request):
 async def get_context():
     """Return the current node context (for debugging)."""
     return _get_context()
+
+
+@app.get("/ai")
+async def get_ai_config():
+    """Return current AI provider info (no secrets)."""
+    ai = _load_ai_provider()
+    return {
+        "provider": ai["provider"],
+        "name": ai["name"],
+        "model": ai["model"],
+        "api_url": ai.get("api_url", ""),
+    }
 
 
 # ── startup ───────────────────────────────────────────────────────────────────
@@ -327,9 +527,9 @@ async def _keepalive():
                     alerts.append(f"MEM {ctx['mem_pct']}%")
                 if ctx.get("disk_pct", 0) > 90:
                     alerts.append(f"DISK {ctx['disk_pct']}%")
-                task = "⚠ " + ", ".join(alerts) if alerts else (
-                    f"CPU {ctx.get('cpu_pct',0):.0f}% · "
-                    f"MEM {ctx.get('mem_pct',0):.0f}% · "
+                task = "alert: " + ", ".join(alerts) if alerts else (
+                    f"CPU {ctx.get('cpu_pct',0):.0f}% | "
+                    f"MEM {ctx.get('mem_pct',0):.0f}% | "
                     f"{len(ctx.get('containers',[]))} containers"
                 )
                 _update_agent_state("running" if alerts else "idle", task)
@@ -346,7 +546,8 @@ def main():
         datefmt="%H:%M:%S",
     )
     _update_agent_state("idle", "waiting for tasks")
-    log.info(f"CH8 Orchestrator starting on port {AGENT_PORT}")
+    ai = _load_ai_provider()
+    log.info(f"CH8 Orchestrator starting on port {AGENT_PORT}  provider={ai['provider']}  model={ai.get('model','auto')}")
     uvicorn.run(app, host="0.0.0.0", port=AGENT_PORT, log_level="warning")
 
 

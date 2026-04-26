@@ -156,6 +156,47 @@ def cmd_up(token=None):
         print(f"{Colors.YELLOW}CH8 Connect is already running.{Colors.NC} Run `ch8 nodes` to see peers.")
         return
 
+    # First-time setup: AI provider, channels, tools
+    from connect.ai_config import is_ai_configured, load_ai_config
+    from connect.ai_config import interactive_setup as ai_setup
+    from connect.channels import load_channels
+    from connect.channels import interactive_setup as channel_setup
+    from connect.tools_config import get_all_tools
+    from connect.tools_config import interactive_setup as tools_setup
+
+    first_time = not is_ai_configured()
+
+    if first_time:
+        print(f"\n{Colors.BLUE}{'='*56}{Colors.NC}")
+        print(f"{Colors.BLUE}  CH8 First-Time Node Setup{Colors.NC}")
+        print(f"{Colors.BLUE}{'='*56}{Colors.NC}")
+
+        # 1. AI Provider
+        print(f"\n{Colors.YELLOW}Step 1/3:{Colors.NC} AI Provider")
+        ai_setup()
+
+        # 2. Notification channels
+        print(f"\n{Colors.YELLOW}Step 2/3:{Colors.NC} Notification Channels")
+        channel_setup()
+
+        # 3. Agent tools
+        print(f"\n{Colors.YELLOW}Step 3/3:{Colors.NC} Agent Tools")
+        tools_setup()
+
+        print(f"\n{Colors.GREEN}{'='*56}{Colors.NC}")
+        print(f"{Colors.GREEN}  Setup complete! Starting CH8...{Colors.NC}")
+        print(f"{Colors.GREEN}{'='*56}{Colors.NC}\n")
+    else:
+        ai = load_ai_config()
+        provider = ai.get("provider", "ollama")
+        model = ai.get("model", "auto")
+        channels = load_channels()
+        tools = get_all_tools()
+        ch_name = channels[0].get("type", "none") if channels else "none"
+        print(f"{Colors.GREEN}✓ AI provider  {provider} / {model}{Colors.NC}")
+        print(f"{Colors.GREEN}✓ Channels     {ch_name}{Colors.NC}")
+        print(f"{Colors.GREEN}✓ Tools        {len(tools)} enabled{Colors.NC}")
+
     # Check networking
     from connect.daemon import check_tailscale
     ts = check_tailscale()
@@ -396,8 +437,55 @@ def cmd_logs(component=None):
         print(f"  ch8 logs worker2  - Worker 2 logs")
 
 def cmd_config(action=None):
-    """Configure cluster"""
-    if action == "edit":
+    """Configure node settings"""
+    sys.path.insert(0, str(Path(__file__).parent))
+
+    if action == "ai":
+        from connect.ai_config import interactive_setup
+        interactive_setup()
+        print(f"\n{Colors.GREEN}✓ AI provider updated.{Colors.NC}")
+        print(f"  Restart with: {Colors.YELLOW}ch8 down && ch8 up{Colors.NC}")
+    elif action == "channels":
+        from connect.channels import interactive_setup as ch_setup
+        ch_setup()
+        print(f"\n{Colors.GREEN}✓ Channels updated.{Colors.NC}")
+    elif action == "tools":
+        from connect.tools_config import interactive_setup as tools_setup
+        tools_setup()
+        print(f"\n{Colors.GREEN}✓ Tools updated.{Colors.NC}")
+        print(f"  Restart with: {Colors.YELLOW}ch8 down && ch8 up{Colors.NC}")
+    elif action == "show":
+        from connect.ai_config import get_provider_info
+        from connect.channels import load_channels
+        from connect.tools_config import get_all_tools
+        ai = get_provider_info()
+        channels = load_channels()
+        tools = get_all_tools()
+        print(f"\n{Colors.BLUE}Current configuration:{Colors.NC}\n")
+        print(f"  {Colors.YELLOW}AI Provider{Colors.NC}")
+        print(f"    Provider:   {ai['name']}")
+        print(f"    Model:      {ai['model'] or 'auto-detect'}")
+        print(f"    API URL:    {ai['api_url'] or 'default'}")
+        key = ai.get('api_key', '')
+        if key:
+            masked = key[:8] + "..." + key[-4:] if len(key) > 12 else "***"
+            print(f"    API Key:    {masked}")
+        else:
+            print(f"    API Key:    (from environment or not needed)")
+        print(f"\n  {Colors.YELLOW}Notification Channels{Colors.NC}")
+        if channels:
+            for ch in channels:
+                print(f"    {ch.get('type', 'none')}", end="")
+                if ch.get("webhook_url"):
+                    print(f"  → {ch['webhook_url'][:40]}...", end="")
+                print()
+        else:
+            print(f"    none configured")
+        print(f"\n  {Colors.YELLOW}Agent Tools{Colors.NC}")
+        print(f"    {len(tools)} tools enabled: {', '.join(t['function']['name'] for t in tools[:5])}" +
+              (f"..." if len(tools) > 5 else ""))
+        print(f"\n  Config files:  ~/.config/ch8/")
+    elif action == "edit":
         editor = os.environ.get('EDITOR', 'vim')
         print(f"{Colors.BLUE}Opening master config...{Colors.NC}")
         subprocess.run([editor, "config/master.yaml"])
@@ -407,12 +495,10 @@ def cmd_config(action=None):
         subprocess.run([editor, "config/worker.yaml"])
     else:
         print(f"{Colors.YELLOW}Configuration commands:{Colors.NC}")
-        print(f"  ch8 config edit    - Edit master configuration")
-        print(f"  ch8 config worker  - Edit worker configuration")
-        print(f"\n{Colors.BLUE}Config files:{Colors.NC}")
-        print(f"  config/master.yaml   - Master node settings")
-        print(f"  config/worker.yaml   - Worker 1 settings")
-        print(f"  config/worker2.yaml  - Worker 2 settings")
+        print(f"  ch8 config ai       - Configure AI provider (model, API key)")
+        print(f"  ch8 config channels - Configure notification channels")
+        print(f"  ch8 config tools    - Configure agent tools")
+        print(f"  ch8 config show     - Show current configuration")
 
 def cmd_worker(action=None):
     """Manage workers"""

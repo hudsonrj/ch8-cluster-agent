@@ -450,7 +450,7 @@ function cardHTML(n) {
       </div>
       <div style="display:flex;align-items:center;gap:.5rem">
         <span class="status-badge ${n.status}"><span class="status-dot"></span>${n.status}</span>
-        ${(n.models||[]).length>0 ? `<button class="chat-icon-btn" data-nodeid="${n.node_id}" title="Chat with ${n.hostname}">💬</button>` : ''}
+        <button class="chat-icon-btn" data-nodeid="${n.node_id}" title="Chat with ${n.hostname||n.node_id}">💬</button>
       </div>
     </div>
     <div class="node-meta">
@@ -570,12 +570,25 @@ function openChatModal(nodeId) {
   chatHistory = [];
 
   document.getElementById('chatTitle').textContent    = `Chat — ${node.hostname||nodeId}`;
-  document.getElementById('chatSub').textContent      = `${(node.models||[]).length} model(s) available`;
   document.getElementById('chatNodeName').textContent = node.address;
 
+  // Build model options: Ollama models + agent platform/model
   const sel = document.getElementById('chatModelSel');
-  sel.innerHTML = (node.models||[]).map(m =>
-    `<option value="${m}">${m}</option>`).join('');
+  const models = node.models||[];
+  const agents = node.agents||[];
+  const orchAgent = agents.find(a => a.name === 'orchestrator');
+  const agentModel = orchAgent?.model || '';
+  const agentPlatform = orchAgent?.platform || 'ollama';
+
+  let options = models.map(m => `<option value="${m}">${m}</option>`);
+  if (agentModel && !models.includes(agentModel)) {
+    options.unshift(`<option value="${agentModel}">${agentModel} (${agentPlatform})</option>`);
+  }
+  if (options.length === 0) {
+    options = [`<option value="auto">auto (agent default)</option>`];
+  }
+  sel.innerHTML = options.join('');
+  document.getElementById('chatSub').textContent = `${agentPlatform} — ${sel.value}`;
 
   document.getElementById('chatMessages').innerHTML = `
     <div class="chat-empty">
