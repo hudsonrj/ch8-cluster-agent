@@ -315,7 +315,29 @@ def _collect_metrics() -> dict:
     metrics["models"]   = _model_cache
     metrics["services"] = _service_cache
     metrics["agents"]   = _read_agents_from_state()
+    metrics["tools"]    = _read_tools_config()
+    metrics["channels"] = _read_channels_config()
     return metrics
+
+
+def _read_tools_config() -> list:
+    """Read enabled tools from tools_enabled.json."""
+    tools_file = CONFIG_DIR / "tools_enabled.json"
+    try:
+        data = json.loads(tools_file.read_text())
+        return data.get("enabled", [])
+    except Exception:
+        return []
+
+
+def _read_channels_config() -> list:
+    """Read configured channels from channels.json."""
+    channels_file = CONFIG_DIR / "channels.json"
+    try:
+        channels = json.loads(channels_file.read_text())
+        return [{"type": ch.get("type", "unknown"), "id": ch.get("chat_id") or ch.get("channel_id") or ch.get("type")} for ch in channels]
+    except Exception:
+        return []
 
 
 def _read_agents_from_state() -> list:
