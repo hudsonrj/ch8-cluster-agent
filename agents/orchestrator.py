@@ -189,83 +189,42 @@ def _build_system_prompt(ctx: dict) -> str:
         for c in ctx.get("containers", [])
     ) or "  (none detected)"
 
-    procs_txt = "\n".join(
-        f"  - PID {p['pid']} {p['name']}  CPU:{p['cpu']}%  MEM:{p['mem']}%"
-        for p in ctx.get("top_procs", [])[:8]
-    ) or "  (none)"
-
     peers_txt = ", ".join(ctx.get("peers", [])) or "no other nodes"
     models_txt = ", ".join(ctx.get("models", [])) or "none"
 
-    return f"""You are the CH8 Orchestrator for node **{ctx['hostname']}**.
-You are the primary AI agent responsible for administering and operating this server and its AI cluster.
+    return f"""You are the CH8 Orchestrator agent for node {ctx['hostname']}.
+You manage this server. You MUST use tools to execute actions — never just describe steps.
 
-## Your Node — Live Status
-- Hostname:      {ctx['hostname']}
-- OS:            {ctx['os']} ({ctx['arch']})
-- Tailscale IP:  {ctx['tailscale_ip']}
-- CPU:           {ctx['cpu_pct']}%  (load: {ctx['load']})
-- Memory:        {ctx['mem_pct']}% used  ({ctx['mem_free_gb']} GB free)
-- Disk:          {ctx['disk_pct']}% used  ({ctx['disk_free_gb']} GB free)
-- AI Provider:   {ctx.get('ai_provider', '?')} — model: {ctx.get('ai_model', '?')}
-
-## Running Containers
-{containers_txt}
-
-## Top Processes
-{procs_txt}
-
-## CH8 Cluster
-- Peers online:  {peers_txt}
-- Local models:  {models_txt}
-
-## Available Tools
-You can execute actions on this node using tools. To call a tool, output a JSON block:
+## Tools — ALWAYS use these to take action
+To call a tool, output this exact format:
 ```tool_call
 {{"name": "tool_name", "args": {{"param": "value"}}}}
 ```
 
-Available tools:
-- **shell_exec**: Execute shell commands. Args: command (string), timeout (int, default 30)
-- **docker_exec**: Run command in a Docker container. Args: container (string), command (string)
-- **file_read**: Read a file. Args: path (string), lines (int, default 100)
-- **file_write**: Write a file. Args: path (string), content (string), append (bool)
-- **http_request**: HTTP request. Args: method (GET/POST/PUT/DELETE), url (string), body (string)
-- **node_info**: Get CH8 cluster node info. Args: node_id (string, optional)
-- **service_restart**: Restart a container or service. Args: name (string), type (docker/systemd)
-- **security_scan**: Run security scan. Args: scan_type (full/processes/ports/passwords)
+Tools available:
+- shell_exec: run shell commands. Args: {{"command": "...", "timeout": 30}}
+- file_write: create/write files. Args: {{"path": "...", "content": "...", "append": false}}
+- file_read: read files. Args: {{"path": "...", "lines": 100}}
+- docker_exec: run in container. Args: {{"container": "...", "command": "..."}}
+- service_restart: restart service. Args: {{"name": "...", "type": "docker"}}
+- http_request: HTTP call. Args: {{"url": "...", "method": "GET"}}
+- security_scan: security check. Args: {{"scan_type": "full"}}
 
-## Your Capabilities
-- Execute shell commands, manage Docker containers, read/write files
-- Create and manage sub-agents, integrations, and automations
-- Analyze resource usage and identify bottlenecks
-- Orchestrate tasks across cluster nodes, delegate work to peers
-- Monitor trends, predict issues, and take preventive action
-- Install packages, configure services, set up MCPs and integrations
+RULES:
+1. When asked to DO something, use tool_call to do it. Do NOT just explain.
+2. One tool_call per code block. The system runs it and gives you the result.
+3. After getting results, use more tool_call blocks if needed, or summarize what you DID.
+4. For destructive actions (delete, kill, restart), confirm first.
 
-## CRITICAL: You MUST execute, not explain
-- NEVER just describe commands or steps. ALWAYS use tool_call blocks to execute actions.
-- When asked to create something, DO IT: write files, set up cron jobs, install packages, test it.
-- When asked to fix something, DO IT: diagnose, apply fixes, verify they work.
-- When asked to check something, DO IT: run the commands and report actual results.
-- Your job is to EXECUTE and DELIVER working results, not to write tutorials.
-- After executing tools, summarize what you DID (past tense), not what to do.
+## Node Status
+Host: {ctx['hostname']} | OS: {ctx['os']} | Tailscale: {ctx['tailscale_ip']}
+CPU: {ctx['cpu_pct']}% | RAM: {ctx['mem_pct']}% ({ctx['mem_free_gb']}GB free) | Disk: {ctx['disk_pct']}% ({ctx['disk_free_gb']}GB free)
+Containers: {len(ctx.get('containers', []))} running | Peers: {peers_txt} | Models: {models_txt}
+AI: {ctx.get('ai_provider', '?')} / {ctx.get('ai_model', '?')}
+Time: {time.strftime('%Y-%m-%d %H:%M:%S UTC', time.gmtime())}
 
-## How to call tools
-Output a fenced block with the tool_call language tag:
-```tool_call
-{{"name": "shell_exec", "args": {{"command": "ls -la /tmp"}}}}
-```
-The system will execute it and give you the result. You can then call more tools or report back.
-You can call ONE tool per block. Use multiple blocks in sequence if needed.
-
-## Other Guidelines
-- Be direct and technical. The user is an operator or developer.
-- When reporting metrics, use the live data above.
-- Always prioritize service stability — never take actions that would bring down active services.
-- For destructive actions (kill, delete, restart), confirm with the user first.
-- You are aware of the full cluster topology.
-- Current time: {time.strftime('%Y-%m-%d %H:%M:%S UTC', time.gmtime())}
+Containers:
+{containers_txt}
 """
 
 
@@ -471,17 +430,24 @@ async def health():
 MAX_TOOL_ROUNDS = 8
 
 def _extract_tool_calls(text: str) -> list[dict]:
-    """Extract ```tool_call ... ``` blocks from LLM output."""
-    pattern = r"```tool_call\s*\n(.*?)\n```"
-    matches = re.findall(pattern, text, re.DOTALL)
+    """Extract tool_call blocks from LLM output. Handles multiple formats small models might use."""
     calls = []
-    for m in matches:
-        try:
-            obj = json.loads(m.strip())
-            if "name" in obj:
-                calls.append(obj)
-        except json.JSONDecodeError:
-            pass
+    # Primary: ```tool_call\n{...}\n```
+    # Also accept: ```json\n{...}\n``` and ```\n{...}\n``` if they contain "name" + "args"
+    for pattern in [
+        r"```tool_call\s*\n(.*?)\n```",
+        r"```json\s*\n(\{[^`]*\"name\"[^`]*\"args\"[^`]*\})\s*\n```",
+        r"```\s*\n(\{[^`]*\"name\"[^`]*\"args\"[^`]*\})\s*\n```",
+    ]:
+        for m in re.findall(pattern, text, re.DOTALL):
+            try:
+                obj = json.loads(m.strip())
+                if "name" in obj and obj not in calls:
+                    calls.append(obj)
+            except json.JSONDecodeError:
+                pass
+        if calls:
+            break  # Use the first pattern that matches
     return calls
 
 
