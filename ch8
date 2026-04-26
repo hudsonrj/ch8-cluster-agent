@@ -499,7 +499,7 @@ def main():
     parser.add_argument('subcommand', nargs='?', default=None)
     parser.add_argument('--token', default=None, help='Pre-auth token for headless enrollment')
 
-    args = parser.parse_args()
+    args, _ = parser.parse_known_args()
 
     commands = {
         # Connect (Tailscale-style)
