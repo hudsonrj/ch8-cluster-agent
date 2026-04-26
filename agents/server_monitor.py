@@ -549,13 +549,20 @@ def update_agent_state(sample: dict, analysis: dict, autonomous: bool) -> None:
     }
 
     try:
-        state = {}
-        if STATE_FILE.exists():
-            state = json.loads(STATE_FILE.read_text())
-        agents = [a for a in (state.get("agents") or []) if a.get("name") != "server-monitor"]
-        agents.append(agent_entry)
-        state["agents"] = agents
-        STATE_FILE.write_text(json.dumps(state, indent=2))
+        import fcntl
+        lock_file = STATE_FILE.parent / "state.lock"
+        with open(lock_file, "w") as lf:
+            fcntl.flock(lf, fcntl.LOCK_EX)
+            try:
+                state = {}
+                if STATE_FILE.exists():
+                    state = json.loads(STATE_FILE.read_text())
+                agents = [a for a in (state.get("agents") or []) if a.get("name") != "server-monitor"]
+                agents.append(agent_entry)
+                state["agents"] = agents
+                STATE_FILE.write_text(json.dumps(state, indent=2))
+            finally:
+                fcntl.flock(lf, fcntl.LOCK_UN)
     except Exception:
         pass
 

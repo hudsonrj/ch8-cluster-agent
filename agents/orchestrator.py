@@ -471,13 +471,31 @@ async def _stream_bedrock_boto3(model: str, body: dict, region: str):
 
 # ── agent state ───────────────────────────────────────────────────────────────
 
-def _update_agent_state(status: str, task: str) -> None:
+import fcntl as _fcntl
+
+def _atomic_update_state(updater_fn) -> None:
+    """Atomically read-modify-write state.json with file locking."""
     try:
-        ai = _load_ai_provider()
         CONFIG_DIR.mkdir(parents=True, exist_ok=True)
-        state = {}
-        if STATE_FILE.exists():
-            state = json.loads(STATE_FILE.read_text())
+        lock_file = CONFIG_DIR / "state.lock"
+        with open(lock_file, "w") as lf:
+            _fcntl.flock(lf, _fcntl.LOCK_EX)
+            try:
+                state = {}
+                if STATE_FILE.exists():
+                    state = json.loads(STATE_FILE.read_text())
+                updater_fn(state)
+                STATE_FILE.write_text(json.dumps(state, indent=2))
+            finally:
+                _fcntl.flock(lf, _fcntl.LOCK_UN)
+    except Exception:
+        pass
+
+
+def _update_agent_state(status: str, task: str) -> None:
+    ai = _load_ai_provider()
+
+    def _update(state):
         agents = [a for a in state.get("agents", []) if a.get("name") != "orchestrator"]
         agents.insert(0, {
             "name":       "orchestrator",
@@ -488,9 +506,37 @@ def _update_agent_state(status: str, task: str) -> None:
             "updated_at": int(time.time()),
         })
         state["agents"] = agents
-        STATE_FILE.write_text(json.dumps(state, indent=2))
-    except Exception:
-        pass
+
+    _atomic_update_state(_update)
+
+
+def _refresh_sub_agents() -> None:
+    """Touch updated_at on all sub-agents created by orchestrator so they don't expire."""
+    def _update(state):
+        now = int(time.time())
+        for a in state.get("agents", []):
+            if a.get("created_by") == "orchestrator":
+                a["updated_at"] = now
+    _atomic_update_state(_update)
+
+
+def _register_sub_agent(name: str, status: str, task: str, script_path: str = "") -> None:
+    """Register a sub-agent (created by orchestrator) in state.json."""
+    def _update(state):
+        agents = state.get("agents", [])
+        agents = [a for a in agents if a.get("name") != name]
+        agents.append({
+            "name":        name,
+            "status":      status,
+            "task":        task,
+            "model":       "script",
+            "platform":    "cron" if "cron" in task.lower() else "local",
+            "script":      script_path,
+            "created_by":  "orchestrator",
+            "updated_at":  int(time.time()),
+        })
+        state["agents"] = agents
+    _atomic_update_state(_update)
 
 
 # ── endpoints ─────────────────────────────────────────────────────────────────
@@ -719,6 +765,15 @@ print(f"  {name} — {{today.strftime('%d/%m/%Y')}}: {{MESSAGES[idx]}}")
         })
         results.append({"tool": "shell_exec", "action": f"Cron scheduled: daily at 08:00", "result": r5})
 
+        # Step 6: Register as a sub-agent in the dashboard
+        _register_sub_agent(
+            name=agent_name,
+            status="idle",
+            task="daily quote — cron 08:00",
+            script_path=script_path,
+        )
+        results.append({"tool": "register", "action": f"Agent '{agent_name}' registered in dashboard", "result": {"ok": True}})
+
         return results
 
     return None
@@ -878,6 +933,13 @@ async def chat(request: Request):
 
                     results_text += f"\nTool `{tool_name}` result:\n```json\n{result_json}\n```\n"
 
+                    # Auto-register agent if file_write created an agent script
+                    if tool_name == "file_write" and result.get("ok"):
+                        fpath = tool_args.get("path", "")
+                        if "/ch8/" in fpath and fpath.endswith(".py"):
+                            aname = Path(fpath).stem.replace("_agent", "").replace("agent_", "")
+                            _register_sub_agent(aname, "idle", f"script: {fpath}", fpath)
+
                 # Feed results back so the LLM can continue
                 conversation.append({
                     "role": "user",
@@ -969,6 +1031,8 @@ async def _keepalive():
                     f"{len(ctx.get('containers',[]))} containers"
                 )
                 _update_agent_state("running" if alerts else "idle", task)
+                # Also refresh sub-agents so they don't expire from the 60s cutoff
+                _refresh_sub_agents()
             except Exception:
                 pass
             await _asyncio.sleep(30)

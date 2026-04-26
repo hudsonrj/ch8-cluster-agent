@@ -196,19 +196,26 @@ def _clear_pid() -> None:
 
 
 def _write_state(state: dict) -> None:
+    import fcntl
     CONFIG_DIR.mkdir(parents=True, exist_ok=True)
-    # Preserve agents written by external processes (orchestrator, monitors)
-    existing = {}
-    if STATE_FILE.exists():
+    lock_file = CONFIG_DIR / "state.lock"
+    with open(lock_file, "w") as lf:
+        fcntl.flock(lf, fcntl.LOCK_EX)
         try:
-            existing = json.loads(STATE_FILE.read_text())
-        except Exception:
-            pass
-    # Keep existing agents unless we're explicitly overriding
-    if "agents" not in state and "agents" in existing:
-        state["agents"] = existing["agents"]
-    state["updated_at"] = int(time.time())
-    STATE_FILE.write_text(json.dumps(state, indent=2))
+            # Preserve agents written by external processes (orchestrator, monitors)
+            existing = {}
+            if STATE_FILE.exists():
+                try:
+                    existing = json.loads(STATE_FILE.read_text())
+                except Exception:
+                    pass
+            # Keep existing agents unless we're explicitly overriding
+            if "agents" not in state and "agents" in existing:
+                state["agents"] = existing["agents"]
+            state["updated_at"] = int(time.time())
+            STATE_FILE.write_text(json.dumps(state, indent=2))
+        finally:
+            fcntl.flock(lf, fcntl.LOCK_UN)
 
 
 def read_state() -> dict:
