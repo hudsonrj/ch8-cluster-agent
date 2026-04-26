@@ -229,7 +229,7 @@ def cmd_up(token=None):
 def cmd_down():
     """Stop the connect daemon and all agents."""
     sys.path.insert(0, str(Path(__file__).parent))
-    from connect.daemon import get_daemon_pid, is_daemon_running
+    from connect.daemon import get_daemon_pid, is_daemon_running, PID_FILE
     import signal as _signal
 
     # Stop agents first
@@ -238,13 +238,27 @@ def cmd_down():
 
     pid = get_daemon_pid()
     if not pid or not is_daemon_running():
+        # Clean up stale PID file
+        if PID_FILE.exists():
+            PID_FILE.unlink(missing_ok=True)
         print(f"{Colors.YELLOW}CH8 Connect is not running.{Colors.NC}")
         return
 
     try:
         os.kill(pid, _signal.SIGTERM)
+        # Wait for process to exit
+        import time
+        for _ in range(10):
+            time.sleep(0.3)
+            try:
+                os.kill(pid, 0)
+            except OSError:
+                break
+        # Clean PID file
+        PID_FILE.unlink(missing_ok=True)
         print(f"{Colors.GREEN}✓ CH8 Connect stopped.{Colors.NC}")
     except OSError as e:
+        PID_FILE.unlink(missing_ok=True)
         print(f"{Colors.RED}Could not stop daemon: {e}{Colors.NC}")
 
 

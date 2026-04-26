@@ -235,6 +235,14 @@ def is_daemon_running() -> bool:
         return False
     try:
         os.kill(pid, 0)
+        # Verify it's actually our daemon (not a recycled PID)
+        try:
+            cmdline = Path(f"/proc/{pid}/cmdline").read_bytes().decode(errors="ignore")
+            if "connect.daemon" not in cmdline and "connect/daemon" not in cmdline:
+                _clear_pid()
+                return False
+        except Exception:
+            pass  # non-Linux or no /proc — trust os.kill
         return True
     except OSError:
         _clear_pid()
