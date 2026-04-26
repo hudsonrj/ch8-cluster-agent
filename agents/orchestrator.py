@@ -13,6 +13,7 @@ import json
 import logging
 import os
 import platform
+import re
 import socket
 import subprocess
 import sys
@@ -242,10 +243,25 @@ Available tools:
 - Monitor trends, predict issues, and take preventive action
 - Install packages, configure services, set up MCPs and integrations
 
-## Guidelines
+## CRITICAL: You MUST execute, not explain
+- NEVER just describe commands or steps. ALWAYS use tool_call blocks to execute actions.
+- When asked to create something, DO IT: write files, set up cron jobs, install packages, test it.
+- When asked to fix something, DO IT: diagnose, apply fixes, verify they work.
+- When asked to check something, DO IT: run the commands and report actual results.
+- Your job is to EXECUTE and DELIVER working results, not to write tutorials.
+- After executing tools, summarize what you DID (past tense), not what to do.
+
+## How to call tools
+Output a fenced block with the tool_call language tag:
+```tool_call
+{{"name": "shell_exec", "args": {{"command": "ls -la /tmp"}}}}
+```
+The system will execute it and give you the result. You can then call more tools or report back.
+You can call ONE tool per block. Use multiple blocks in sequence if needed.
+
+## Other Guidelines
 - Be direct and technical. The user is an operator or developer.
 - When reporting metrics, use the live data above.
-- When asked to do something, USE YOUR TOOLS to do it — don't just describe commands.
 - Always prioritize service stability — never take actions that would bring down active services.
 - For destructive actions (kill, delete, restart), confirm with the user first.
 - You are aware of the full cluster topology.
@@ -451,12 +467,50 @@ async def health():
     }
 
 
+# Max tool-call rounds to prevent infinite loops
+MAX_TOOL_ROUNDS = 8
+
+def _extract_tool_calls(text: str) -> list[dict]:
+    """Extract ```tool_call ... ``` blocks from LLM output."""
+    pattern = r"```tool_call\s*\n(.*?)\n```"
+    matches = re.findall(pattern, text, re.DOTALL)
+    calls = []
+    for m in matches:
+        try:
+            obj = json.loads(m.strip())
+            if "name" in obj:
+                calls.append(obj)
+        except json.JSONDecodeError:
+            pass
+    return calls
+
+
+def _get_stream_generator(ai_info: dict, model: str, messages: list):
+    """Get the appropriate stream generator for the AI provider."""
+    provider = ai_info["provider"]
+    if provider == "ollama":
+        return _stream_ollama(model, messages)
+    elif provider in ("openai", "groq", "custom"):
+        return _stream_openai_compatible(ai_info["api_url"], ai_info["api_key"], model, messages)
+    elif provider == "anthropic":
+        return _stream_anthropic(ai_info["api_key"], model, messages)
+    elif provider == "bedrock":
+        return _stream_bedrock(model, messages, ai_info.get("aws_region", "us-east-1"))
+    return None
+
+
 @app.post("/chat")
 async def chat(request: Request):
     """
     Stream a conversation with the orchestrator.
     Body: { "messages": [{role, content}, ...], "model": "optional" }
-    Returns: SSE stream.
+    Returns: SSE stream with automatic tool execution.
+
+    When the LLM outputs a ```tool_call block, the orchestrator:
+    1. Executes the tool
+    2. Feeds the result back into the conversation
+    3. Calls the LLM again to continue
+    This repeats until the LLM responds without tool calls (or max rounds).
     """
     body     = await request.json()
     messages = body.get("messages", [])
@@ -473,29 +527,85 @@ async def chat(request: Request):
     _update_agent_state("running", last_user[:80])
 
     ai = _load_ai_provider()
-    provider = ai["provider"]
 
     async def stream_gen():
         try:
-            if provider == "ollama":
-                async for chunk in _stream_ollama(model, full_messages):
-                    yield chunk
-            elif provider in ("openai", "groq", "custom"):
-                api_url = ai["api_url"]
-                api_key = ai["api_key"]
-                async for chunk in _stream_openai_compatible(api_url, api_key, model, full_messages):
-                    yield chunk
-            elif provider == "anthropic":
-                async for chunk in _stream_anthropic(ai["api_key"], model, full_messages):
-                    yield chunk
-            elif provider == "bedrock":
-                async for chunk in _stream_bedrock(model, full_messages, ai.get("aws_region", "us-east-1")):
-                    yield chunk
-            else:
-                yield "data: " + json.dumps({"error": f"Unknown provider: {provider}"}) + "\n\n"
+            from connect.tools_config import execute_tool
+        except ImportError:
+            execute_tool = None
+
+        conversation = list(full_messages)
+        rounds = 0
+
+        try:
+            while rounds < MAX_TOOL_ROUNDS:
+                rounds += 1
+
+                # Stream LLM response in real-time while accumulating full text
+                gen = _get_stream_generator(ai, model, conversation)
+                if gen is None:
+                    yield "data: " + json.dumps({"error": f"Unknown provider: {ai['provider']}"}) + "\n\n"
+                    break
+
+                full_text = ""
+                async for chunk in gen:
+                    yield chunk  # Stream to client in real-time
+                    # Accumulate text for tool-call detection
+                    if chunk.startswith("data: "):
+                        raw = chunk[6:].strip()
+                        try:
+                            obj = json.loads(raw)
+                            content = obj.get("message", {}).get("content", "")
+                            if content:
+                                full_text += content
+                        except (json.JSONDecodeError, AttributeError):
+                            pass
+
+                # Check for tool calls in the completed response
+                tool_calls = _extract_tool_calls(full_text) if execute_tool else []
+
+                if not tool_calls:
+                    break  # No tool calls — LLM is done
+
+                # Add assistant message to conversation history
+                conversation.append({"role": "assistant", "content": full_text})
+
+                # Execute each tool call and collect results
+                results_text = ""
+                for tc in tool_calls:
+                    tool_name = tc.get("name", "unknown")
+                    tool_args = tc.get("args", {})
+                    _update_agent_state("running", f"executing: {tool_name}")
+
+                    # Notify client
+                    yield "data: " + json.dumps({"message": {"content": f"\n\n⚙ Executing `{tool_name}`...\n"}}) + "\n\n"
+
+                    try:
+                        result = execute_tool(tool_name, tool_args)
+                    except Exception as e:
+                        result = {"error": str(e)}
+
+                    result_json = json.dumps(result, indent=2, default=str)
+                    if len(result_json) > 6000:
+                        result_json = result_json[:6000] + "\n... (truncated)"
+
+                    # Show result to client
+                    yield "data: " + json.dumps({"message": {"content": f"```\n{result_json}\n```\n"}}) + "\n\n"
+
+                    results_text += f"\nTool `{tool_name}` result:\n```json\n{result_json}\n```\n"
+
+                # Feed results back so the LLM can continue
+                conversation.append({
+                    "role": "user",
+                    "content": f"[Tool execution results — continue based on these. Use tool_call again if more actions needed, otherwise summarize what was done.]\n{results_text}",
+                })
+
+                _update_agent_state("running", f"continuing after {len(tool_calls)} tool(s)")
+
         except httpx.ConnectError:
             yield "data: " + json.dumps({"error": f"{ai['name']} not reachable"}) + "\n\n"
         except Exception as ex:
+            log.exception("Chat stream error")
             yield "data: " + json.dumps({"error": str(ex)[:200]}) + "\n\n"
         finally:
             _update_agent_state("idle", "waiting for tasks")
