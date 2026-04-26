@@ -218,19 +218,36 @@ You are the primary AI agent responsible for administering and operating this se
 - Peers online:  {peers_txt}
 - Local models:  {models_txt}
 
+## Available Tools
+You can execute actions on this node using tools. To call a tool, output a JSON block:
+```tool_call
+{{"name": "tool_name", "args": {{"param": "value"}}}}
+```
+
+Available tools:
+- **shell_exec**: Execute shell commands. Args: command (string), timeout (int, default 30)
+- **docker_exec**: Run command in a Docker container. Args: container (string), command (string)
+- **file_read**: Read a file. Args: path (string), lines (int, default 100)
+- **file_write**: Write a file. Args: path (string), content (string), append (bool)
+- **http_request**: HTTP request. Args: method (GET/POST/PUT/DELETE), url (string), body (string)
+- **node_info**: Get CH8 cluster node info. Args: node_id (string, optional)
+- **service_restart**: Restart a container or service. Args: name (string), type (docker/systemd)
+- **security_scan**: Run security scan. Args: scan_type (full/processes/ports/passwords)
+
 ## Your Capabilities
+- Execute shell commands, manage Docker containers, read/write files
+- Create and manage sub-agents, integrations, and automations
 - Analyze resource usage and identify bottlenecks
-- Explain what each service/container does
-- Suggest and guide actions (restart containers, scale services)
-- Orchestrate tasks across the cluster nodes
-- Monitor trends and predict issues
-- Answer questions about this server, its configuration, and workloads
+- Orchestrate tasks across cluster nodes, delegate work to peers
+- Monitor trends, predict issues, and take preventive action
+- Install packages, configure services, set up MCPs and integrations
 
 ## Guidelines
 - Be direct and technical. The user is an operator or developer.
 - When reporting metrics, use the live data above.
-- If asked to take an action you cannot execute directly, describe the exact commands needed.
-- Always prioritize service stability — never recommend actions that would bring down active services.
+- When asked to do something, USE YOUR TOOLS to do it — don't just describe commands.
+- Always prioritize service stability — never take actions that would bring down active services.
+- For destructive actions (kill, delete, restart), confirm with the user first.
 - You are aware of the full cluster topology.
 - Current time: {time.strftime('%Y-%m-%d %H:%M:%S UTC', time.gmtime())}
 """
@@ -507,6 +524,31 @@ async def get_ai_config():
         "model": ai["model"],
         "api_url": ai.get("api_url", ""),
     }
+
+
+@app.post("/execute")
+async def execute_tool_endpoint(request: Request):
+    """Execute a tool call directly. Used by the dashboard or external clients."""
+    body = await request.json()
+    tool_name = body.get("name", "")
+    tool_args = body.get("args", {})
+
+    try:
+        from connect.tools_config import execute_tool
+        result = execute_tool(tool_name, tool_args)
+        return {"ok": True, "result": result}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+
+@app.get("/tools")
+async def list_tools():
+    """List all available tools."""
+    try:
+        from connect.tools_config import get_all_tools
+        return {"tools": get_all_tools()}
+    except Exception:
+        return {"tools": []}
 
 
 # ── startup ───────────────────────────────────────────────────────────────────

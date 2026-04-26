@@ -1144,7 +1144,13 @@ async def chat_proxy(node_id: str, request: Request):
                         yield "data: " + '{"error":"node error ' + str(resp.status_code) + '"}' + "\n\n"
                         return
                     async for line in resp.aiter_lines():
-                        if line.strip():
+                        line = line.strip()
+                        if not line:
+                            continue
+                        # Line already has "data: " prefix from upstream SSE
+                        if line.startswith("data: "):
+                            yield line + "\n\n"
+                        else:
                             yield "data: " + line + "\n\n"
         except _httpx.ConnectError:
             yield "data: " + '{"error":"cannot reach ' + addr + '"}' + "\n\n"
