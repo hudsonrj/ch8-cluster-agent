@@ -237,6 +237,12 @@ def cmd_up(token=None):
     _start_agent("orchestrator", "orchestrator.py")
     _start_agent("server-monitor", "server_monitor.py")
 
+    # Start Telegram listener if configured
+    from connect.channels import load_channels
+    if any(ch.get("type") == "telegram" and ch.get("bot_token") for ch in load_channels()):
+        _start_agent("telegram", "telegram_listener.py")
+
+
     # Wait for daemon to write its PID (up to 8s)
     import time
     from connect.daemon import is_daemon_running, read_state
@@ -276,6 +282,7 @@ def cmd_down():
     # Stop agents first
     _stop_agent("orchestrator")
     _stop_agent("server-monitor")
+    _stop_agent("telegram")
 
     pid = get_daemon_pid()
     if not pid or not is_daemon_running():
