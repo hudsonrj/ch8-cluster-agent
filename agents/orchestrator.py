@@ -170,15 +170,32 @@ def _get_context() -> dict:
 
     # CH8 peers from state
     peers = []
+    peers_full = []
     try:
         state = json.loads(STATE_FILE.read_text())
-        peers = [
-            f"{p.get('hostname','?')} ({p.get('address','?')})"
-            for p in state.get("peers", [])
-        ]
+        raw_peers = state.get("peers", [])
+        for p in raw_peers:
+            hostname = p.get("hostname", "?")
+            address  = p.get("address", "?")
+            node_id  = p.get("node_id", "")
+            alias    = p.get("alias", "")
+            models   = p.get("models", [])
+            services = p.get("services", [])
+            ai_model = p.get("ai_model", "")
+            peers.append(f"{hostname} ({address})")
+            peers_full.append({
+                "hostname": hostname,
+                "node_id":  node_id,
+                "alias":    alias,
+                "address":  address,
+                "models":   models,
+                "services": services,
+                "ai_model": ai_model,
+            })
     except Exception:
         pass
     ctx["peers"] = peers
+    ctx["peers_full"] = peers_full
 
     # Tailscale IP
     try:
@@ -208,7 +225,28 @@ def _build_system_prompt(ctx: dict) -> str:
     peers_txt = ", ".join(ctx.get("peers", [])) or "no other nodes"
     models_txt = ", ".join(ctx.get("models", [])) or "none"
 
-    return f"""You are CH8 agent for node {ctx['hostname']}. You execute tasks on this server.
+    # Build detailed peer section
+    peers_full = ctx.get("peers_full", [])
+    if peers_full:
+        peer_lines = []
+        for p in peers_full:
+            name = p["alias"] or p["hostname"]
+            ref  = p["alias"] or p["hostname"]
+            parts = [f"  - {name}"]
+            if p["address"]:
+                parts.append(f"addr={p['address']}")
+            if p["ai_model"]:
+                parts.append(f"model={p['ai_model']}")
+            if p["models"]:
+                parts.append(f"ollama={','.join(p['models'][:3])}")
+            if p["services"]:
+                parts.append(f"services={','.join(p['services'][:5])}")
+            peer_lines.append("  ".join(parts) + f"  → use node_chat(node=\"{ref}\", ...)")
+        peers_section = "\n".join(peer_lines)
+    else:
+        peers_section = "  (no peers discovered yet)"
+
+    return f"""You are CH8 agent for node {ctx['hostname']}. You execute tasks on this server and coordinate with other nodes.
 
 IMPORTANT: You are an EXECUTOR, not an advisor. Never explain steps. Always DO it using tool_call.
 
@@ -217,24 +255,42 @@ IMPORTANT: You are an EXECUTOR, not an advisor. Never explain steps. Always DO i
 {{"name": "tool_name", "args": {{"key": "value"}}}}
 ```
 
-Tools: shell_exec, file_write, file_read, docker_exec, service_restart, http_request, security_scan
+Local tools: shell_exec, file_write, file_read, docker_exec, service_restart, http_request, security_scan, node_info
 
-## Example — user says "create a script that prints hello"
-CORRECT (what you must do):
+## Delegation tool: node_chat
+Use node_chat to send tasks to other nodes and get their responses.
 ```tool_call
-{{"name": "file_write", "args": {{"path": "/opt/ch8/hello.py", "content": "#!/usr/bin/env python3\\nprint('Hello!')"}}}}
+{{"name": "node_chat", "args": {{"node": "rpi-sala", "message": "run df -h and return disk usage"}}}}
 ```
-Then after seeing the result:
+- You can call node_chat multiple times IN THE SAME response to parallelize tasks across nodes.
+- Each remote node has its own AI agent — it will understand natural language tasks and execute them.
+- After collecting all responses, synthesize the results into a final answer.
+
+## Distributed execution strategy
+- Delegate AI-heavy tasks to nodes with larger models when speed/quality matters.
+- Delegate local commands (disk check, service restart, file ops) to the node where they make sense.
+- Run independent subtasks in parallel using multiple node_chat calls in the same response.
+- Aggregate results here and return a unified answer.
+
+## Network nodes
+{peers_section}
+
+## Example — user says "check disk usage on all nodes"
 ```tool_call
-{{"name": "shell_exec", "args": {{"command": "chmod +x /opt/ch8/hello.py && python3 /opt/ch8/hello.py"}}}}
+{{"name": "shell_exec", "args": {{"command": "df -h /"}}}}
 ```
-Then say: "Done. Created /opt/ch8/hello.py and tested it. Output: Hello!"
+```tool_call
+{{"name": "node_chat", "args": {{"node": "rpi-sala", "message": "run df -h / and return disk usage"}}}}
+```
+```tool_call
+{{"name": "node_chat", "args": {{"node": "manager2", "message": "run df -h / and return disk usage"}}}}
+```
+(All three tool calls in the same response — executed in parallel. Then summarize.)
 
-WRONG (never do this): "Here's how you can create a script: step 1... step 2..."
-
-## Node info
+## This node info
 Host: {ctx['hostname']} | OS: {ctx['os']} | CPU: {ctx['cpu_pct']}% | RAM: {ctx['mem_pct']}% | Disk: {ctx['disk_pct']}%
-Containers: {len(ctx.get('containers', []))} | Peers: {peers_txt} | Time: {time.strftime('%Y-%m-%d %H:%M UTC', time.gmtime())}
+AI: {ctx.get('ai_provider','?')} / {ctx.get('ai_model','?')} | Local models: {models_txt}
+Containers: {len(ctx.get('containers', []))} | Time: {time.strftime('%Y-%m-%d %H:%M UTC', time.gmtime())}
 
 Active containers:
 {containers_txt}
@@ -823,6 +879,10 @@ async def chat(request: Request):
     """
     body     = await request.json()
     messages = body.get("messages", [])
+    # Also accept simple {"message": "..."} format (used by node_chat)
+    if not messages and body.get("message"):
+        messages = [{"role": "user", "content": body["message"]}]
+    stream   = body.get("stream", True)
     model    = body.get("model") or _best_model()
 
     loop = _asyncio.get_event_loop()
@@ -972,6 +1032,25 @@ async def chat(request: Request):
         finally:
             _update_agent_state("idle", "waiting for tasks")
         yield "data: [DONE]\n\n"
+
+    # Non-streaming mode: collect full text and return JSON
+    # Used by node_chat (node-to-node calls) — stream=False in request body
+    if stream is False:
+        collected = []
+        async for chunk in stream_gen():
+            if chunk.startswith("data: ") and "[DONE]" not in chunk:
+                raw = chunk[6:].strip()
+                try:
+                    obj = json.loads(raw)
+                    content = obj.get("message", {}).get("content", "")
+                    if content:
+                        collected.append(content)
+                except Exception:
+                    pass
+        return JSONResponse({
+            "response": "".join(collected),
+            "node": socket.gethostname(),
+        })
 
     return StreamingResponse(
         stream_gen(),

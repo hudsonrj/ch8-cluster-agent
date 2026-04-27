@@ -151,6 +151,27 @@ BUILTIN_TOOLS = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "node_chat",
+            "description": "Send a task or question to another CH8 node and get its response. Use this to delegate tasks to specific nodes in the network (e.g. run something on rpi-node, check a service on another machine).",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "node": {
+                        "type": "string",
+                        "description": "Target node hostname or node_id (e.g. 'rpi-sala', 'manager2')",
+                    },
+                    "message": {
+                        "type": "string",
+                        "description": "The task or question to send to the target node",
+                    },
+                },
+                "required": ["node", "message"],
+            },
+        },
+    },
 ]
 
 # ── Tool execution ──────────────────────────────────────────────────────────
@@ -166,6 +187,7 @@ def execute_tool(name: str, args: dict) -> dict:
         "node_info":       _exec_node_info,
         "service_restart": _exec_service_restart,
         "security_scan":   _exec_security_scan,
+        "node_chat":       _exec_node_chat,
     }
 
     # Check custom tools
@@ -279,6 +301,58 @@ def _exec_security_scan(args: dict) -> dict:
         return {"output": r.stdout[:4000], "exit_code": r.returncode}
     except Exception as e:
         return {"error": str(e)}
+
+
+def _exec_node_chat(args: dict) -> dict:
+    import httpx
+    node = args.get("node", "").strip()
+    message = args.get("message", "").strip()
+    if not node:
+        return {"error": "Missing 'node' argument"}
+    if not message:
+        return {"error": "Missing 'message' argument"}
+
+    # Find peer in state.json
+    state_file = CONFIG_DIR / "state.json"
+    try:
+        state = json.loads(state_file.read_text())
+        peers = state.get("peers", [])
+    except Exception:
+        peers = []
+
+    peer = None
+    node_lower = node.lower()
+    for p in peers:
+        if node_lower in (
+            p.get("hostname", "").lower(),
+            p.get("node_id", "").lower(),
+            p.get("alias", "").lower(),
+        ):
+            peer = p
+            break
+
+    if not peer:
+        known = [p.get("hostname", p.get("node_id", "?")) for p in peers]
+        return {"error": f"Node '{node}' not found. Known nodes: {known}"}
+
+    address = peer.get("address", "")
+    if not address:
+        return {"error": f"No address registered for node '{node}'"}
+
+    orch_port = int(os.environ.get("CH8_AGENT_PORT", "7879"))
+    url = f"http://{address}:{orch_port}/chat"
+
+    try:
+        r = httpx.post(url, json={"message": message, "stream": False}, timeout=120)
+        if r.status_code == 200:
+            data = r.json()
+            return {
+                "node": peer.get("hostname", node),
+                "response": data.get("response", data.get("message", str(data))),
+            }
+        return {"error": f"HTTP {r.status_code} from {node}: {r.text[:500]}"}
+    except Exception as e:
+        return {"error": f"Could not reach {node} at {url}: {e}"}
 
 
 # ── Tool loading ────────────────────────────────────────────────────────────

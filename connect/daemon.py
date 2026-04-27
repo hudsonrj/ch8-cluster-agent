@@ -317,6 +317,14 @@ def _collect_metrics() -> dict:
     metrics["agents"]   = _read_agents_from_state()
     metrics["tools"]    = _read_tools_config()
     metrics["channels"] = _read_channels_config()
+    # Include AI model so peers know what LLM this node is running
+    try:
+        from connect.ai_config import get_provider_info
+        ai = get_provider_info()
+        metrics["ai_model"]    = ai.get("model", "")
+        metrics["ai_provider"] = ai.get("provider", "")
+    except Exception:
+        pass
     return metrics
 
 

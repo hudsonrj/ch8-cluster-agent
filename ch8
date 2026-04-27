@@ -598,11 +598,39 @@ def cmd_setup():
 
 def cmd_update():
     """Update to latest version"""
+    install_dir = str(Path(__file__).resolve().parent)
     print(f"{Colors.BLUE}Updating CH8 Agent...{Colors.NC}")
-    subprocess.run(["git", "pull", "origin", "master"])
+
+    r = subprocess.run(
+        ["git", "pull", "origin", "main"],
+        cwd=install_dir,
+    )
+    if r.returncode != 0:
+        subprocess.run(["git", "pull", "origin", "master"], cwd=install_dir)
+
     print(f"{Colors.BLUE}Updating dependencies...{Colors.NC}")
-    subprocess.run(["venv/bin/pip", "install", "-r", "requirements.txt", "--upgrade"])
-    print(f"{Colors.GREEN}Update complete!{Colors.NC}")
+    pip_args = [sys.executable, "-m", "pip", "install", "--quiet", "--upgrade",
+                "httpx", "psutil", "fastapi", "uvicorn", "pydantic"]
+    r2 = subprocess.run(pip_args + ["--break-system-packages"])
+    if r2.returncode != 0:
+        subprocess.run(pip_args)
+
+    # Restart agents if they are running
+    pid_dir = Path.home() / ".config" / "ch8"
+    restarted = []
+    for pid_file in pid_dir.glob("*.pid"):
+        try:
+            pid = int(pid_file.read_text().strip())
+            os.kill(pid, 0)  # check alive
+            os.kill(pid, 15)  # SIGTERM
+            restarted.append(pid_file.stem)
+        except Exception:
+            pid_file.unlink(missing_ok=True)
+
+    if restarted:
+        print(f"{Colors.YELLOW}Stopped: {', '.join(restarted)} — run 'ch8 up' to restart.{Colors.NC}")
+
+    print(f"{Colors.GREEN}Update complete! Run 'ch8 up' to apply.{Colors.NC}")
 
 def cmd_doctor():
     """Diagnose issues"""
