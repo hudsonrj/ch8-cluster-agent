@@ -119,8 +119,22 @@ def _send_telegram(bot_token: str, chat_id: str, text: str):
                 log.error(f"Failed to send Telegram message: {e}")
 
 
-def _chat_with_orchestrator(message: str) -> str:
+def _send_typing(bot_token: str, chat_id: str):
+    """Send 'typing...' indicator to Telegram."""
+    try:
+        httpx.post(
+            f"https://api.telegram.org/bot{bot_token}/sendChatAction",
+            json={"chat_id": chat_id, "action": "typing"},
+            timeout=5,
+        )
+    except Exception:
+        pass
+
+
+def _chat_with_orchestrator(message: str, bot_token: str = "", chat_id: str = "") -> str:
     """Send a message to the local orchestrator and collect the full response."""
+    import threading
+
     uds_path = os.environ.get("CH8_UDS") or str(CONFIG_DIR / "orchestrator.sock")
     payload = {
         "messages": [{"role": "user", "content": message}],
@@ -133,6 +147,19 @@ def _chat_with_orchestrator(message: str) -> str:
         url = "http://localhost/chat"
     else:
         url = f"http://localhost:{AGENT_PORT}/chat"
+
+    # Send typing indicator every 4s while waiting
+    typing_active = threading.Event()
+    typing_active.set()
+
+    def _typing_loop():
+        while typing_active.is_set():
+            _send_typing(bot_token, chat_id)
+            typing_active.wait(4)
+
+    if bot_token and chat_id:
+        typing_thread = threading.Thread(target=_typing_loop, daemon=True)
+        typing_thread.start()
 
     full_response = ""
     try:
@@ -161,6 +188,8 @@ def _chat_with_orchestrator(message: str) -> str:
         return full_response + "\n\n(timeout — response truncated)"
     except Exception as e:
         return f"Error: {e}"
+    finally:
+        typing_active.clear()
 
     return full_response or "(no response)"
 
@@ -235,7 +264,7 @@ def main():
                 _register_agent("running", f"responding to: {text[:40]}")
 
                 # Forward to orchestrator
-                response = _chat_with_orchestrator(text)
+                response = _chat_with_orchestrator(text, bot_token, chat_id)
 
                 # Send response back to Telegram
                 _send_telegram(bot_token, chat_id, response)
