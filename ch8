@@ -101,9 +101,13 @@ def _start_agent(name, script_name, port_check=None):
     if not script.exists():
         return False
 
+    _install_dir = str(Path(__file__).parent)
+    _env = os.environ.copy()
+    _env["PYTHONPATH"] = _install_dir + os.pathsep + _env.get("PYTHONPATH", "")
     proc = subprocess.Popen(
         [sys.executable, str(script)],
-        cwd=str(Path(__file__).parent),
+        cwd=_install_dir,
+        env=_env,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
         start_new_session=True,
@@ -225,9 +229,13 @@ def cmd_up(token=None):
     daemon_log = log_dir / "daemon.log"
     daemon_fh = open(daemon_log, "w")
 
+    _install_dir = str(Path(__file__).parent)
+    _env = os.environ.copy()
+    _env["PYTHONPATH"] = _install_dir + os.pathsep + _env.get("PYTHONPATH", "")
     subprocess.Popen(
         [sys.executable, "-m", "connect.daemon"],
-        cwd=str(Path(__file__).parent),
+        cwd=_install_dir,
+        env=_env,
         stdout=daemon_fh,
         stderr=daemon_fh,
         start_new_session=True,
