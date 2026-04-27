@@ -76,10 +76,6 @@ else
 fi
 
 echo -e "\n${YELLOW}Install directory:${NC} $INSTALL_DIR"
-read -p "Change? (Enter to confirm, or type new path): " CUSTOM_DIR </dev/tty
-if [ -n "$CUSTOM_DIR" ]; then
-    INSTALL_DIR="$CUSTOM_DIR"
-fi
 
 # ── Clone or update ───────────────────────────────────────────────────────
 echo -e "\n${BLUE}Downloading CH8 Agent...${NC}"
