@@ -60,7 +60,9 @@ def _load_env_file():
             line = line.strip()
             if line and not line.startswith("#") and "=" in line:
                 key, _, val = line.partition("=")
-                os.environ.setdefault(key.strip(), val.strip())
+                key, val = key.strip(), val.strip()
+                if key and val:
+                    os.environ.setdefault(key, val)
 
 _load_env_file()
 

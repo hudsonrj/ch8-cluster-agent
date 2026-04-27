@@ -29,6 +29,20 @@ log = logging.getLogger("ch8.telegram")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s", datefmt="%H:%M:%S")
 
 CONFIG_DIR = Path.home() / ".config" / "ch8"
+
+# Load env vars from ~/.config/ch8/env
+def _load_env_file():
+    env_file = CONFIG_DIR / "env"
+    if env_file.exists():
+        for line in env_file.read_text().splitlines():
+            line = line.strip()
+            if line and not line.startswith("#") and "=" in line:
+                key, _, val = line.partition("=")
+                if key.strip():
+                    os.environ.setdefault(key.strip(), val.strip())
+
+_load_env_file()
+
 STATE_FILE = CONFIG_DIR / "state.json"
 AGENT_PORT = int(os.environ.get("CH8_AGENT_PORT", "7879"))
 
