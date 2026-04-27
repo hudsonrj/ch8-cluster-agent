@@ -1,234 +1,133 @@
 #!/bin/bash
 # CH8 Agent - Linux 32-bit Installation Script
-# For old computers, legacy systems, i686 architecture
+# For i686/i386 systems (old PCs, legacy hardware)
+# Usage: curl -fsSL https://raw.githubusercontent.com/hudsonrj/ch8-cluster-agent/main/scripts/install-32bit.sh | bash
 
 set -e
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
 NC='\033[0m'
 
-echo -e "${GREEN}"
+echo -e "${BLUE}"
 cat << "EOF"
-   _____ _    _  ___
-  / ____| |  | |/ _ \
- | |    | |__| | (_) |
- | |    |  __  |> _ <
- | |____| |  | | (_) |
-  \_____|_|  |_|\___/
-
- Linux 32-bit Installation
+   _____ _   _ ___
+  / ____| | | ( _ )
+ | |    | |_| / _ \
+ | |___ |  _  | (_) |
+  \____|_| |_|\___/   Agent  —  Linux 32-bit
 EOF
 echo -e "${NC}"
 
-# Check if 32-bit
-check_architecture() {
-    ARCH=$(uname -m)
+# ── Architecture info ─────────────────────────────────────────────────────
+ARCH=$(uname -m)
+echo -e "${BLUE}Architecture: $ARCH${NC}"
+if [ "$ARCH" != "i686" ] && [ "$ARCH" != "i386" ]; then
+    echo -e "${YELLOW}Warning: not detected as 32-bit ($ARCH). For 64-bit use install.sh.${NC}"
+fi
 
-    if [ "$ARCH" != "i686" ] && [ "$ARCH" != "i386" ]; then
-        echo -e "${YELLOW}Warning: Not detected as 32-bit (detected: $ARCH)${NC}"
-        echo "Continue anyway? (y/n)"
-        read -r response
-        if [ "$response" != "y" ]; then
-            exit 1
-        fi
-    fi
+RAM_MB=$(free -m | awk '/^Mem:/{print $2}')
+echo -e "${BLUE}RAM: ${RAM_MB}MB${NC}"
 
-    echo -e "${GREEN}Architecture: $ARCH${NC}"
-}
-
-# Check RAM
-check_ram() {
-    RAM_MB=$(free -m | awk '/^Mem:/{print $2}')
-    echo -e "${YELLOW}Available RAM: ${RAM_MB}MB${NC}"
-
-    if [ "$RAM_MB" -lt 1024 ]; then
-        echo -e "${YELLOW}Warning: Low memory detected. Minimum 1GB recommended.${NC}"
-        TIER="nano"
-    elif [ "$RAM_MB" -lt 2048 ]; then
-        TIER="tiny"
+# ── Check Python 3.10+ ────────────────────────────────────────────────────
+if ! command -v python3 &>/dev/null; then
+    echo -e "${YELLOW}Installing Python3...${NC}"
+    if command -v apt-get &>/dev/null; then
+        sudo apt-get update -qq && sudo apt-get install -y python3 python3-pip git curl
+    elif command -v yum &>/dev/null; then
+        sudo yum install -y python3 python3-pip git curl
     else
-        TIER="small"
-    fi
-
-    echo -e "${GREEN}Tier: $TIER${NC}"
-}
-
-# Install dependencies
-install_dependencies() {
-    echo "Installing dependencies..."
-
-    # Detect package manager
-    if command -v apt-get &> /dev/null; then
-        sudo apt-get update
-        sudo apt-get install -y \
-            python3 \
-            python3-pip \
-            python3-venv \
-            git \
-            curl \
-            build-essential \
-            cmake
-    elif command -v yum &> /dev/null; then
-        sudo yum install -y \
-            python3 \
-            python3-pip \
-            git \
-            curl \
-            gcc \
-            gcc-c++ \
-            make \
-            cmake
-    else
-        echo -e "${RED}Error: Unsupported package manager${NC}"
+        echo -e "${RED}Cannot install Python3. Install manually and rerun.${NC}"
         exit 1
     fi
+fi
 
-    echo -e "${GREEN}✓ Dependencies installed${NC}"
-}
+PY_VER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')" 2>/dev/null || echo "0.0")
+PY_MAJOR=$(echo "$PY_VER" | cut -d. -f1)
+PY_MINOR=$(echo "$PY_VER" | cut -d. -f2)
 
-# Setup swap
-setup_swap() {
-    if [ "$RAM_MB" -lt 2048 ]; then
-        echo "Setting up swap..."
+if [ "$PY_MAJOR" -lt 3 ] || ([ "$PY_MAJOR" -eq 3 ] && [ "$PY_MINOR" -lt 10 ]); then
+    echo -e "${RED}Python 3.10+ required, found $PY_VER${NC}"
+    echo -e "${YELLOW}Run: sudo apt-get install -y python3.11${NC}"
+    exit 1
+fi
+echo -e "${GREEN}✓ Python $PY_VER${NC}"
 
-        SWAP_SIZE=$((RAM_MB * 2))
-        SWAP_FILE="/swapfile"
+if ! command -v git &>/dev/null; then
+    command -v apt-get &>/dev/null && sudo apt-get install -y git || true
+fi
+echo -e "${GREEN}✓ git$(git --version | awk '{print " "$3}')${NC}"
 
-        if [ ! -f "$SWAP_FILE" ]; then
-            sudo dd if=/dev/zero of=$SWAP_FILE bs=1M count=$SWAP_SIZE status=progress
-            sudo chmod 600 $SWAP_FILE
-            sudo mkswap $SWAP_FILE
-            sudo swapon $SWAP_FILE
+# ── Swap for low-memory systems ───────────────────────────────────────────
+if [ "$RAM_MB" -lt 1024 ] && [ ! -f /swapfile ]; then
+    echo -e "${YELLOW}Low memory — setting up 1GB swap...${NC}"
+    sudo dd if=/dev/zero of=/swapfile bs=1M count=1024 status=progress
+    sudo chmod 600 /swapfile
+    sudo mkswap /swapfile
+    sudo swapon /swapfile
+    grep -q "/swapfile" /etc/fstab || echo "/swapfile none swap sw 0 0" | sudo tee -a /etc/fstab
+    echo -e "${GREEN}✓ Swap configured${NC}"
+fi
 
-            if ! grep -q "$SWAP_FILE" /etc/fstab; then
-                echo "$SWAP_FILE none swap sw 0 0" | sudo tee -a /etc/fstab
-            fi
+# ── Install directory ──────────────────────────────────────────────────────
+INSTALL_DIR="$HOME/ch8-agent"
+echo -e "\n${YELLOW}Install directory:${NC} $INSTALL_DIR"
 
-            echo -e "${GREEN}✓ Swap configured (${SWAP_SIZE}MB)${NC}"
-        fi
-    fi
-}
+# ── Clone or update ────────────────────────────────────────────────────────
+echo -e "\n${BLUE}Downloading CH8 Agent...${NC}"
+mkdir -p "$INSTALL_DIR"
 
-# Install llama.cpp (32-bit build)
-install_llamacpp() {
-    echo "Building llama.cpp for 32-bit..."
+if [ -d "$INSTALL_DIR/.git" ]; then
+    echo -e "${YELLOW}Existing installation found, updating...${NC}"
+    cd "$INSTALL_DIR"
+    git pull origin main 2>/dev/null || git pull origin master 2>/dev/null || true
+else
+    git clone https://github.com/hudsonrj/ch8-cluster-agent.git "$INSTALL_DIR"
+    cd "$INSTALL_DIR"
+fi
 
-    LLAMACPP_DIR="$HOME/.ch8/llama.cpp"
+# ── Install Python dependencies ────────────────────────────────────────────
+echo -e "\n${BLUE}Installing dependencies...${NC}"
+python3 -m pip install --quiet --upgrade pip 2>/dev/null || true
+python3 -m pip install --quiet --break-system-packages \
+    httpx psutil fastapi uvicorn pydantic 2>/dev/null || \
+python3 -m pip install --quiet \
+    httpx psutil fastapi uvicorn pydantic 2>/dev/null || true
+echo -e "${GREEN}✓ Dependencies installed${NC}"
 
-    if [ ! -d "$LLAMACPP_DIR" ]; then
-        git clone https://github.com/ggerganov/llama.cpp "$LLAMACPP_DIR"
-        cd "$LLAMACPP_DIR"
+# ── CLI and PATH ───────────────────────────────────────────────────────────
+chmod +x "$INSTALL_DIR/ch8"
 
-        # Build with 32-bit flags
-        CFLAGS="-m32" CXXFLAGS="-m32" make -j$(nproc)
+SHELL_RC="$HOME/.bashrc"
+[ -f "$HOME/.bash_profile" ] && SHELL_RC="$HOME/.bash_profile"
 
-        echo -e "${GREEN}✓ llama.cpp built for 32-bit${NC}"
-    fi
-}
+if ! grep -q "ch8-agent" "$SHELL_RC" 2>/dev/null; then
+    echo "" >> "$SHELL_RC"
+    echo "# CH8 Agent" >> "$SHELL_RC"
+    echo "export PATH=\"\$PATH:$INSTALL_DIR\"" >> "$SHELL_RC"
+    echo -e "${GREEN}✓ Added to PATH in $SHELL_RC${NC}"
+fi
 
-# Download small model
-download_model() {
-    echo "Downloading model..."
+[ -w "/usr/local/bin" ] && ln -sf "$INSTALL_DIR/ch8" /usr/local/bin/ch8 2>/dev/null || true
+mkdir -p "$HOME/.config/ch8"
 
-    MODELS_DIR="$HOME/.ch8/models"
-    mkdir -p "$MODELS_DIR"
-
-    case $TIER in
-        nano)
-            MODEL_URL="https://huggingface.co/QuantFactory/SmolLM-135M-Instruct-GGUF/resolve/main/SmolLM-135M-Instruct.Q4_K_M.gguf"
-            MODEL_NAME="smollm-135m-q4.gguf"
-            ;;
-        *)
-            MODEL_URL="https://huggingface.co/TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF/resolve/main/tinyllama-1.1b-chat-v1.0.Q2_K.gguf"
-            MODEL_NAME="tinyllama-1.1b-q2.gguf"
-            ;;
-    esac
-
-    if [ ! -f "$MODELS_DIR/$MODEL_NAME" ]; then
-        curl -L -o "$MODELS_DIR/$MODEL_NAME" "$MODEL_URL"
-        echo -e "${GREEN}✓ Model downloaded${NC}"
-    fi
-}
-
-# Install CH8 Agent
-install_ch8_agent() {
-    echo "Installing CH8 Agent..."
-
-    CH8_DIR="$HOME/.ch8/ch8-agent"
-
-    if [ ! -d "$CH8_DIR" ]; then
-        git clone https://github.com/hudsonrj/ch8-cluster-agent.git "$CH8_DIR"
-    else
-        cd "$CH8_DIR" && git pull
-    fi
-
-    python3 -m venv "$CH8_DIR/venv"
-    source "$CH8_DIR/venv/bin/activate"
-    pip install --upgrade pip
-    pip install aiohttp structlog psutil pyyaml
-    deactivate
-
-    echo -e "${GREEN}✓ CH8 Agent installed${NC}"
-}
-
-# Create config
-create_config() {
-    CONFIG_DIR="$HOME/.ch8/config"
-    mkdir -p "$CONFIG_DIR"
-
-    cat > "$CONFIG_DIR/node.yaml" << EOF
-node:
-  id: linux32-$(hostname)
-  tier: $TIER
-
-hardware:
-  platform: linux-i686
-  ram_mb: $RAM_MB
-
-llm:
-  backend: llama.cpp
-  model_path: $HOME/.ch8/models/$MODEL_NAME
-  context_length: 512
-  threads: $(nproc)
-
-performance:
-  max_concurrent_tasks: 1
-  batch_processing: true
-EOF
-
-    echo -e "${GREEN}✓ Configuration created${NC}"
-}
-
-# Print summary
-print_summary() {
-    echo ""
-    echo -e "${GREEN}╔════════════════════════════════════════════════╗${NC}"
-    echo -e "${GREEN}║   CH8 Agent Installation Complete (32-bit)!   ║${NC}"
-    echo -e "${GREEN}╚════════════════════════════════════════════════╝${NC}"
-    echo ""
-    echo "Architecture: 32-bit ($ARCH)"
-    echo "Tier: $TIER"
-    echo "RAM: ${RAM_MB}MB"
-    echo ""
-    echo "To start:"
-    echo "  cd ~/.ch8/ch8-agent"
-    echo "  source venv/bin/activate"
-    echo "  python -m cluster.node"
-    echo ""
-}
-
-main() {
-    check_architecture
-    check_ram
-    install_dependencies
-    setup_swap
-    install_llamacpp
-    download_model
-    install_ch8_agent
-    create_config
-    print_summary
-}
-
-main
+# ── Done ──────────────────────────────────────────────────────────────────
+echo -e "\n${GREEN}╔═══════════════════════════════════════╗${NC}"
+echo -e "${GREEN}║   CH8 Agent installed (32-bit)!       ║${NC}"
+echo -e "${GREEN}╚═══════════════════════════════════════╝${NC}"
+echo ""
+echo -e "  Arch: ${BLUE}$ARCH${NC}  RAM: ${BLUE}${RAM_MB}MB${NC}"
+echo ""
+echo -e "${YELLOW}Next steps:${NC}"
+echo -e "  1. ${GREEN}source $SHELL_RC${NC}"
+echo -e "  2. ${GREEN}ch8 config ai${NC}               (configure AI provider)"
+echo -e "  3. ${GREEN}ch8 up --token <TOKEN>${NC}       (join your network)"
+echo ""
+echo -e "${YELLOW}Recommended AI for low-memory:${NC}"
+echo -e "  ${BLUE}Groq${NC}  (cloud, free) — fast, no local GPU needed — groq.com"
+echo -e "  ${BLUE}Ollama${NC} (local)      — ollama.com/install.sh"
+echo ""
+echo -e "${BLUE}Docs: https://github.com/hudsonrj/ch8-cluster-agent${NC}"
+echo ""

@@ -1,260 +1,128 @@
-# CH8 Agent - Windows 32-bit Installation Script
-# For old Windows PCs, Windows 7/8/10 32-bit
+# CH8 Agent - Windows Installation Script
+# For Windows 10/11 (64-bit recommended, WSL2 preferred)
+# Usage: powershell -ExecutionPolicy Bypass -c "iwr -useb https://raw.githubusercontent.com/hudsonrj/ch8-cluster-agent/main/scripts/install-win32.ps1 | iex"
 
 $ErrorActionPreference = "Stop"
 
 Write-Host @"
 
-   _____ _    _  ___
-  / ____| |  | |/ _ \
- | |    | |__| | (_) |
- | |    |  __  |> _ <
- | |____| |  | | (_) |
-  \_____|_|  |_|\___/
+   _____ _   _ ___
+  / ____| | | ( _ )
+ | |    | |_| / _ \
+ | |___ |  _  | (_) |
+  \____|_| |_|\___/   Agent  -  Windows
 
- Windows 32-bit Installation
+"@ -ForegroundColor Cyan
 
-"@ -ForegroundColor Green
+# ── WSL2 recommendation ───────────────────────────────────────────────────
+Write-Host "Note: For best experience, use WSL2 (Windows Subsystem for Linux):" -ForegroundColor Yellow
+Write-Host "  wsl --install" -ForegroundColor Green
+Write-Host "  Then run the Linux installer inside WSL." -ForegroundColor Yellow
+Write-Host ""
 
-# Check if 32-bit
-function Check-Architecture {
-    $arch = $env:PROCESSOR_ARCHITECTURE
+# ── Check Python 3.10+ ───────────────────────────────────────────────────
+Write-Host "[1/5] Checking Python..." -ForegroundColor Blue
 
-    if ($arch -ne "x86") {
-        Write-Host "Warning: Not detected as 32-bit (detected: $arch)" -ForegroundColor Yellow
-        $response = Read-Host "Continue anyway? (y/n)"
-        if ($response -ne "y") {
-            exit 1
-        }
-    }
-
-    Write-Host "Architecture: $arch" -ForegroundColor Green
-}
-
-# Check RAM
-function Check-RAM {
-    $computerInfo = Get-CimInstance Win32_ComputerSystem
-    $ramMB = [math]::Round($computerInfo.TotalPhysicalMemory / 1MB)
-
-    Write-Host "Available RAM: ${ramMB}MB" -ForegroundColor Yellow
-
-    if ($ramMB -lt 1024) {
-        Write-Host "Warning: Low memory. Minimum 1GB recommended." -ForegroundColor Yellow
-        $script:tier = "nano"
-    }
-    elseif ($ramMB -lt 2048) {
-        $script:tier = "tiny"
-    }
-    else {
-        $script:tier = "small"
-    }
-
-    Write-Host "Tier: $script:tier" -ForegroundColor Green
-    return $ramMB
-}
-
-# Install Python if not present
-function Install-Python {
-    $pythonPath = Get-Command python -ErrorAction SilentlyContinue
-
-    if (-not $pythonPath) {
-        Write-Host "Python not found. Please install Python 3.8+ (32-bit)" -ForegroundColor Red
-        Write-Host "Download from: https://www.python.org/downloads/" -ForegroundColor Yellow
-        Write-Host "Make sure to select '32-bit' version!" -ForegroundColor Yellow
-        exit 1
-    }
-
-    $pythonVersion = & python --version 2>&1
-    Write-Host "Found: $pythonVersion" -ForegroundColor Green
-}
-
-# Install Git if not present
-function Install-Git {
-    $gitPath = Get-Command git -ErrorAction SilentlyContinue
-
-    if (-not $gitPath) {
-        Write-Host "Git not found. Please install Git" -ForegroundColor Red
-        Write-Host "Download from: https://git-scm.com/download/win" -ForegroundColor Yellow
-        exit 1
-    }
-
-    Write-Host "Git found" -ForegroundColor Green
-}
-
-# Download llama.cpp binary (pre-built for Windows)
-function Install-LlamaCpp {
-    Write-Host "Downloading llama.cpp..."
-
-    $llamaCppDir = "$env:USERPROFILE\.ch8\llama.cpp"
-    New-Item -ItemType Directory -Force -Path $llamaCppDir | Out-Null
-
-    # Download pre-built binary
-    $llamaCppUrl = "https://github.com/ggerganov/llama.cpp/releases/latest/download/llama-cpp-windows-x86.zip"
-    $llamaCppZip = "$env:TEMP\llama-cpp.zip"
-
+$python = $null
+foreach ($cmd in @("python", "python3", "py")) {
     try {
-        Invoke-WebRequest -Uri $llamaCppUrl -OutFile $llamaCppZip -UseBasicParsing
-        Expand-Archive -Path $llamaCppZip -DestinationPath $llamaCppDir -Force
-        Remove-Item $llamaCppZip
-        Write-Host "llama.cpp installed" -ForegroundColor Green
-    }
-    catch {
-        Write-Host "Note: Could not download pre-built binary" -ForegroundColor Yellow
-        Write-Host "You may need to build from source" -ForegroundColor Yellow
-    }
+        $ver = & $cmd --version 2>&1
+        if ($ver -match "Python (\d+)\.(\d+)") {
+            $major = [int]$Matches[1]
+            $minor = [int]$Matches[2]
+            if ($major -ge 3 -and $minor -ge 10) {
+                $python = $cmd
+                Write-Host "  [OK] $ver" -ForegroundColor Green
+                break
+            }
+        }
+    } catch {}
 }
 
-# Download model
-function Download-Model {
-    param($tier)
-
-    Write-Host "Downloading model..."
-
-    $modelsDir = "$env:USERPROFILE\.ch8\models"
-    New-Item -ItemType Directory -Force -Path $modelsDir | Out-Null
-
-    switch ($tier) {
-        "nano" {
-            $modelUrl = "https://huggingface.co/QuantFactory/SmolLM-135M-Instruct-GGUF/resolve/main/SmolLM-135M-Instruct.Q4_K_M.gguf"
-            $modelName = "smollm-135m-q4.gguf"
-        }
-        default {
-            $modelUrl = "https://huggingface.co/TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF/resolve/main/tinyllama-1.1b-chat-v1.0.Q2_K.gguf"
-            $modelName = "tinyllama-1.1b-q2.gguf"
-        }
-    }
-
-    $modelPath = "$modelsDir\$modelName"
-
-    if (-not (Test-Path $modelPath)) {
-        Write-Host "Downloading $modelName..."
-        Invoke-WebRequest -Uri $modelUrl -OutFile $modelPath -UseBasicParsing
-        Write-Host "Model downloaded" -ForegroundColor Green
-    }
-    else {
-        Write-Host "Model already downloaded" -ForegroundColor Yellow
-    }
-
-    return $modelPath
+if (-not $python) {
+    Write-Host "  [ERROR] Python 3.10+ not found." -ForegroundColor Red
+    Write-Host "  Download from: https://www.python.org/downloads/" -ForegroundColor Yellow
+    Write-Host "  Check 'Add Python to PATH' during install." -ForegroundColor Yellow
+    exit 1
 }
 
-# Install CH8 Agent
-function Install-CH8Agent {
-    Write-Host "Installing CH8 Agent..."
+# ── Check Git ─────────────────────────────────────────────────────────────
+Write-Host "[2/5] Checking Git..." -ForegroundColor Blue
 
-    $ch8Dir = "$env:USERPROFILE\.ch8\ch8-agent"
+try {
+    $gitVer = & git --version 2>&1
+    Write-Host "  [OK] $gitVer" -ForegroundColor Green
+} catch {
+    Write-Host "  [ERROR] Git not found." -ForegroundColor Red
+    Write-Host "  Download from: https://git-scm.com/download/win" -ForegroundColor Yellow
+    exit 1
+}
 
-    if (-not (Test-Path $ch8Dir)) {
-        git clone https://github.com/hudsonrj/ch8-cluster-agent.git $ch8Dir
-    }
-    else {
-        Write-Host "Updating CH8 Agent..."
-        Push-Location $ch8Dir
-        git pull
-        Pop-Location
-    }
+# ── Clone or update ───────────────────────────────────────────────────────
+Write-Host "[3/5] Downloading CH8 Agent..." -ForegroundColor Blue
 
-    # Create virtual environment
-    Push-Location $ch8Dir
-    python -m venv venv
-    & .\venv\Scripts\Activate.ps1
-    pip install --upgrade pip
-    pip install aiohttp structlog psutil pyyaml
-    deactivate
+$installDir = "$env:USERPROFILE\ch8-agent"
+
+if (Test-Path "$installDir\.git") {
+    Write-Host "  Updating existing installation..." -ForegroundColor Yellow
+    Push-Location $installDir
+    git pull origin main 2>$null
+    if ($LASTEXITCODE -ne 0) { git pull origin master 2>$null }
     Pop-Location
-
-    Write-Host "CH8 Agent installed" -ForegroundColor Green
+} else {
+    git clone https://github.com/hudsonrj/ch8-cluster-agent.git $installDir
 }
 
-# Create configuration
-function Create-Config {
-    param($tier, $ramMB, $modelPath)
+Write-Host "  [OK] Installed at $installDir" -ForegroundColor Green
 
-    $configDir = "$env:USERPROFILE\.ch8\config"
-    New-Item -ItemType Directory -Force -Path $configDir | Out-Null
+# ── Install Python dependencies ───────────────────────────────────────────
+Write-Host "[4/5] Installing dependencies..." -ForegroundColor Blue
 
-    $configContent = @"
-node:
-  id: win32-$env:COMPUTERNAME
-  tier: $tier
+& $python -m pip install --quiet --upgrade pip 2>$null
+& $python -m pip install --quiet httpx psutil fastapi uvicorn pydantic
 
-hardware:
-  platform: windows-x86
-  ram_mb: $ramMB
+Write-Host "  [OK] httpx, psutil, fastapi, uvicorn, pydantic" -ForegroundColor Green
 
-llm:
-  backend: llama.cpp
-  model_path: $modelPath
-  context_length: 512
-  threads: $env:NUMBER_OF_PROCESSORS
+# ── Create ch8.bat wrapper ────────────────────────────────────────────────
+Write-Host "[5/5] Creating ch8 command..." -ForegroundColor Blue
 
-performance:
-  max_concurrent_tasks: 1
-  batch_processing: true
-"@
-
-    $configContent | Out-File -FilePath "$configDir\node.yaml" -Encoding UTF8
-
-    Write-Host "Configuration created" -ForegroundColor Green
-}
-
-# Create start script
-function Create-StartScript {
-    $ch8Dir = "$env:USERPROFILE\.ch8\ch8-agent"
-    $startScript = "$env:USERPROFILE\.ch8\start-ch8.bat"
-
-    $scriptContent = @"
+$batContent = @"
 @echo off
-cd /d "$ch8Dir"
-call venv\Scripts\activate.bat
-python -m cluster.node
-pause
+set PYTHONPATH=$installDir
+$python "$installDir\ch8" %*
 "@
 
-    $scriptContent | Out-File -FilePath $startScript -Encoding ASCII
+$batPath = "$installDir\ch8.bat"
+$batContent | Out-File -FilePath $batPath -Encoding ASCII
 
-    Write-Host "Start script created at: $startScript" -ForegroundColor Green
+# Add to user PATH if not already there
+$userPath = [Environment]::GetEnvironmentVariable("PATH", "User")
+if ($userPath -notlike "*ch8-agent*") {
+    [Environment]::SetEnvironmentVariable("PATH", "$userPath;$installDir", "User")
+    Write-Host "  [OK] Added $installDir to PATH" -ForegroundColor Green
+} else {
+    Write-Host "  [OK] Already in PATH" -ForegroundColor Green
 }
 
-# Print summary
-function Print-Summary {
-    param($tier, $ramMB)
+# Config dir
+New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.config\ch8" | Out-Null
 
-    Write-Host @"
-
-╔════════════════════════════════════════════════╗
-║   CH8 Agent Installation Complete (Win32)!    ║
-╚════════════════════════════════════════════════╝
-
-Architecture: Windows 32-bit
-Tier: $tier
-RAM: ${ramMB}MB
-
-To start CH8 Agent:
-  Double-click: $env:USERPROFILE\.ch8\start-ch8.bat
-
-Or manually:
-  cd $env:USERPROFILE\.ch8\ch8-agent
-  venv\Scripts\activate
-  python -m cluster.node
-
-Configuration: $env:USERPROFILE\.ch8\config\node.yaml
-
-"@ -ForegroundColor Green
-}
-
-# Main installation
-function Main {
-    Check-Architecture
-    $ramMB = Check-RAM
-    Install-Python
-    Install-Git
-    Install-LlamaCpp
-    $modelPath = Download-Model -tier $script:tier
-    Install-CH8Agent
-    Create-Config -tier $script:tier -ramMB $ramMB -modelPath $modelPath
-    Create-StartScript
-    Print-Summary -tier $script:tier -ramMB $ramMB
-}
-
-Main
+# ── Done ──────────────────────────────────────────────────────────────────
+Write-Host ""
+Write-Host "╔═══════════════════════════════════════╗" -ForegroundColor Green
+Write-Host "║   CH8 Agent installed on Windows!    ║" -ForegroundColor Green
+Write-Host "╚═══════════════════════════════════════╝" -ForegroundColor Green
+Write-Host ""
+Write-Host "Next steps (restart terminal first, then):" -ForegroundColor Yellow
+Write-Host "  ch8 config ai              (configure AI provider)" -ForegroundColor Green
+Write-Host "  ch8 up --token <TOKEN>     (join your network)" -ForegroundColor Green
+Write-Host ""
+Write-Host "Or run directly:" -ForegroundColor Yellow
+Write-Host "  $python $installDir\ch8 up --token <TOKEN>" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "Recommended AI providers:" -ForegroundColor Yellow
+Write-Host "  Groq   (cloud, free) - groq.com" -ForegroundColor Cyan
+Write-Host "  Ollama (local)       - ollama.com/download" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "Docs: https://github.com/hudsonrj/ch8-cluster-agent" -ForegroundColor Blue
+Write-Host ""
