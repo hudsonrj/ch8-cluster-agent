@@ -239,7 +239,7 @@ def cmd_up(token=None):
 
     # Start Telegram listener if configured
     from connect.channels import load_channels
-    if any(ch.get("type") == "telegram" and ch.get("bot_token") for ch in load_channels()):
+    if any(ch.get("type") == "telegram" and ch.get("bot_token") and ch.get("chat_id") for ch in load_channels()):
         _start_agent("telegram", "telegram_listener.py")
 
 

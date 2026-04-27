@@ -146,20 +146,18 @@ def _chat_with_orchestrator(message: str, bot_token: str = "", chat_id: str = ""
         transport = httpx.HTTPTransport(uds=uds_path)
         url = "http://localhost/chat"
     else:
-        url = f"http://localhost:{AGENT_PORT}/chat"
+        url = f"http://127.0.0.1:{AGENT_PORT}/chat"
 
-    # Send typing indicator every 4s while waiting
-    typing_active = threading.Event()
-    typing_active.set()
+    # Send typing indicator every 5s while waiting
+    typing_active = [True]
 
     def _typing_loop():
-        while typing_active.is_set():
+        while typing_active[0]:
             _send_typing(bot_token, chat_id)
-            typing_active.wait(4)
+            time.sleep(5)
 
     if bot_token and chat_id:
-        typing_thread = threading.Thread(target=_typing_loop, daemon=True)
-        typing_thread.start()
+        threading.Thread(target=_typing_loop, daemon=True).start()
 
     full_response = ""
     try:
@@ -189,7 +187,7 @@ def _chat_with_orchestrator(message: str, bot_token: str = "", chat_id: str = ""
     except Exception as e:
         return f"Error: {e}"
     finally:
-        typing_active.clear()
+        typing_active[0] = False
 
     return full_response or "(no response)"
 
