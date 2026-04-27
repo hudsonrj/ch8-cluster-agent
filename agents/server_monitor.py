@@ -34,8 +34,11 @@ from typing import Optional, List
 try:
     import psutil
 except ImportError:
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "--quiet",
-                           "--break-system-packages", "psutil"])
+    try:
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "--quiet",
+                               "--break-system-packages", "psutil"])
+    except Exception:
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "--quiet", "psutil"])
     import psutil
 
 # ── Config ───────────────────────────────────────────────────────────────────

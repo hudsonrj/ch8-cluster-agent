@@ -365,51 +365,90 @@ def _detect_ollama_models() -> list:
 
 def _detect_services() -> list:
     """Detect running services: Docker containers, databases, system services."""
+    import subprocess as _sp
     services = []
+    reported: set = set()  # lowercase names already added
 
     # Docker containers
     try:
-        import subprocess
-        out = subprocess.check_output(
+        out = _sp.check_output(
             ["docker", "ps", "--format", "{{.Names}}|{{.Image}}|{{.Status}}|{{.Ports}}"],
-            timeout=5, stderr=subprocess.DEVNULL
+            timeout=5, stderr=_sp.DEVNULL
         ).decode().strip()
         for line in out.splitlines():
             if not line.strip():
                 continue
             parts = line.split("|")
             name, image, status, ports = (parts + ["", "", "", ""])[:4]
+            name = name.strip()
             services.append({
                 "type":   "docker",
-                "name":   name.strip(),
+                "name":   name,
                 "image":  image.strip(),
                 "status": "running" if "Up" in status else "stopped",
                 "ports":  ports.strip(),
             })
+            reported.add(name.lower())
     except Exception:
         pass
 
-    # Well-known system services (check via process list)
+    # Process-based detection — covers Linux and macOS naming variants
     try:
         import psutil
         proc_names = {p.name().lower() for p in psutil.process_iter(["name"])}
-        known = {
-            "postgres": "PostgreSQL",
-            "mysqld":   "MySQL",
-            "mongod":   "MongoDB",
-            "redis-server": "Redis",
-            "nginx":    "Nginx",
-            "caddy":    "Caddy",
-            "ollama":   "Ollama",
-            "tailscaled": "Tailscale",
-        }
-        for proc_key, label in known.items():
+        known = [
+            # (substring to match in proc name, display label)
+            ("postgres",     "PostgreSQL"),
+            ("postmaster",   "PostgreSQL"),
+            ("mysqld",       "MySQL"),
+            ("mongod",       "MongoDB"),
+            ("redis-server", "Redis"),
+            ("nginx",        "Nginx"),
+            ("httpd",        "Apache"),
+            ("apache2",      "Apache"),
+            ("caddy",        "Caddy"),
+            ("ollama",       "Ollama"),
+            ("tailscaled",   "Tailscale"),
+            ("tailscale",    "Tailscale"),  # macOS app process
+        ]
+        seen_labels: set = set()
+        for proc_key, label in known:
+            if label in seen_labels:
+                continue
             if any(proc_key in n for n in proc_names):
-                # Skip if already reported via Docker
-                if not any(s["name"] == label.lower() for s in services):
+                if label.lower() not in reported:
                     services.append({"type": "process", "name": label, "status": "running"})
+                    reported.add(label.lower())
+                seen_labels.add(label)
     except Exception:
         pass
+
+    # macOS: brew services (catches services not visible as processes yet)
+    if platform.system() == "Darwin":
+        try:
+            out = _sp.check_output(
+                ["brew", "services", "list"],
+                timeout=8, stderr=_sp.DEVNULL
+            ).decode()
+            brew_map = {
+                "postgresql": "PostgreSQL",
+                "mysql":      "MySQL",
+                "mongodb":    "MongoDB",
+                "redis":      "Redis",
+                "nginx":      "Nginx",
+                "ollama":     "Ollama",
+                "caddy":      "Caddy",
+            }
+            for line in out.splitlines()[1:]:  # skip header row
+                parts = line.split()
+                if len(parts) >= 2 and parts[1].lower() == "started":
+                    svc = parts[0].lower()
+                    for key, label in brew_map.items():
+                        if key in svc and label.lower() not in reported:
+                            services.append({"type": "brew", "name": label, "status": "running"})
+                            reported.add(label.lower())
+        except Exception:
+            pass
 
     return services
 
