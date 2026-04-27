@@ -107,14 +107,22 @@ def _send_telegram(bot_token: str, chat_id: str, text: str):
 
 def _chat_with_orchestrator(message: str) -> str:
     """Send a message to the local orchestrator and collect the full response."""
-    url = f"http://localhost:{AGENT_PORT}/chat"
+    uds_path = os.environ.get("CH8_UDS") or str(CONFIG_DIR / "orchestrator.sock")
     payload = {
         "messages": [{"role": "user", "content": message}],
     }
 
+    # Try Unix socket first, fall back to TCP
+    transport = None
+    if Path(uds_path).exists():
+        transport = httpx.HTTPTransport(uds=uds_path)
+        url = "http://localhost/chat"
+    else:
+        url = f"http://localhost:{AGENT_PORT}/chat"
+
     full_response = ""
     try:
-        with httpx.Client(timeout=120) as client:
+        with httpx.Client(timeout=120, transport=transport) as client:
             with client.stream("POST", url, json=payload) as resp:
                 if resp.status_code != 200:
                     return f"Error: orchestrator returned {resp.status_code}"

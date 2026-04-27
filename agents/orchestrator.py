@@ -1064,7 +1064,45 @@ def main():
     ai = _load_ai_provider()
     log.info(f"CH8 Orchestrator starting on port {AGENT_PORT}  provider={ai['provider']}  model={ai.get('model','auto')}")
     bind_host = os.environ.get("CH8_BIND_HOST", "0.0.0.0")
-    uvicorn.run(app, host=bind_host, port=AGENT_PORT, log_level="warning")
+    uds = os.environ.get("CH8_UDS")  # Unix domain socket path (for WSL2)
+    if uds:
+        log.info(f"Listening on Unix socket: {uds}")
+        # Also start a TCP forwarder so external access still works
+        import threading
+        def _tcp_forwarder():
+            """Forward TCP connections to Unix socket."""
+            import socket as _socket
+            srv = _socket.socket(_socket.AF_INET, _socket.SOCK_STREAM)
+            srv.setsockopt(_socket.SOL_SOCKET, _socket.SO_REUSEADDR, 1)
+            srv.bind((bind_host, AGENT_PORT))
+            srv.listen(16)
+            while True:
+                try:
+                    client, _ = srv.accept()
+                    uds_sock = _socket.socket(_socket.AF_UNIX, _socket.SOCK_STREAM)
+                    uds_sock.connect(uds)
+                    t1 = threading.Thread(target=_pipe, args=(client, uds_sock), daemon=True)
+                    t2 = threading.Thread(target=_pipe, args=(uds_sock, client), daemon=True)
+                    t1.start(); t2.start()
+                except Exception:
+                    pass
+        def _pipe(src, dst):
+            try:
+                while True:
+                    data = src.recv(65536)
+                    if not data:
+                        break
+                    dst.sendall(data)
+            except Exception:
+                pass
+            finally:
+                src.close(); dst.close()
+        threading.Thread(target=_tcp_forwarder, daemon=True).start()
+        # Remove stale socket file
+        Path(uds).unlink(missing_ok=True)
+        uvicorn.run(app, uds=uds, log_level="warning", loop="asyncio")
+    else:
+        uvicorn.run(app, host=bind_host, port=AGENT_PORT, log_level="warning", loop="asyncio")
 
 
 if __name__ == "__main__":
