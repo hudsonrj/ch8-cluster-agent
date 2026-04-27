@@ -67,8 +67,11 @@ fi
 echo -e "${GREEN}✓ git$(git --version | awk '{print " "$3}')${NC}"
 
 # ── Installation directory ─────────────────────────────────────────────────
-INSTALL_DIR="/data/ch8-agent"
-if [ "$OS" == "macos" ] || [ ! -w "/data" ] 2>/dev/null; then
+if [ "$OS" = "macos" ]; then
+    INSTALL_DIR="$HOME/ch8-agent"
+elif [ -w "/data" ] 2>/dev/null; then
+    INSTALL_DIR="/data/ch8-agent"
+else
     INSTALL_DIR="$HOME/ch8-agent"
 fi
 
