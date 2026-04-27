@@ -823,7 +823,8 @@ async def chat(request: Request):
     messages = body.get("messages", [])
     model    = body.get("model") or _best_model()
 
-    ctx     = _get_context()
+    loop = _asyncio.get_event_loop()
+    ctx     = await loop.run_in_executor(None, _get_context)
     sys_msg = _build_system_prompt(ctx)
 
     # Build full message list with live system prompt
@@ -1030,7 +1031,9 @@ async def _keepalive():
     async def _loop():
         while True:
             try:
-                ctx     = _get_context()
+                # Run blocking _get_context() in thread to avoid freezing event loop
+                loop = _asyncio.get_event_loop()
+                ctx = await loop.run_in_executor(None, _get_context)
                 alerts  = []
                 if ctx.get("cpu_pct", 0) > 85:
                     alerts.append(f"CPU {ctx['cpu_pct']}%")
@@ -1044,7 +1047,6 @@ async def _keepalive():
                     f"{len(ctx.get('containers',[]))} containers"
                 )
                 _update_agent_state("running" if alerts else "idle", task)
-                # Also refresh sub-agents so they don't expire from the 60s cutoff
                 _refresh_sub_agents()
             except Exception:
                 pass
