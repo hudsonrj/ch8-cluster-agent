@@ -101,19 +101,17 @@
                         <span class="t-title">ch8-agent</span>
                     </div>
                     <div class="terminal-body">
-                        <div class="t-line"><span class="t-prompt">$</span> <span class="t-cmd">ch8 agent deploy --mode cluster</span></div>
-                        <div class="t-line t-out"><span class="t-ok">✓</span> Detecting available models...</div>
-                        <div class="t-line t-out"><span class="t-ok">✓</span> Connected: Phi-3 Mini, TinyLlama, Qwen2</div>
-                        <div class="t-line t-out"><span class="t-ok">✓</span> MCP servers registered: 4 services</div>
-                        <div class="t-line t-out"><span class="t-ok">✓</span> Loading persistent memory (12k vectors)</div>
-                        <div class="t-line t-out t-success">→ Cluster online — 3 agents ready</div>
+                        <div class="t-line"><span class="t-prompt">$</span> <span class="t-cmd">ch8 up --token ch8_abc123...</span></div>
+                        <div class="t-line t-out"><span class="t-ok">✓</span> Authenticated with control server</div>
+                        <div class="t-line t-out"><span class="t-ok">✓</span> Agent 'orchestrator' started (PID 4821)</div>
+                        <div class="t-line t-out"><span class="t-ok">✓</span> Agent 'server-monitor' started (PID 4823)</div>
+                        <div class="t-line t-out"><span class="t-ok">✓</span> Agent 'telegram' started (PID 4825)</div>
+                        <div class="t-line t-out t-success">→ CH8 Connect is up! Peers online: 3</div>
                         <br>
-                        <div class="t-line"><span class="t-prompt">$</span> <span class="t-cmd">ch8 run "analyze sales data and generate report"</span></div>
-                        <div class="t-line t-out"><span class="t-dim">[orchestrator]</span> Decomposing task → 3 subtasks</div>
-                        <div class="t-line t-out"><span class="t-dim">[agent-1]</span> Extracting CSV data... <span class="t-ok">done 2.1s</span></div>
-                        <div class="t-line t-out"><span class="t-dim">[agent-2]</span> Running SQL queries... <span class="t-ok">done 3.4s</span></div>
-                        <div class="t-line t-out"><span class="t-dim">[agent-3]</span> Generating insights... <span class="t-ok">done 4.8s</span></div>
-                        <div class="t-line t-out t-success">→ Report ready in 4.8s · saved 58% tokens</div>
+                        <div class="t-line"><span class="t-prompt">$</span> <span class="t-cmd">ch8 status</span></div>
+                        <div class="t-line t-out"><span class="t-dim">[manager1]</span> online · CPU 12% · 4 agents · bedrock</div>
+                        <div class="t-line t-out"><span class="t-dim">[rpi-node]</span> online · CPU 45% · 2 agents · ollama</div>
+                        <div class="t-line t-out"><span class="t-dim">[laptop]</span>  online · CPU 8% · 3 agents · groq</div>
                         <div class="t-cursor"></div>
                     </div>
                 </div>
@@ -577,7 +575,7 @@
                     </div>
                     <div class="tab-pane" id="macos">
                         <div class="code-block">
-                            <pre><code>curl -fsSL https://raw.githubusercontent.com/hudsonrj/ch8-cluster-agent/main/scripts/install-macos.sh | bash</code></pre>
+                            <pre><code>curl -fsSL https://raw.githubusercontent.com/hudsonrj/ch8-cluster-agent/main/scripts/install.sh | bash</code></pre>
                             <button class="copy-btn"><i class="fas fa-copy"></i></button>
                         </div>
                     </div>
@@ -610,11 +608,11 @@ curl -fsSL https://raw.githubusercontent.com/hudsonrj/ch8-cluster-agent/main/and
                 </div>
 
                 <div class="after-install">
-                    <p class="after-label">Connect this node to your cluster:</p>
+                    <p class="after-label">After installing, configure and connect:</p>
                     <div class="code-block code-inline">
-                        <pre><code>tailscale up          # connect to Tailscale first
-ch8 up                # authenticate &amp; join your CH8 network
-ch8 nodes             # see all connected nodes</code></pre>
+                        <pre><code>ch8 config ai              # configure AI provider (Bedrock/OpenAI/Ollama)
+ch8 up --token &lt;TOKEN&gt;     # join your CH8 network
+ch8 status                 # see node status and peers</code></pre>
                         <button class="copy-btn"><i class="fas fa-copy"></i></button>
                     </div>
                 </div>
