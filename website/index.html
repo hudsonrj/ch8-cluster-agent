@@ -396,6 +396,7 @@
                     <button class="tab-btn active" data-tab="linux"><i class="fab fa-linux"></i> Linux</button>
                     <button class="tab-btn" data-tab="macos"><i class="fab fa-apple"></i> macOS</button>
                     <button class="tab-btn" data-tab="rpi"><i class="fas fa-raspberry-pi"></i> Raspberry Pi</button>
+                    <button class="tab-btn" data-tab="windows"><i class="fab fa-windows"></i> Windows</button>
                     <button class="tab-btn" data-tab="manual"><i class="fas fa-code"></i> Manual</button>
                 </div>
 
@@ -418,7 +419,14 @@
                             <pre><code>curl -fsSL https://raw.githubusercontent.com/hudsonrj/ch8-cluster-agent/main/scripts/install-rpi.sh | bash</code></pre>
                             <button class="copy-btn"><i class="fas fa-copy"></i></button>
                         </div>
-                        <p class="install-note">Auto-detects Pi model and configures Ollama with an optimal local model.</p>
+                        <p class="install-note">Auto-detects Pi model, configures swap for low-memory devices. Use Groq (cloud) or Ollama (local) as AI provider.</p>
+                    </div>
+                    <div class="tab-pane" id="windows">
+                        <div class="code-block">
+                            <pre><code>powershell -ExecutionPolicy Bypass -c "iwr -useb https://raw.githubusercontent.com/hudsonrj/ch8-cluster-agent/main/scripts/install-win32.ps1 | iex"</code></pre>
+                            <button class="copy-btn"><i class="fas fa-copy"></i></button>
+                        </div>
+                        <p class="install-note">Requires Python 3.10+ and Git. For best experience, use <strong>WSL2</strong>: <code>wsl --install</code> then run the Linux installer.</p>
                     </div>
                     <div class="tab-pane" id="manual">
                         <div class="code-block">

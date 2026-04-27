@@ -16,6 +16,12 @@ curl -fsSL https://raw.githubusercontent.com/hudsonrj/ch8-cluster-agent/main/scr
 curl -fsSL https://raw.githubusercontent.com/hudsonrj/ch8-cluster-agent/main/scripts/install-rpi.sh | bash
 ```
 
+### Windows
+```powershell
+powershell -ExecutionPolicy Bypass -c "iwr -useb https://raw.githubusercontent.com/hudsonrj/ch8-cluster-agent/main/scripts/install-win32.ps1 | iex"
+```
+> For best experience on Windows, use WSL2: `wsl --install` then run the Linux installer.
+
 ### Manual Install
 ```bash
 git clone https://github.com/hudsonrj/ch8-cluster-agent.git ~/ch8-agent
