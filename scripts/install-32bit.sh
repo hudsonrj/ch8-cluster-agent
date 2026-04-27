@@ -110,7 +110,13 @@ if ! grep -q "ch8-agent" "$SHELL_RC" 2>/dev/null; then
     echo -e "${GREEN}✓ Added to PATH in $SHELL_RC${NC}"
 fi
 
-[ -w "/usr/local/bin" ] && ln -sf "$INSTALL_DIR/ch8" /usr/local/bin/ch8 2>/dev/null || true
+if [ -w "/usr/local/bin" ]; then
+    ln -sf "$INSTALL_DIR/ch8" /usr/local/bin/ch8 2>/dev/null || true
+    echo -e "${GREEN}✓ Symlink: /usr/local/bin/ch8${NC}"
+elif command -v sudo &>/dev/null; then
+    sudo ln -sf "$INSTALL_DIR/ch8" /usr/local/bin/ch8 2>/dev/null || true
+    echo -e "${GREEN}✓ Symlink: /usr/local/bin/ch8${NC}"
+fi
 mkdir -p "$HOME/.config/ch8"
 
 # ── Done ──────────────────────────────────────────────────────────────────

@@ -119,6 +119,9 @@ fi
 if [ -w "/usr/local/bin" ]; then
     ln -sf "$INSTALL_DIR/ch8" /usr/local/bin/ch8 2>/dev/null || true
     echo -e "${GREEN}✓ Symlink: /usr/local/bin/ch8${NC}"
+elif command -v sudo &>/dev/null; then
+    sudo ln -sf "$INSTALL_DIR/ch8" /usr/local/bin/ch8 2>/dev/null || true
+    echo -e "${GREEN}✓ Symlink: /usr/local/bin/ch8${NC}"
 fi
 
 mkdir -p "$HOME/.config/ch8"
