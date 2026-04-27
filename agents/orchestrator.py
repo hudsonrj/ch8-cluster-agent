@@ -1061,7 +1061,8 @@ def main():
     _update_agent_state("idle", "waiting for tasks")
     ai = _load_ai_provider()
     log.info(f"CH8 Orchestrator starting on port {AGENT_PORT}  provider={ai['provider']}  model={ai.get('model','auto')}")
-    uvicorn.run(app, host="0.0.0.0", port=AGENT_PORT, log_level="warning")
+    bind_host = os.environ.get("CH8_BIND_HOST", "0.0.0.0")
+    uvicorn.run(app, host=bind_host, port=AGENT_PORT, log_level="warning")
 
 
 if __name__ == "__main__":
