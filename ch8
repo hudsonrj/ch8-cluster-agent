@@ -64,7 +64,7 @@ def cmd_help():
 
 def cmd_login():
     """Authenticate with CH8 network (device-code flow)."""
-    sys.path.insert(0, str(Path(__file__).parent))
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
     from connect.auth import is_authenticated, login_interactive, get_node_id
 
     if is_authenticated():
@@ -97,11 +97,11 @@ def _start_agent(name, script_name, port_check=None):
         except (OSError, ValueError):
             pid_file.unlink(missing_ok=True)
 
-    script = Path(__file__).parent / "agents" / script_name
+    script = Path(__file__).resolve().parent / "agents" / script_name
     if not script.exists():
         return False
 
-    _install_dir = str(Path(__file__).parent)
+    _install_dir = str(Path(__file__).resolve().parent)
     _env = os.environ.copy()
     _env["PYTHONPATH"] = _install_dir + os.pathsep + _env.get("PYTHONPATH", "")
     proc = subprocess.Popen(
@@ -138,7 +138,7 @@ def _stop_agent(name):
 
 def cmd_up(token=None):
     """Start the connect daemon — auto-joins the network."""
-    sys.path.insert(0, str(Path(__file__).parent))
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
     from connect.auth import is_authenticated, login_with_token
     from connect.daemon import is_daemon_running
 
@@ -229,7 +229,7 @@ def cmd_up(token=None):
     daemon_log = log_dir / "daemon.log"
     daemon_fh = open(daemon_log, "w")
 
-    _install_dir = str(Path(__file__).parent)
+    _install_dir = str(Path(__file__).resolve().parent)
     _env = os.environ.copy()
     _env["PYTHONPATH"] = _install_dir + os.pathsep + _env.get("PYTHONPATH", "")
     subprocess.Popen(
@@ -283,7 +283,7 @@ def cmd_up(token=None):
 
 def cmd_down():
     """Stop the connect daemon and all agents."""
-    sys.path.insert(0, str(Path(__file__).parent))
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
     from connect.daemon import get_daemon_pid, is_daemon_running, PID_FILE
     import signal as _signal
 
@@ -320,7 +320,7 @@ def cmd_down():
 
 def cmd_nodes():
     """List all nodes in the network (including this one)."""
-    sys.path.insert(0, str(Path(__file__).parent))
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
     from connect.auth import is_authenticated, get_node_id, get_access_token, get_network_id, CONTROL_URL
     from connect.daemon import is_daemon_running, read_state
 
@@ -376,7 +376,7 @@ def cmd_nodes():
 
 def cmd_logout():
     """Remove saved credentials."""
-    sys.path.insert(0, str(Path(__file__).parent))
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
     from connect.auth import clear_auth, is_authenticated
     from connect.daemon import is_daemon_running
     if is_daemon_running():
@@ -387,7 +387,7 @@ def cmd_logout():
 
 def cmd_token(action=None):
     """Manage pre-auth tokens."""
-    sys.path.insert(0, str(Path(__file__).parent))
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
     from connect.auth import is_authenticated
 
     if not is_authenticated():
@@ -453,7 +453,7 @@ def cmd_logs(component=None):
 
 def cmd_config(action=None):
     """Configure node settings"""
-    sys.path.insert(0, str(Path(__file__).parent))
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
 
     if action == "ai":
         from connect.ai_config import interactive_setup
@@ -647,7 +647,7 @@ def main():
     _load_env()
 
     # Change to script directory
-    script_dir = Path(__file__).parent.absolute()
+    script_dir = Path(__file__).resolve().parent.absolute()
     os.chdir(script_dir)
 
     parser = argparse.ArgumentParser(
