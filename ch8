@@ -601,28 +601,34 @@ def cmd_update():
     install_dir = str(Path(__file__).resolve().parent)
     print(f"{Colors.BLUE}Updating CH8 Agent...{Colors.NC}")
 
-    r = subprocess.run(
-        ["git", "pull", "origin", "main"],
-        cwd=install_dir,
-    )
+    r = subprocess.run(["git", "pull", "origin", "main"], cwd=install_dir)
     if r.returncode != 0:
         subprocess.run(["git", "pull", "origin", "master"], cwd=install_dir)
 
-    print(f"{Colors.BLUE}Updating dependencies...{Colors.NC}")
+    # Re-exec with the newly downloaded script so the rest runs with fresh code.
+    # This handles the case where the running process loaded an older version.
+    updated_script = Path(install_dir) / "ch8"
+    if updated_script.exists():
+        print(f"{Colors.BLUE}Applying update...{Colors.NC}")
+        os.execv(sys.executable, [sys.executable, str(updated_script), "--_update-deps"])
+        # os.execv replaces the current process — nothing below runs on first call
+
+def _cmd_update_deps():
+    """Finish update after re-exec: install deps and stop old agents."""
     pip_args = [sys.executable, "-m", "pip", "install", "--quiet", "--upgrade",
                 "httpx", "psutil", "fastapi", "uvicorn", "pydantic"]
-    r2 = subprocess.run(pip_args + ["--break-system-packages"])
-    if r2.returncode != 0:
+    print(f"{Colors.BLUE}Updating dependencies...{Colors.NC}")
+    r = subprocess.run(pip_args + ["--break-system-packages"])
+    if r.returncode != 0:
         subprocess.run(pip_args)
 
-    # Restart agents if they are running
     pid_dir = Path.home() / ".config" / "ch8"
     restarted = []
     for pid_file in pid_dir.glob("*.pid"):
         try:
             pid = int(pid_file.read_text().strip())
-            os.kill(pid, 0)  # check alive
-            os.kill(pid, 15)  # SIGTERM
+            os.kill(pid, 0)
+            os.kill(pid, 15)
             restarted.append(pid_file.stem)
         except Exception:
             pid_file.unlink(missing_ok=True)
@@ -677,6 +683,12 @@ def main():
     # Change to script directory
     script_dir = Path(__file__).resolve().parent.absolute()
     os.chdir(script_dir)
+
+    # Internal flag injected by cmd_update via os.execv — finish the update
+    # with the freshly downloaded code without re-running git pull.
+    if '--_update-deps' in sys.argv:
+        _cmd_update_deps()
+        sys.exit(0)
 
     parser = argparse.ArgumentParser(
         description='CH8 Agent - Autonomous AI Orchestration',
