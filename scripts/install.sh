@@ -36,7 +36,7 @@ echo -e "${BLUE}OS: ${OS}${NC}"
 # ── Check Python 3.10+ ────────────────────────────────────────────────────
 if ! command -v python3 &> /dev/null; then
     echo -e "${RED}Python3 not found.${NC}"
-    if [ "$OS" == "macos" ]; then
+    if [ "$OS" = "macos" ]; then
         echo -e "${YELLOW}Install with: brew install python3${NC}"
     else
         echo -e "${YELLOW}Install with: sudo apt install python3 python3-pip${NC}"
@@ -57,7 +57,7 @@ echo -e "${GREEN}✓ Python $PY_VER${NC}"
 # ── Check git ──────────────────────────────────────────────────────────────
 if ! command -v git &> /dev/null; then
     echo -e "${RED}git not found.${NC}"
-    if [ "$OS" == "macos" ]; then
+    if [ "$OS" = "macos" ]; then
         echo -e "${YELLOW}Install with: xcode-select --install${NC}"
     else
         echo -e "${YELLOW}Install with: sudo apt install git${NC}"
@@ -76,7 +76,7 @@ else
 fi
 
 echo -e "\n${YELLOW}Install directory:${NC} $INSTALL_DIR"
-read -p "Change? (Enter to confirm, or type new path): " CUSTOM_DIR
+read -p "Change? (Enter to confirm, or type new path): " CUSTOM_DIR </dev/tty
 if [ -n "$CUSTOM_DIR" ]; then
     INSTALL_DIR="$CUSTOM_DIR"
 fi
@@ -97,7 +97,7 @@ fi
 # ── Install Python dependencies ───────────────────────────────────────────
 echo -e "\n${BLUE}Installing dependencies...${NC}"
 PIP_ARGS="--quiet"
-if [ "$OS" == "linux" ]; then
+if [ "$OS" = "linux" ]; then
     PIP_ARGS="$PIP_ARGS --break-system-packages"
 fi
 
