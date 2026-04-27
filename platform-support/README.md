@@ -143,12 +143,7 @@ powershell -c "iwr -useb https://raw.githubusercontent.com/hudsonrj/ch8-cluster-
 
 ### macOS (Intel/Apple Silicon)
 ```bash
-curl -fsSL https://raw.githubusercontent.com/hudsonrj/ch8-cluster-agent/main/scripts/install-macos.sh | bash
-```
-
-### macOS (Old versions 10.13-10.15)
-```bash
-curl -fsSL https://raw.githubusercontent.com/hudsonrj/ch8-cluster-agent/main/scripts/install-macos-legacy.sh | bash
+curl -fsSL https://raw.githubusercontent.com/hudsonrj/ch8-cluster-agent/main/scripts/install.sh | bash
 ```
 
 ## 🔧 Hardware-Specific Optimizations

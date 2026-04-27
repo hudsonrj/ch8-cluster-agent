@@ -99,7 +99,9 @@ fi
 
 python3 -m pip install $PIP_ARGS --upgrade pip 2>/dev/null || true
 python3 -m pip install $PIP_ARGS \
-    httpx psutil fastapi uvicorn pydantic 2>/dev/null
+    httpx psutil fastapi uvicorn pydantic 2>/dev/null || \
+python3 -m pip install --user \
+    httpx psutil fastapi uvicorn pydantic 2>/dev/null || true
 
 echo -e "${GREEN}✓ Dependencies installed${NC}"
 
