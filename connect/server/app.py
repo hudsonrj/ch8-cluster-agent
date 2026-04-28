@@ -36,6 +36,452 @@ def _require_session(authorization: Optional[str] = Header(None)) -> dict:
     return session
 
 
+# ── cluster page ───────────────────────────────────────────────────────────
+
+CLUSTER_HTML = r"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CH8 Cluster</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%230070f3'/><text y='.9em' font-size='70' x='15'>⬡</text></svg>">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<style>
+  :root {
+    --bg:       #09090b;
+    --surface:  #18181b;
+    --border:   #27272a;
+    --text:     #fafafa;
+    --muted:    #71717a;
+    --blue:     #3b82f6;
+    --green:    #22c55e;
+    --yellow:   #eab308;
+    --red:      #ef4444;
+    --purple:   #a855f7;
+    --cyan:     #06b6d4;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-size: 14px; min-height: 100vh; }
+
+  /* nav */
+  nav { display: flex; align-items: center; gap: 12px; padding: 14px 24px; border-bottom: 1px solid var(--border); background: var(--surface); }
+  .nav-logo { font-weight: 700; font-size: 16px; color: var(--blue); letter-spacing: -0.5px; }
+  .nav-logo span { color: var(--muted); font-weight: 400; }
+  nav a { color: var(--muted); text-decoration: none; font-size: 13px; }
+  nav a:hover { color: var(--text); }
+  .nav-sep { color: var(--border); }
+  .nav-refresh { margin-left: auto; color: var(--muted); font-size: 12px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); display: inline-block; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+  /* layout */
+  main { padding: 24px; display: flex; flex-direction: column; gap: 24px; max-width: 1600px; margin: 0 auto; }
+
+  /* KPI row */
+  .kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+  .kpi { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; }
+  .kpi-label { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 8px; }
+  .kpi-value { font-size: 28px; font-weight: 700; line-height: 1; }
+  .kpi-sub { color: var(--muted); font-size: 11px; margin-top: 4px; }
+  .kpi-bar { height: 4px; border-radius: 2px; background: var(--border); margin-top: 10px; overflow: hidden; }
+  .kpi-bar-fill { height: 100%; border-radius: 2px; transition: width .6s ease; }
+  .c-blue { color: var(--blue); } .c-green { color: var(--green); } .c-yellow { color: var(--yellow); }
+  .c-red { color: var(--red); } .c-purple { color: var(--purple); } .c-cyan { color: var(--cyan); }
+  .bg-blue { background: var(--blue); } .bg-green { background: var(--green); }
+  .bg-yellow { background: var(--yellow); } .bg-red { background: var(--red); }
+
+  /* section header */
+  .sec-title { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .6px; color: var(--muted); margin-bottom: 12px; }
+
+  /* node cards grid */
+  .nodes-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
+  .node-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+  .node-card.offline { opacity: .45; border-color: #3f3f46; }
+  .node-header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+  .node-icon { width: 32px; height: 32px; border-radius: 8px; background: var(--border); display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+  .node-name { font-weight: 600; font-size: 14px; }
+  .node-meta { font-size: 11px; color: var(--muted); }
+  .badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 500; }
+  .badge-green { background: rgba(34,197,94,.15); color: var(--green); }
+  .badge-gray  { background: rgba(113,113,122,.15); color: var(--muted); }
+  .res-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .res-label { width: 36px; font-size: 11px; color: var(--muted); flex-shrink: 0; }
+  .res-bar { flex: 1; height: 5px; background: var(--border); border-radius: 3px; overflow: hidden; }
+  .res-bar-fill { height: 100%; border-radius: 3px; transition: width .6s; }
+  .res-val { width: 36px; text-align: right; font-size: 11px; color: var(--muted); }
+  .node-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 10px; }
+  .tag { padding: 2px 7px; border-radius: 4px; font-size: 10px; background: var(--border); color: var(--muted); }
+  .tag-model { background: rgba(59,130,246,.12); color: var(--blue); }
+  .tag-svc   { background: rgba(34,197,94,.10); color: var(--green); }
+  .tag-agent { background: rgba(168,85,247,.10); color: var(--purple); }
+
+  /* bottom two columns */
+  .bottom-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media(max-width:900px){ .bottom-grid { grid-template-columns: 1fr; } }
+
+  /* graph */
+  .graph-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+  #topology { width: 100%; height: 460px; }
+
+  /* catalog */
+  .catalog-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 18px; }
+  .catalog-section { }
+  .catalog-list { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+  .catalog-item { display: flex; align-items: center; justify-content: space-between; padding: 7px 10px; background: var(--bg); border-radius: 7px; }
+  .catalog-item-name { font-size: 13px; font-weight: 500; }
+  .catalog-item-nodes { font-size: 11px; color: var(--muted); }
+  .catalog-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+
+  /* tooltip */
+  .tooltip { position: fixed; background: #1f1f23; border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; font-size: 12px; pointer-events: none; opacity: 0; transition: opacity .15s; z-index: 999; max-width: 220px; line-height: 1.6; }
+</style>
+</head>
+<body>
+<nav>
+  <span class="nav-logo">CH8 <span>/ Cluster</span></span>
+  <span class="nav-sep">·</span>
+  <a href="/">Dashboard</a>
+  <span class="dot"></span>
+  <span class="nav-refresh" id="lastUpdate">–</span>
+</nav>
+
+<main>
+  <!-- KPIs -->
+  <div>
+    <div class="sec-title">Cluster Overview</div>
+    <div class="kpi-row" id="kpiRow">
+      <div class="kpi"><div class="kpi-label">Nodes Online</div><div class="kpi-value c-green" id="kpi-nodes">–</div><div class="kpi-sub" id="kpi-nodes-sub">–</div></div>
+      <div class="kpi"><div class="kpi-label">Avg CPU</div><div class="kpi-value c-blue" id="kpi-cpu">–</div><div class="kpi-bar"><div class="kpi-bar-fill bg-blue" id="kpi-cpu-bar" style="width:0%"></div></div></div>
+      <div class="kpi"><div class="kpi-label">Avg Memory</div><div class="kpi-value c-yellow" id="kpi-mem">–</div><div class="kpi-bar"><div class="kpi-bar-fill bg-yellow" id="kpi-mem-bar" style="width:0%"></div></div></div>
+      <div class="kpi"><div class="kpi-label">Avg Disk</div><div class="kpi-value c-cyan" id="kpi-disk">–</div><div class="kpi-bar"><div class="kpi-bar-fill" id="kpi-disk-bar" style="width:0%;background:var(--cyan)"></div></div></div>
+      <div class="kpi"><div class="kpi-label">Agents</div><div class="kpi-value c-purple" id="kpi-agents">–</div><div class="kpi-sub">sub-agents active</div></div>
+      <div class="kpi"><div class="kpi-label">Models</div><div class="kpi-value c-blue" id="kpi-models">–</div><div class="kpi-sub" id="kpi-models-sub">–</div></div>
+      <div class="kpi"><div class="kpi-label">Services</div><div class="kpi-value c-green" id="kpi-services">–</div><div class="kpi-sub">across cluster</div></div>
+    </div>
+  </div>
+
+  <!-- Node cards -->
+  <div>
+    <div class="sec-title">Nodes</div>
+    <div class="nodes-grid" id="nodesGrid"></div>
+  </div>
+
+  <!-- Graph + Catalog -->
+  <div class="bottom-grid">
+    <div class="graph-card">
+      <div class="sec-title">Agent Topology</div>
+      <svg id="topology"></svg>
+    </div>
+    <div class="catalog-card">
+      <div class="catalog-section">
+        <div class="sec-title">LLM Models Available</div>
+        <div class="catalog-list" id="modelsList"></div>
+      </div>
+      <div class="catalog-section">
+        <div class="sec-title">Services</div>
+        <div class="catalog-list" id="servicesList"></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div class="tooltip" id="tooltip"></div>
+
+<script>
+const REFRESH = 15000;
+
+function pctColor(v) {
+  if (v >= 85) return 'var(--red)';
+  if (v >= 65) return 'var(--yellow)';
+  return 'var(--green)';
+}
+
+function nodeIcon(n) {
+  const os = (n.os || '').toLowerCase();
+  const h  = (n.hostname || '').toLowerCase();
+  if (h.includes('rpi') || h.includes('raspberry') || os.includes('linux') && n.arch && n.arch.includes('arm')) return '🍓';
+  if (os.includes('darwin')) return '🍎';
+  if (os.includes('win'))    return '🪟';
+  return '🖥';
+}
+
+function timeSince(ts) {
+  if (!ts) return '?';
+  const s = Math.floor(Date.now()/1000 - ts);
+  if (s < 60) return `${s}s ago`;
+  if (s < 3600) return `${Math.floor(s/60)}m ago`;
+  return `${Math.floor(s/3600)}h ago`;
+}
+
+// ── Render node cards ─────────────────────────────────────────────────────
+function renderNodes(nodes) {
+  const grid = document.getElementById('nodesGrid');
+  grid.innerHTML = '';
+  nodes.forEach(n => {
+    const online = n.status === 'online';
+    const agents = n.agents || [];
+    const models = n.models || [];
+    const svcs   = n.services || [];
+    const svcNames = svcs.map(s => typeof s === 'object' ? s.name : s).filter(Boolean);
+
+    const aiLabel = n.ai_model ? `${n.ai_provider || 'AI'} / ${n.ai_model}` : '';
+
+    const resBar = (label, val, color) => `
+      <div class="res-row">
+        <div class="res-label">${label}</div>
+        <div class="res-bar"><div class="res-bar-fill" style="width:${val}%;background:${color}"></div></div>
+        <div class="res-val">${val}%</div>
+      </div>`;
+
+    const tags = [
+      ...models.slice(0,3).map(m => `<span class="tag tag-model">${m}</span>`),
+      ...svcNames.slice(0,4).map(s => `<span class="tag tag-svc">${s}</span>`),
+      ...agents.slice(0,3).map(a => `<span class="tag tag-agent">${typeof a==='object'?a.name:a}</span>`),
+    ].join('');
+
+    const card = document.createElement('div');
+    card.className = `node-card${online?'':' offline'}`;
+    card.innerHTML = `
+      <div class="node-header">
+        <div class="node-icon">${nodeIcon(n)}</div>
+        <div style="flex:1;min-width:0">
+          <div class="node-name">${n.hostname || n.node_id}</div>
+          <div class="node-meta">${n.address || ''} ${n.arch ? '· '+n.arch : ''}</div>
+        </div>
+        <span class="badge ${online?'badge-green':'badge-gray'}">${online?'online':'offline'}</span>
+      </div>
+      ${aiLabel ? `<div style="font-size:11px;color:var(--muted);margin-bottom:10px">🤖 ${aiLabel}</div>` : ''}
+      ${resBar('CPU', n.cpu_pct||0, pctColor(n.cpu_pct||0))}
+      ${resBar('RAM', n.mem_pct||0, pctColor(n.mem_pct||0))}
+      ${resBar('Disk', n.disk_pct||0, pctColor(n.disk_pct||0))}
+      ${tags ? `<div class="node-tags">${tags}</div>` : ''}
+      <div style="margin-top:8px;font-size:10px;color:var(--muted)">seen ${timeSince(n.last_seen)}</div>`;
+    grid.appendChild(card);
+  });
+}
+
+// ── Render catalog ────────────────────────────────────────────────────────
+function renderCatalog(modelsMap, servicesMap) {
+  const ml = document.getElementById('modelsList');
+  const sl = document.getElementById('servicesList');
+
+  ml.innerHTML = Object.entries(modelsMap).length
+    ? Object.entries(modelsMap).map(([m, nodes]) => `
+        <div class="catalog-item">
+          <span style="display:flex;align-items:center;gap:8px">
+            <span class="catalog-dot" style="background:var(--blue)"></span>
+            <span class="catalog-item-name">${m}</span>
+          </span>
+          <span class="catalog-item-nodes">${nodes.join(', ')}</span>
+        </div>`).join('')
+    : '<div style="color:var(--muted);font-size:12px;padding:8px 0">No Ollama models detected</div>';
+
+  sl.innerHTML = Object.entries(servicesMap).length
+    ? Object.entries(servicesMap).map(([s, nodes]) => `
+        <div class="catalog-item">
+          <span style="display:flex;align-items:center;gap:8px">
+            <span class="catalog-dot" style="background:var(--green)"></span>
+            <span class="catalog-item-name">${s}</span>
+          </span>
+          <span class="catalog-item-nodes">${nodes.join(', ')}</span>
+        </div>`).join('')
+    : '<div style="color:var(--muted);font-size:12px;padding:8px 0">No services detected</div>';
+}
+
+// ── D3 Topology Graph ─────────────────────────────────────────────────────
+let simulation = null;
+
+function renderGraph(nodes) {
+  const svg = d3.select('#topology');
+  svg.selectAll('*').remove();
+
+  const W = svg.node().getBoundingClientRect().width || 600;
+  const H = 460;
+  svg.attr('viewBox', `0 0 ${W} ${H}`);
+
+  const gNodes = [];
+  const gLinks = [];
+  const tooltip = document.getElementById('tooltip');
+
+  // Build graph nodes: one per CH8 node
+  nodes.forEach(n => {
+    const agents = (n.agents || []);
+    gNodes.push({
+      id:      n.node_id,
+      label:   n.hostname || n.node_id,
+      type:    'node',
+      status:  n.status,
+      cpu:     n.cpu_pct || 0,
+      mem:     n.mem_pct || 0,
+      models:  (n.models||[]).length,
+      svcs:    (n.services||[]).length,
+      ai:      n.ai_model || '',
+      agents:  agents.length,
+      r:       20 + Math.min(agents.length * 3, 12),
+    });
+    // Sub-agent nodes
+    agents.forEach((a, i) => {
+      const agId = n.node_id + '__' + i;
+      const agName = typeof a === 'object' ? a.name : a;
+      const agStatus = typeof a === 'object' ? (a.status || 'idle') : 'idle';
+      gNodes.push({ id: agId, label: agName, type: 'agent', status: agStatus, parentId: n.node_id, r: 8 });
+      gLinks.push({ source: n.node_id, target: agId, type: 'agent' });
+    });
+  });
+
+  // Peer links: connect all online nodes in same network to each other
+  const online = nodes.filter(n => n.status === 'online');
+  for (let i = 0; i < online.length; i++) {
+    for (let j = i+1; j < online.length; j++) {
+      if (online[i].network_id === online[j].network_id) {
+        gLinks.push({ source: online[i].node_id, target: online[j].node_id, type: 'peer' });
+      }
+    }
+  }
+
+  const g = svg.append('g');
+
+  // Zoom
+  svg.call(d3.zoom().scaleExtent([.3, 3]).on('zoom', e => g.attr('transform', e.transform)));
+
+  // Defs: arrowhead
+  svg.append('defs').append('marker')
+    .attr('id', 'arrow').attr('viewBox', '0 -4 8 8').attr('refX', 18).attr('refY', 0)
+    .attr('markerWidth', 6).attr('markerHeight', 6).attr('orient', 'auto')
+    .append('path').attr('d', 'M0,-4L8,0L0,4').attr('fill', '#3f3f46');
+
+  const link = g.append('g').selectAll('line').data(gLinks).join('line')
+    .attr('stroke', d => d.type === 'peer' ? '#3b82f630' : '#a855f730')
+    .attr('stroke-width', d => d.type === 'peer' ? 1.5 : 1)
+    .attr('stroke-dasharray', d => d.type === 'agent' ? '3,3' : null);
+
+  const node = g.append('g').selectAll('g').data(gNodes).join('g')
+    .attr('cursor', 'pointer')
+    .call(d3.drag()
+      .on('start', (e, d) => { if (!e.active) simulation.alphaTarget(.3).restart(); d.fx=d.x; d.fy=d.y; })
+      .on('drag',  (e, d) => { d.fx=e.x; d.fy=e.y; })
+      .on('end',   (e, d) => { if (!e.active) simulation.alphaTarget(0); d.fx=null; d.fy=null; }));
+
+  // Circles
+  node.append('circle')
+    .attr('r', d => d.r)
+    .attr('fill', d => {
+      if (d.type === 'agent') return 'rgba(168,85,247,.18)';
+      return d.status === 'online' ? 'rgba(59,130,246,.18)' : 'rgba(63,63,70,.4)';
+    })
+    .attr('stroke', d => {
+      if (d.type === 'agent') return 'rgba(168,85,247,.5)';
+      return d.status === 'online' ? 'rgba(59,130,246,.7)' : '#3f3f46';
+    })
+    .attr('stroke-width', d => d.type === 'node' ? 2 : 1.5);
+
+  // CPU ring for node circles
+  node.filter(d => d.type === 'node' && d.status === 'online').append('circle')
+    .attr('r', d => d.r)
+    .attr('fill', 'none')
+    .attr('stroke', d => pctColor(d.cpu))
+    .attr('stroke-width', 3)
+    .attr('stroke-dasharray', d => {
+      const c = 2 * Math.PI * d.r;
+      return `${c * d.cpu / 100} ${c}`;
+    })
+    .attr('stroke-dashoffset', d => 2 * Math.PI * d.r * .25)
+    .attr('opacity', .6);
+
+  // Labels
+  node.append('text')
+    .text(d => d.label.length > 12 ? d.label.slice(0,10)+'…' : d.label)
+    .attr('text-anchor', 'middle')
+    .attr('dy', d => d.r + 13)
+    .attr('fill', d => d.type === 'node' ? '#fafafa' : '#a855f7')
+    .attr('font-size', d => d.type === 'node' ? 11 : 9)
+    .attr('font-weight', d => d.type === 'node' ? '600' : '400');
+
+  // Agent count badge
+  node.filter(d => d.type === 'node' && d.agents > 0).append('text')
+    .text(d => d.agents)
+    .attr('text-anchor', 'middle').attr('dy', '.35em')
+    .attr('fill', '#a855f7').attr('font-size', 10).attr('font-weight', '700');
+
+  // Tooltip
+  node.on('mousemove', (e, d) => {
+    let html = `<b>${d.label}</b>`;
+    if (d.type === 'node') {
+      html += `<br>Status: ${d.status}`;
+      if (d.status === 'online') html += `<br>CPU: ${d.cpu}%  RAM: ${d.mem}%`;
+      if (d.models) html += `<br>Models: ${d.models}`;
+      if (d.svcs)   html += `<br>Services: ${d.svcs}`;
+      if (d.ai)     html += `<br>AI: ${d.ai}`;
+      if (d.agents) html += `<br>Agents: ${d.agents}`;
+    } else {
+      html += `<br>Sub-agent · ${d.status}`;
+    }
+    tooltip.innerHTML = html;
+    tooltip.style.opacity = '1';
+    tooltip.style.left = (e.clientX + 14) + 'px';
+    tooltip.style.top  = (e.clientY - 8) + 'px';
+  }).on('mouseleave', () => { tooltip.style.opacity = '0'; });
+
+  // Force simulation
+  if (simulation) simulation.stop();
+  simulation = d3.forceSimulation(gNodes)
+    .force('link',    d3.forceLink(gLinks).id(d => d.id).distance(d => d.type === 'peer' ? 140 : 60).strength(d => d.type === 'peer' ? .4 : .8))
+    .force('charge',  d3.forceManyBody().strength(d => d.type === 'node' ? -300 : -60))
+    .force('center',  d3.forceCenter(W/2, H/2))
+    .force('collide', d3.forceCollide(d => d.r + 18))
+    .on('tick', () => {
+      link.attr('x1', d => d.source.x).attr('y1', d => d.source.y)
+          .attr('x2', d => d.target.x).attr('y2', d => d.target.y);
+      node.attr('transform', d => `translate(${d.x},${d.y})`);
+    });
+}
+
+// ── Main fetch & render ───────────────────────────────────────────────────
+async function refresh() {
+  try {
+    const data = await fetch('/api/admin/cluster').then(r => r.json());
+
+    // KPIs
+    document.getElementById('kpi-nodes').textContent     = data.online_count;
+    document.getElementById('kpi-nodes-sub').textContent = `${data.offline_count} offline`;
+    document.getElementById('kpi-cpu').textContent       = data.avg_cpu + '%';
+    document.getElementById('kpi-mem').textContent       = data.avg_mem + '%';
+    document.getElementById('kpi-disk').textContent      = data.avg_disk + '%';
+    document.getElementById('kpi-agents').textContent    = data.total_agents;
+    document.getElementById('kpi-models').textContent    = Object.keys(data.models_map).length;
+    document.getElementById('kpi-models-sub').textContent = Object.keys(data.services_map).length + ' services';
+    document.getElementById('kpi-services').textContent  = Object.keys(data.services_map).length;
+
+    document.getElementById('kpi-cpu-bar').style.width  = data.avg_cpu + '%';
+    document.getElementById('kpi-mem-bar').style.width  = data.avg_mem + '%';
+    document.getElementById('kpi-disk-bar').style.width = data.avg_disk + '%';
+
+    // Color KPI values by load
+    document.getElementById('kpi-cpu').style.color  = pctColor(data.avg_cpu);
+    document.getElementById('kpi-mem').style.color  = pctColor(data.avg_mem);
+    document.getElementById('kpi-disk').style.color = pctColor(data.avg_disk);
+
+    renderNodes(data.nodes);
+    renderCatalog(data.models_map, data.services_map);
+    renderGraph(data.nodes);
+
+    document.getElementById('lastUpdate').textContent = 'Updated ' + new Date().toLocaleTimeString();
+  } catch(e) {
+    console.error('cluster fetch failed', e);
+  }
+}
+
+refresh();
+setInterval(refresh, REFRESH);
+
+// Re-render graph on resize
+window.addEventListener('resize', () => renderGraph._lastNodes && renderGraph(_lastNodes));
+</script>
+</body>
+</html>"""
+
+
 # ── dashboard ──────────────────────────────────────────────────────────────
 
 DASHBOARD_HTML = r"""<!DOCTYPE html>
@@ -962,6 +1408,11 @@ async def dashboard():
     return DASHBOARD_HTML
 
 
+@app.get("/cluster", response_class=HTMLResponse)
+async def cluster_page():
+    return CLUSTER_HTML
+
+
 # ── admin API ──────────────────────────────────────────────────────────────
 
 @app.get("/api/admin/nodes")
@@ -971,6 +1422,32 @@ async def admin_nodes():
 @app.get("/api/admin/summary")
 async def admin_summary():
     return _nodes.summary()
+
+@app.get("/api/admin/cluster")
+async def admin_cluster():
+    """Aggregated cluster metrics — used by /cluster dashboard."""
+    import statistics
+    nodes = _nodes.get_all_nodes()
+    online = [n for n in nodes if n.get("status") == "online"]
+    all_models   = {}
+    all_services = {}
+    for n in online:
+        for m in n.get("models", []):
+            all_models.setdefault(m, []).append(n.get("hostname", n["node_id"]))
+        for s in n.get("services", []):
+            name = s.get("name", str(s)) if isinstance(s, dict) else str(s)
+            all_services.setdefault(name, []).append(n.get("hostname", n["node_id"]))
+    return {
+        "nodes":           nodes,
+        "online_count":    len(online),
+        "offline_count":   len(nodes) - len(online),
+        "avg_cpu":         round(statistics.mean([n["cpu_pct"] for n in online]), 1) if online else 0,
+        "avg_mem":         round(statistics.mean([n["mem_pct"] for n in online]), 1) if online else 0,
+        "avg_disk":        round(statistics.mean([n["disk_pct"] for n in online]), 1) if online else 0,
+        "total_agents":    sum(len(n.get("agents", [])) for n in online),
+        "models_map":      all_models,
+        "services_map":    all_services,
+    }
 
 @app.post("/api/admin/bootstrap")
 async def bootstrap_token(request: Request, network_id: str = "net_default",

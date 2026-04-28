@@ -59,12 +59,14 @@ class NodeStore:
             info["registered_at"] = info.get("registered_at", _now())
             info["last_seen"]     = _now()
             info["status"]        = "online"
-            info.setdefault("cpu_pct",  0.0)
-            info.setdefault("mem_pct",  0.0)
-            info.setdefault("disk_pct", 0.0)
-            info.setdefault("agents",   [])
-            info.setdefault("models",   [])
-            info.setdefault("services", [])
+            info.setdefault("cpu_pct",     0.0)
+            info.setdefault("mem_pct",     0.0)
+            info.setdefault("disk_pct",    0.0)
+            info.setdefault("agents",      [])
+            info.setdefault("models",      [])
+            info.setdefault("services",    [])
+            info.setdefault("ai_model",    "")
+            info.setdefault("ai_provider", "")
             self._nodes[info["node_id"]] = info
             self._save(auth)
 
@@ -75,7 +77,7 @@ class NodeStore:
                 return False
             node["last_seen"] = _now()
             node["status"]    = "online"
-            for key in ("cpu_pct", "mem_pct", "disk_pct", "agents", "models", "services"):
+            for key in ("cpu_pct", "mem_pct", "disk_pct", "agents", "models", "services", "ai_model", "ai_provider", "tools", "channels"):
                 if key in metrics:
                     node[key] = metrics[key]
             self._save(auth)
