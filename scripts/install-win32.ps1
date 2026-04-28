@@ -113,6 +113,8 @@ if ($userPath -notlike "*ch8-agent*") {
 } else {
     Write-Host "  [OK] Already in PATH" -ForegroundColor Green
 }
+# Also update PATH for the current session (no restart needed)
+$env:PATH = "$env:PATH;$installDir"
 
 # Config dir
 New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.config\ch8" | Out-Null
