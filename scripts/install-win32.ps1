@@ -1,6 +1,6 @@
 # CH8 Agent - Windows Installation Script
 # For Windows 10/11 (64-bit recommended, WSL2 preferred)
-# Usage: powershell -ExecutionPolicy Bypass -c "iwr -useb https://raw.githubusercontent.com/hudsonrj/ch8-cluster-agent/main/scripts/install-win32.ps1 | iex"
+# Usage: powershell -ExecutionPolicy Bypass -c "iwr -useb https://raw.githubusercontent.com/hudsonrj/ch8-cluster-agent/master/scripts/install-win32.ps1 | iex"
 
 $ErrorActionPreference = "Stop"
 
@@ -66,8 +66,7 @@ $installDir = "$env:USERPROFILE\ch8-agent"
 if (Test-Path "$installDir\.git") {
     Write-Host "  Updating existing installation..." -ForegroundColor Yellow
     Push-Location $installDir
-    git pull origin main 2>$null
-    if ($LASTEXITCODE -ne 0) { git pull origin master 2>$null }
+    git pull origin master 2>$null
     Pop-Location
 } else {
     git clone https://github.com/hudsonrj/ch8-cluster-agent.git $installDir
@@ -78,8 +77,9 @@ Write-Host "  [OK] Installed at $installDir" -ForegroundColor Green
 # ── Install Python dependencies ───────────────────────────────────────────
 Write-Host "[4/5] Installing dependencies..." -ForegroundColor Blue
 
-& $python -m pip install --quiet --upgrade pip 2>$null
-& $python -m pip install --quiet httpx psutil fastapi uvicorn pydantic
+# Upgrade pip silently, ignore PATH warnings
+& $python -m pip install --quiet --upgrade pip --no-warn-script-location 2>$null
+& $python -m pip install --quiet --no-warn-script-location httpx psutil fastapi uvicorn pydantic
 
 Write-Host "  [OK] httpx, psutil, fastapi, uvicorn, pydantic" -ForegroundColor Green
 
