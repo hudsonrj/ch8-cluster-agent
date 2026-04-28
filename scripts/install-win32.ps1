@@ -67,7 +67,8 @@ if (Test-Path "$installDir\.git") {
     Write-Host "  Updating existing installation..." -ForegroundColor Yellow
     Push-Location $installDir
     $prev = $ErrorActionPreference; $ErrorActionPreference = "SilentlyContinue"
-    git pull origin master 2>&1 | Out-Null
+    git fetch origin master 2>&1 | Out-Null
+    git reset --hard origin/master 2>&1 | Out-Null
     $ErrorActionPreference = $prev
     Pop-Location
 } else {
