@@ -523,8 +523,16 @@ async def _main(advertise_addr=None, port=NODE_PORT, capabilities=None):
     )
 
     loop = asyncio.get_event_loop()
-    for sig in (signal.SIGINT, signal.SIGTERM):
-        loop.add_signal_handler(sig, daemon.stop)
+    # add_signal_handler is Unix-only; Windows raises NotImplementedError
+    try:
+        for sig in (signal.SIGINT, signal.SIGTERM):
+            loop.add_signal_handler(sig, daemon.stop)
+    except NotImplementedError:
+        for sig in (signal.SIGINT, signal.SIGTERM):
+            try:
+                signal.signal(sig, lambda s, f: daemon.stop())
+            except (OSError, ValueError):
+                pass
 
     await daemon.start()
 
