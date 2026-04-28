@@ -85,7 +85,7 @@ if (Test-Path $installDir) {
 }
 
 $prev = $ErrorActionPreference; $ErrorActionPreference = "SilentlyContinue"
-git clone https://github.com/hudsonrj/ch8-cluster-agent.git $installDir 2>&1 | Out-Null
+git clone -b master https://github.com/hudsonrj/ch8-cluster-agent.git $installDir 2>&1 | Out-Null
 $ErrorActionPreference = $prev
 if (-not (Test-Path "$installDir\ch8")) {
     Write-Host "  [ERROR] Clone failed. Check your internet connection." -ForegroundColor Red

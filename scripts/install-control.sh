@@ -81,7 +81,7 @@ if [ -d "${INSTALL_DIR}/.git" ]; then
     git pull origin main 2>/dev/null || git pull origin master 2>/dev/null || true
 else
     mkdir -p "$(dirname "$INSTALL_DIR")"
-    git clone https://github.com/hudsonrj/ch8-cluster-agent.git "$INSTALL_DIR" 2>/dev/null || {
+    git clone -b master https://github.com/hudsonrj/ch8-cluster-agent.git "$INSTALL_DIR" 2>/dev/null || {
         warn "Git clone failed, assuming local files exist"
     }
     cd "$INSTALL_DIR"

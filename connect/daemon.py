@@ -196,11 +196,17 @@ def _clear_pid() -> None:
 
 
 def _write_state(state: dict) -> None:
-    import fcntl
     CONFIG_DIR.mkdir(parents=True, exist_ok=True)
     lock_file = CONFIG_DIR / "state.lock"
+    try:
+        import fcntl
+        def _lock(f):   fcntl.flock(f, fcntl.LOCK_EX)
+        def _unlock(f): fcntl.flock(f, fcntl.LOCK_UN)
+    except ImportError:
+        def _lock(f):   pass   # Windows: no flock, single-process anyway
+        def _unlock(f): pass
     with open(lock_file, "w") as lf:
-        fcntl.flock(lf, fcntl.LOCK_EX)
+        _lock(lf)
         try:
             # Preserve agents written by external processes (orchestrator, monitors)
             existing = {}
@@ -215,7 +221,7 @@ def _write_state(state: dict) -> None:
             state["updated_at"] = int(time.time())
             STATE_FILE.write_text(json.dumps(state, indent=2))
         finally:
-            fcntl.flock(lf, fcntl.LOCK_UN)
+            _unlock(lf)
 
 
 def read_state() -> dict:

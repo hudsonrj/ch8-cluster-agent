@@ -542,7 +542,13 @@ async def _stream_bedrock_boto3(model: str, body: dict, region: str):
 
 # ── agent state ───────────────────────────────────────────────────────────────
 
-import fcntl as _fcntl
+try:
+    import fcntl as _fcntl
+    def _flock(f):   _fcntl.flock(f, _fcntl.LOCK_EX)
+    def _funlock(f): _fcntl.flock(f, _fcntl.LOCK_UN)
+except ImportError:
+    def _flock(f):   pass   # Windows
+    def _funlock(f): pass
 
 def _atomic_update_state(updater_fn) -> None:
     """Atomically read-modify-write state.json with file locking."""
@@ -550,7 +556,7 @@ def _atomic_update_state(updater_fn) -> None:
         CONFIG_DIR.mkdir(parents=True, exist_ok=True)
         lock_file = CONFIG_DIR / "state.lock"
         with open(lock_file, "w") as lf:
-            _fcntl.flock(lf, _fcntl.LOCK_EX)
+            _flock(lf)
             try:
                 state = {}
                 if STATE_FILE.exists():
@@ -558,7 +564,7 @@ def _atomic_update_state(updater_fn) -> None:
                 updater_fn(state)
                 STATE_FILE.write_text(json.dumps(state, indent=2))
             finally:
-                _fcntl.flock(lf, _fcntl.LOCK_UN)
+                _funlock(lf)
     except Exception:
         pass
 

@@ -84,7 +84,7 @@ if [ -d "$INSTALL_DIR/.git" ]; then
     cd "$INSTALL_DIR"
     git pull origin main 2>/dev/null || git pull origin master 2>/dev/null || true
 else
-    git clone https://github.com/hudsonrj/ch8-cluster-agent.git "$INSTALL_DIR"
+    git clone -b master https://github.com/hudsonrj/ch8-cluster-agent.git "$INSTALL_DIR"
     cd "$INSTALL_DIR"
 fi
 
