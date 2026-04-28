@@ -8,17 +8,17 @@ CH8 Agent turns any machine into a managed AI node with monitoring, orchestratio
 
 ### Linux / macOS
 ```bash
-curl -fsSL https://raw.githubusercontent.com/hudsonrj/ch8-cluster-agent/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/hudsonrj/ch8-cluster-agent/master/scripts/install.sh | bash
 ```
 
 ### Raspberry Pi
 ```bash
-curl -fsSL https://raw.githubusercontent.com/hudsonrj/ch8-cluster-agent/main/scripts/install-rpi.sh | bash
+curl -fsSL https://raw.githubusercontent.com/hudsonrj/ch8-cluster-agent/master/scripts/install-rpi.sh | bash
 ```
 
 ### Windows
 ```powershell
-powershell -ExecutionPolicy Bypass -c "iwr -useb https://raw.githubusercontent.com/hudsonrj/ch8-cluster-agent/main/scripts/install-win32.ps1 | iex"
+powershell -ExecutionPolicy Bypass -c "iwr -useb https://raw.githubusercontent.com/hudsonrj/ch8-cluster-agent/master/scripts/install-win32.ps1 | iex"
 ```
 > For best experience on Windows, use WSL2: `wsl --install` then run the Linux installer.
 
