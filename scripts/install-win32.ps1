@@ -63,22 +63,19 @@ Write-Host "[3/5] Downloading CH8 Agent..." -ForegroundColor Blue
 
 $installDir = "$env:USERPROFILE\ch8-agent"
 
-if (Test-Path "$installDir\.git") {
-    Write-Host "  Updating existing installation..." -ForegroundColor Yellow
-    Push-Location $installDir
+if (Test-Path $installDir) {
+    Write-Host "  Removing old installation..." -ForegroundColor Yellow
     $prev = $ErrorActionPreference; $ErrorActionPreference = "SilentlyContinue"
-    git fetch origin master 2>&1 | Out-Null
-    git reset --hard origin/master 2>&1 | Out-Null
+    Remove-Item -Recurse -Force $installDir 2>&1 | Out-Null
     $ErrorActionPreference = $prev
-    Pop-Location
-} else {
-    $prev = $ErrorActionPreference; $ErrorActionPreference = "SilentlyContinue"
-    git clone https://github.com/hudsonrj/ch8-cluster-agent.git $installDir 2>&1 | Out-Null
-    $ErrorActionPreference = $prev
-    if (-not (Test-Path "$installDir\ch8")) {
-        Write-Host "  [ERROR] Clone failed. Check your internet connection." -ForegroundColor Red
-        exit 1
-    }
+}
+
+$prev = $ErrorActionPreference; $ErrorActionPreference = "SilentlyContinue"
+git clone https://github.com/hudsonrj/ch8-cluster-agent.git $installDir 2>&1 | Out-Null
+$ErrorActionPreference = $prev
+if (-not (Test-Path "$installDir\ch8")) {
+    Write-Host "  [ERROR] Clone failed. Check your internet connection." -ForegroundColor Red
+    exit 1
 }
 
 Write-Host "  [OK] Installed at $installDir" -ForegroundColor Green

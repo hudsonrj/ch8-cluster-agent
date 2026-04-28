@@ -104,9 +104,12 @@ def _start_agent(name, script_name, port_check=None):
     _install_dir = str(Path(__file__).resolve().parent)
     _env = os.environ.copy()
     _env["PYTHONPATH"] = _install_dir + os.pathsep + _env.get("PYTHONPATH", "")
+    log_dir = Path.home() / ".config" / "ch8"
+    log_dir.mkdir(parents=True, exist_ok=True)
+    agent_log = open(log_dir / f"{name}.log", "w")
     _popen_kwargs = dict(
         cwd=_install_dir, env=_env,
-        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        stdout=agent_log, stderr=agent_log,
     )
     if sys.platform == "win32":
         _popen_kwargs["creationflags"] = (
@@ -448,17 +451,46 @@ def cmd_test():
 
 def cmd_logs(component=None):
     """View logs"""
-    if component == "master":
-        subprocess.run(["tail", "-f", "/tmp/ch8-master.log"])
-    elif component == "worker1":
-        subprocess.run(["tail", "-f", "/tmp/ch8-worker1.log"])
-    elif component == "worker2":
-        subprocess.run(["tail", "-f", "/tmp/ch8-worker2.log"])
+    import time
+    log_dir = Path.home() / ".config" / "ch8"
+    log_map = {
+        "daemon":       log_dir / "daemon.log",
+        "orchestrator": log_dir / "orchestrator.log",
+        "monitor":      log_dir / "server-monitor.log",
+        "telegram":     log_dir / "telegram.log",
+    }
+
+    # resolve aliases
+    if component in ("master", "worker1", "worker2"):
+        component = "daemon"
+
+    if component and component in log_map:
+        log_path = log_map[component]
+        if not log_path.exists():
+            print(f"{Colors.YELLOW}Log not found: {log_path}{Colors.NC}")
+            return
+        print(f"{Colors.BLUE}==> {log_path} (Ctrl-C to stop){Colors.NC}\n")
+        # Cross-platform tail -f using Python
+        with open(log_path, "r", errors="replace") as fh:
+            # print existing content
+            sys.stdout.write(fh.read())
+            sys.stdout.flush()
+            try:
+                while True:
+                    line = fh.readline()
+                    if line:
+                        sys.stdout.write(line)
+                        sys.stdout.flush()
+                    else:
+                        time.sleep(0.3)
+            except KeyboardInterrupt:
+                pass
     else:
         print(f"{Colors.YELLOW}Available logs:{Colors.NC}")
-        print(f"  ch8 logs master   - Master node logs")
-        print(f"  ch8 logs worker1  - Worker 1 logs")
-        print(f"  ch8 logs worker2  - Worker 2 logs")
+        for name, path in log_map.items():
+            exists = "✓" if path.exists() else " "
+            print(f"  {exists} ch8 logs {name:<12} {path}")
+        print(f"\nUsage: ch8 logs daemon | orchestrator | monitor | telegram")
 
 def cmd_config(action=None):
     """Configure node settings"""
