@@ -63,11 +63,26 @@ Write-Host "[3/5] Downloading CH8 Agent..." -ForegroundColor Blue
 
 $installDir = "$env:USERPROFILE\ch8-agent"
 
+# Kill any running ch8 processes so files are not locked during update
+Write-Host "  Stopping ch8 processes..." -ForegroundColor Yellow
+$prev = $ErrorActionPreference; $ErrorActionPreference = "SilentlyContinue"
+Get-WmiObject Win32_Process | Where-Object { $_.CommandLine -like "*ch8*" } | ForEach-Object {
+    Stop-Process -Id $_.ProcessId -Force 2>&1 | Out-Null
+}
+Remove-Item "$env:USERPROFILE\.config\ch8\*.pid" -Force 2>&1 | Out-Null
+Start-Sleep -Seconds 1
+$ErrorActionPreference = $prev
+
 if (Test-Path $installDir) {
     Write-Host "  Removing old installation..." -ForegroundColor Yellow
     $prev = $ErrorActionPreference; $ErrorActionPreference = "SilentlyContinue"
     Remove-Item -Recurse -Force $installDir 2>&1 | Out-Null
     $ErrorActionPreference = $prev
+    if (Test-Path $installDir) {
+        Write-Host "  [ERROR] Could not remove $installDir" -ForegroundColor Red
+        Write-Host "  Close any open terminals/editors using ch8 files and retry." -ForegroundColor Yellow
+        exit 1
+    }
 }
 
 $prev = $ErrorActionPreference; $ErrorActionPreference = "SilentlyContinue"
