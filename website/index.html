@@ -397,6 +397,7 @@
                     <button class="tab-btn" data-tab="macos"><i class="fab fa-apple"></i> macOS</button>
                     <button class="tab-btn" data-tab="rpi"><i class="fas fa-raspberry-pi"></i> Raspberry Pi</button>
                     <button class="tab-btn" data-tab="windows"><i class="fab fa-windows"></i> Windows</button>
+                    <button class="tab-btn" data-tab="android"><i class="fab fa-android"></i> Android</button>
                     <button class="tab-btn" data-tab="manual"><i class="fas fa-code"></i> Manual</button>
                 </div>
 
@@ -427,6 +428,13 @@
                             <button class="copy-btn"><i class="fas fa-copy"></i></button>
                         </div>
                         <p class="install-note">Requires Python 3.10+ and Git. For best experience, use <strong>WSL2</strong>: <code>wsl --install</code> then run the Linux installer.</p>
+                    </div>
+                    <div class="tab-pane" id="android">
+                        <div class="code-block">
+                            <pre><code>curl -fsSL https://raw.githubusercontent.com/hudsonrj/ch8-cluster-agent/master/scripts/install-android.sh | bash</code></pre>
+                            <button class="copy-btn"><i class="fas fa-copy"></i></button>
+                        </div>
+                        <p class="install-note">Run inside <strong>Termux</strong> (install from <a href="https://f-droid.org/en/packages/com.termux/" target="_blank">F-Droid</a>, NOT Play Store). Auto-configures boot startup and wake lock.</p>
                     </div>
                     <div class="tab-pane" id="manual">
                         <div class="code-block">
