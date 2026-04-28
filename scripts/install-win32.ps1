@@ -66,9 +66,8 @@ $installDir = "$env:USERPROFILE\ch8-agent"
 # Kill any running ch8 processes so files are not locked during update
 Write-Host "  Stopping ch8 processes..." -ForegroundColor Yellow
 $prev = $ErrorActionPreference; $ErrorActionPreference = "SilentlyContinue"
-Get-WmiObject Win32_Process | Where-Object { $_.CommandLine -like "*ch8*" } | ForEach-Object {
-    Stop-Process -Id $_.ProcessId -Force 2>&1 | Out-Null
-}
+taskkill /F /IM python.exe /T 2>&1 | Out-Null
+taskkill /F /IM python3.exe /T 2>&1 | Out-Null
 Remove-Item "$env:USERPROFILE\.config\ch8\*.pid" -Force 2>&1 | Out-Null
 Start-Sleep -Seconds 1
 $ErrorActionPreference = $prev
