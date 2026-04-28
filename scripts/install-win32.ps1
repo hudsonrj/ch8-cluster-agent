@@ -66,10 +66,18 @@ $installDir = "$env:USERPROFILE\ch8-agent"
 if (Test-Path "$installDir\.git") {
     Write-Host "  Updating existing installation..." -ForegroundColor Yellow
     Push-Location $installDir
-    git pull origin master 2>$null
+    $prev = $ErrorActionPreference; $ErrorActionPreference = "SilentlyContinue"
+    git pull origin master 2>&1 | Out-Null
+    $ErrorActionPreference = $prev
     Pop-Location
 } else {
-    git clone https://github.com/hudsonrj/ch8-cluster-agent.git $installDir
+    $prev = $ErrorActionPreference; $ErrorActionPreference = "SilentlyContinue"
+    git clone https://github.com/hudsonrj/ch8-cluster-agent.git $installDir 2>&1 | Out-Null
+    $ErrorActionPreference = $prev
+    if (-not (Test-Path "$installDir\ch8")) {
+        Write-Host "  [ERROR] Clone failed. Check your internet connection." -ForegroundColor Red
+        exit 1
+    }
 }
 
 Write-Host "  [OK] Installed at $installDir" -ForegroundColor Green
@@ -77,9 +85,11 @@ Write-Host "  [OK] Installed at $installDir" -ForegroundColor Green
 # ── Install Python dependencies ───────────────────────────────────────────
 Write-Host "[4/5] Installing dependencies..." -ForegroundColor Blue
 
-# Upgrade pip silently, ignore PATH warnings
-& $python -m pip install --quiet --upgrade pip --no-warn-script-location 2>$null
-& $python -m pip install --quiet --no-warn-script-location httpx psutil fastapi uvicorn pydantic
+# Install dependencies — suppress stderr (pip PATH warnings, etc.)
+$prev = $ErrorActionPreference; $ErrorActionPreference = "SilentlyContinue"
+& $python -m pip install --quiet --upgrade pip --no-warn-script-location 2>&1 | Out-Null
+& $python -m pip install --quiet --no-warn-script-location httpx psutil fastapi uvicorn pydantic 2>&1 | Out-Null
+$ErrorActionPreference = $prev
 
 Write-Host "  [OK] httpx, psutil, fastapi, uvicorn, pydantic" -ForegroundColor Green
 
