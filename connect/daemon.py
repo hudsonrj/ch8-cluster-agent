@@ -300,9 +300,18 @@ def _collect_metrics() -> dict:
     metrics = {}
     try:
         import psutil
-        metrics["cpu_pct"]  = psutil.cpu_percent(interval=0.2)
-        metrics["mem_pct"]  = psutil.virtual_memory().percent
-        metrics["disk_pct"] = psutil.disk_usage("/").percent
+        cpu   = psutil.cpu_percent(interval=0.2)
+        mem   = psutil.virtual_memory()
+        disk  = psutil.disk_usage("/")
+        cores = psutil.cpu_count(logical=True) or 1
+        metrics["cpu_pct"]    = cpu
+        metrics["cpu_cores"]  = cores
+        metrics["mem_pct"]    = round(mem.percent, 1)
+        metrics["mem_total_gb"] = round(mem.total / 1e9, 2)
+        metrics["mem_used_gb"]  = round(mem.used  / 1e9, 2)
+        metrics["disk_pct"]   = round(disk.percent, 1)
+        metrics["disk_total_gb"] = round(disk.total / 1e9, 2)
+        metrics["disk_used_gb"]  = round(disk.used  / 1e9, 2)
     except Exception:
         pass
 
