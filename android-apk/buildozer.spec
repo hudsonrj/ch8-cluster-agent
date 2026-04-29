@@ -5,7 +5,7 @@ package.domain = com.ch8
 
 source.dir = .
 source.include_exts = py,png,jpg,kv,atlas,json,sh
-source.include_patterns = connect/**/*.py,agents/**/*.py
+source.include_patterns = connect/**/*.py,agents/**/*.py,connect/**/*.json
 
 version = 1.0.0
 

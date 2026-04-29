@@ -100,7 +100,7 @@ class ConnectDaemon:
         """Start the daemon — blocks until stopped."""
         if not is_authenticated():
             log.error("Not authenticated. Run `ch8 login` or `ch8 up --token TOKEN`")
-            sys.exit(1)
+            raise RuntimeError("Not authenticated. Run `ch8 login` or `ch8 up --token TOKEN`")
 
         _write_pid()
         log.info(f"CH8 daemon starting  node={get_node_id()}  port={self.port}")
@@ -308,7 +308,7 @@ def _collect_metrics() -> dict:
         import psutil
         cpu   = psutil.cpu_percent(interval=0.2)
         mem   = psutil.virtual_memory()
-        disk  = psutil.disk_usage("/")
+        disk  = psutil.disk_usage(os.environ.get("HOME", "/"))
         cores = psutil.cpu_count(logical=True) or 1
         metrics["cpu_pct"]    = cpu
         metrics["cpu_cores"]  = cores
