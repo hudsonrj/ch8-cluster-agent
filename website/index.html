@@ -430,11 +430,21 @@
                         <p class="install-note">Requires Python 3.10+ and Git. For best experience, use <strong>WSL2</strong>: <code>wsl --install</code> then run the Linux installer.</p>
                     </div>
                     <div class="tab-pane" id="android">
+                        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;">
+                            <a href="https://github.com/hudsonrj/ch8-cluster-agent/releases/latest/download/ch8-agent.apk" class="btn btn-primary" style="text-decoration:none;display:inline-flex;align-items:center;gap:8px;padding:12px 24px;border-radius:8px;">
+                                <i class="fab fa-android"></i> Download APK
+                            </a>
+                            <a href="https://f-droid.org/en/packages/com.termux/" target="_blank" class="btn btn-secondary" style="text-decoration:none;display:inline-flex;align-items:center;gap:8px;padding:12px 24px;border-radius:8px;">
+                                <i class="fas fa-terminal"></i> Get Termux
+                            </a>
+                        </div>
+                        <p class="install-note" style="margin-bottom:12px;"><strong>Option 1 — APK:</strong> Download and install the APK directly. Requires "Install from unknown sources" enabled.</p>
+                        <p class="install-note" style="margin-bottom:12px;"><strong>Option 2 — Termux:</strong> Run inside Termux terminal (from <a href="https://f-droid.org/en/packages/com.termux/" target="_blank">F-Droid</a>, NOT Play Store):</p>
                         <div class="code-block">
                             <pre><code>curl -fsSL https://raw.githubusercontent.com/hudsonrj/ch8-cluster-agent/master/scripts/install-android.sh | bash</code></pre>
                             <button class="copy-btn"><i class="fas fa-copy"></i></button>
                         </div>
-                        <p class="install-note">Run inside <strong>Termux</strong> (install from <a href="https://f-droid.org/en/packages/com.termux/" target="_blank">F-Droid</a>, NOT Play Store). Auto-configures boot startup and wake lock.</p>
+                        <p class="install-note" style="margin-top:8px;">Tip: Run <code>termux-wake-lock</code> to keep CH8 running in background.</p>
                     </div>
                     <div class="tab-pane" id="manual">
                         <div class="code-block">
