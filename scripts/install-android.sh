@@ -36,7 +36,7 @@ pkg update -y 2>/dev/null
 pkg install -y python git 2>/dev/null
 
 # Check Python version
-PYTHON_VER=$(python3 --version 2>/dev/null | grep -oP '\d+\.\d+' | head -1)
+PYTHON_VER=$(python3 --version 2>/dev/null | sed 's/Python //' | cut -d. -f1-2)
 MAJOR=$(echo "$PYTHON_VER" | cut -d. -f1)
 MINOR=$(echo "$PYTHON_VER" | cut -d. -f2)
 
@@ -48,9 +48,23 @@ echo -e "  ${GREEN}[OK] Python $PYTHON_VER${NC}"
 
 # ── Install Python packages ───────────────────────────────────────────────
 echo -e "${BLUE}[2/4] Installing Python dependencies...${NC}"
-pip install --quiet --upgrade pip 2>/dev/null
-pip install --quiet httpx psutil fastapi uvicorn pydantic 2>/dev/null
-echo -e "  ${GREEN}[OK] httpx, psutil, fastapi, uvicorn, pydantic${NC}"
+
+# Termux needs build tools for native extensions (psutil, uvloop, etc.)
+pkg install -y build-essential libffi openssl rust 2>/dev/null
+
+pip install --upgrade pip 2>/dev/null || python3 -m pip install --upgrade pip
+
+# Install one by one so failures are visible
+DEPS="httpx psutil fastapi uvicorn pydantic"
+for dep in $DEPS; do
+    echo -e "  Installing $dep..."
+    pip install "$dep" 2>&1 | tail -1
+    if [ $? -ne 0 ]; then
+        echo -e "  ${YELLOW}Retrying $dep with --no-build-isolation...${NC}"
+        pip install --no-build-isolation "$dep" 2>&1 | tail -1
+    fi
+done
+echo -e "  ${GREEN}[OK] $DEPS${NC}"
 
 # ── Clone or update CH8 ──────────────────────────────────────────────────
 echo -e "${BLUE}[3/4] Downloading CH8 Agent...${NC}"
