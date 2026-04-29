@@ -304,7 +304,11 @@ def _exec_security_scan(args: dict) -> dict:
 
 
 def _exec_node_chat(args: dict) -> dict:
+    import logging
     import httpx
+
+    logger = logging.getLogger("ch8.tools.node_chat")
+
     node = args.get("node", "").strip()
     message = args.get("message", "").strip()
     if not node:
@@ -336,23 +340,57 @@ def _exec_node_chat(args: dict) -> dict:
         return {"error": f"Node '{node}' not found. Known nodes: {known}"}
 
     address = peer.get("address", "")
-    if not address:
-        return {"error": f"No address registered for node '{node}'"}
+    target_node_id = peer.get("node_id", "")
+    payload = {"message": message, "stream": False}
 
-    orch_port = int(os.environ.get("CH8_AGENT_PORT", "7879"))
-    url = f"http://{address}:{orch_port}/chat"
+    # --- Attempt 1: Direct connection ---
+    direct_error = None
+    if address:
+        orch_port = int(os.environ.get("CH8_AGENT_PORT", "7879"))
+        url = f"http://{address}:{orch_port}/chat"
+        try:
+            r = httpx.post(url, json=payload, timeout=120)
+            if r.status_code == 200:
+                data = r.json()
+                logger.info("node_chat to '%s' succeeded via direct connection", node)
+                return {
+                    "node": peer.get("hostname", node),
+                    "response": data.get("response", data.get("message", str(data))),
+                    "method": "direct",
+                }
+            direct_error = f"HTTP {r.status_code} from {node}: {r.text[:500]}"
+        except Exception as e:
+            direct_error = f"Could not reach {node} at {url}: {e}"
+
+        logger.warning("Direct connection to '%s' failed: %s. Trying relay.", node, direct_error)
+    else:
+        logger.warning("No address for node '%s'. Trying relay.", node)
+
+    # --- Attempt 2: Relay via control server ---
+    if not target_node_id:
+        return {"error": f"Direct connection failed and no node_id for relay. Direct error: {direct_error}"}
 
     try:
-        r = httpx.post(url, json={"message": message, "stream": False}, timeout=120)
+        from .auth import CONTROL_URL, get_access_token
+
+        token = get_access_token()
+        if not token:
+            return {"error": f"Direct connection failed and no auth token for relay. Direct error: {direct_error}"}
+
+        relay_url = f"{CONTROL_URL}/api/relay/{target_node_id}"
+        headers = {"Authorization": f"Bearer {token}"}
+        r = httpx.post(relay_url, json=payload, headers=headers, timeout=120)
         if r.status_code == 200:
             data = r.json()
+            logger.info("node_chat to '%s' succeeded via relay", node)
             return {
                 "node": peer.get("hostname", node),
                 "response": data.get("response", data.get("message", str(data))),
+                "method": "relay",
             }
-        return {"error": f"HTTP {r.status_code} from {node}: {r.text[:500]}"}
+        return {"error": f"Relay also failed. HTTP {r.status_code}: {r.text[:500]}. Direct error: {direct_error}"}
     except Exception as e:
-        return {"error": f"Could not reach {node} at {url}: {e}"}
+        return {"error": f"Relay failed: {e}. Direct error: {direct_error}"}
 
 
 # ── Tool loading ────────────────────────────────────────────────────────────

@@ -116,6 +116,18 @@ class ControlClient:
         resp.raise_for_status()
         return resp.json()
 
+    async def relay_message(self, target_node_id: str, payload: dict) -> dict:
+        """Relay a message to a target node via the control server."""
+        client = await self._get()
+        resp = await client.post(
+            f"/api/relay/{target_node_id}",
+            json=payload,
+            headers=self._headers(),
+            timeout=120,
+        )
+        resp.raise_for_status()
+        return resp.json()
+
 
 # ------------------------------------------------------------------ #
 # Helpers
