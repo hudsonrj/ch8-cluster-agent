@@ -21,8 +21,11 @@ jobs:
       - name: Prepare build directory
         run: |
           cd android-apk
-          cp -r ../connect ./connect
-          cp -r ../agents ./agents
+          # Copy only daemon-side modules (no server/fastapi)
+          mkdir -p connect
+          for f in __init__.py auth.py coordinator.py daemon.py channels.py tools_config.py ai_config.py; do
+            cp ../connect/$f connect/$f 2>/dev/null || true
+          done
 
       - name: Build APK
         run: |

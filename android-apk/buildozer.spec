@@ -4,12 +4,13 @@ package.name = ch8agent
 package.domain = com.ch8
 
 source.dir = .
-source.include_exts = py,png,jpg,kv,atlas,json,sh
-source.include_patterns = connect/**/*.py,agents/**/*.py,connect/**/*.json
+source.include_exts = py,png,jpg,kv,atlas,json
+# include only the modules needed for the daemon (no server/fastapi)
+source.include_patterns = connect/__init__.py,connect/auth.py,connect/coordinator.py,connect/daemon.py,connect/channels.py,connect/tools_config.py,connect/ai_config.py
 
 version = 1.0.0
 
-requirements = python3,kivy,httpx,psutil,pydantic,certifi,httpcore,idna,sniffio,anyio,h11
+requirements = python3,kivy,httpx,psutil,certifi,httpcore,idna,sniffio,anyio,h11
 
 orientation = portrait
 fullscreen = 0
