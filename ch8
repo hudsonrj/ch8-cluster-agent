@@ -438,9 +438,81 @@ def cmd_stop():
     subprocess.run(["bash", "stop-cluster.sh"])
 
 def cmd_status():
-    """Check cluster status"""
+    """Check node and cluster status"""
+    import asyncio, json, time
     print(f"{Colors.BLUE}Checking cluster status...{Colors.NC}\n")
-    subprocess.run(["python", "test-e2e.py"])
+
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    try:
+        from connect.auth import get_node_id, get_network_id, is_authenticated, CONTROL_URL
+        from connect.daemon import read_state, is_daemon_running, get_daemon_pid
+    except ImportError as e:
+        print(f"{Colors.RED}Could not load connect module: {e}{Colors.NC}")
+        return
+
+    # Local state
+    if not is_authenticated():
+        print(f"{Colors.RED}✗ Not authenticated — run: ch8 up --token TOKEN{Colors.NC}\n")
+        return
+
+    node_id    = get_node_id()
+    network_id = get_network_id() or "?"
+    state      = read_state()
+    running    = is_daemon_running()
+    pid        = get_daemon_pid()
+
+    status_color = Colors.GREEN if running else Colors.RED
+    status_text  = f"running (pid {pid})" if running else "stopped"
+    print(f"  Daemon:    {status_color}{status_text}{Colors.NC}")
+    print(f"  Node ID:   {node_id}")
+    print(f"  Network:   {network_id}")
+    print(f"  Status:    {state.get('status', 'unknown')}")
+    print(f"  Peers:     {len(state.get('peers', []))}")
+    print()
+
+    # Peers
+    peers = state.get("peers", [])
+    if peers:
+        print(f"{Colors.BLUE}  Peers:{Colors.NC}")
+        for p in peers:
+            age = int(time.time() - p.get("last_seen", 0))
+            age_str = f"{age}s ago" if age < 120 else f"{age//60}m ago"
+            print(f"    {Colors.GREEN}●{Colors.NC} {p.get('hostname', p.get('node_id', '?')[:12])}  {p.get('address','?')}  (seen {age_str})")
+        print()
+
+    # Query control server for network-wide nodes
+    async def _fetch_nodes():
+        import httpx
+        from connect.auth import get_access_token
+        token = get_access_token()
+        if not token:
+            return None
+        async with httpx.AsyncClient(base_url=CONTROL_URL, timeout=10) as c:
+            from connect.auth import get_network_id
+            nid = get_network_id() or "net_default"
+            r = await c.get(f"/nodes?network_id={nid}", headers={"Authorization": f"Bearer {token}"})
+            if r.status_code == 200:
+                data = r.json()
+                return data.get("nodes", data) if isinstance(data, dict) else data
+        return None
+
+    try:
+        nodes = asyncio.run(_fetch_nodes())
+        if nodes:
+            print(f"{Colors.BLUE}  Network nodes:{Colors.NC}")
+            for n in nodes:
+                is_me = n.get("node_id") == node_id
+                icon  = f"{Colors.YELLOW}★{Colors.NC}" if is_me else f"{Colors.GREEN}●{Colors.NC}"
+                last  = n.get("last_seen", 0)
+                age   = int(time.time() - last) if last else 9999
+                online = age < 90
+                color  = Colors.GREEN if online else Colors.RED
+                label  = "online" if online else "inactive"
+                me_tag = " (you)" if is_me else ""
+                print(f"    {icon} {color}{n.get('hostname', n.get('node_id','?')[:14])}{me_tag}{Colors.NC}  [{label}]  {n.get('address','?')}")
+            print()
+    except Exception as e:
+        print(f"{Colors.YELLOW}  (Could not reach control server: {e}){Colors.NC}\n")
 
 def cmd_test():
     """Run tests"""
