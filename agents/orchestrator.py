@@ -1291,7 +1291,8 @@ async def node_version():
         version = (Path(repo_dir) / "VERSION").read_text().strip()
     except Exception:
         pass
-    return {"version": version, "commit": git_hash, "node_id": get_node_id()}
+    from connect.auth import get_node_id as _get_nid
+    return {"version": version, "commit": git_hash, "node_id": _get_nid()}
 
 
 @app.get("/tools")
