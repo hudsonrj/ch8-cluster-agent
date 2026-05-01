@@ -1195,6 +1195,105 @@ async def ha_new_master_endpoint(request: Request):
         return {"ok": False, "error": str(e)}
 
 
+@app.post("/update")
+async def node_update_endpoint(request: Request):
+    """
+    Receive a self-update command from the master node.
+    Pulls the latest code from git and restarts the daemon.
+    Body: {"ref": "main", "repo": "https://..."} (both optional)
+    """
+    import subprocess, os, sys, threading
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+
+    ref    = body.get("ref", "main")
+    repo   = body.get("repo", "")
+    token  = request.headers.get("Authorization", "").removeprefix("Bearer ").strip()
+
+    # Validate token
+    try:
+        from connect.auth import get_access_token
+        if token != get_access_token():
+            return {"ok": False, "error": "Unauthorized"}
+    except Exception:
+        pass
+
+    # Find the repo root (two levels up from this file)
+    repo_dir = str(Path(__file__).parent.parent.resolve())
+
+    def _do_update():
+        log = logging.getLogger("ch8.update")
+        try:
+            # 1. Set remote if provided
+            if repo:
+                subprocess.run(["git", "-C", repo_dir, "remote", "set-url", "origin", repo],
+                               capture_output=True)
+            # 2. Fetch + reset to ref
+            subprocess.run(["git", "-C", repo_dir, "fetch", "origin"],
+                           capture_output=True, timeout=60)
+            result = subprocess.run(
+                ["git", "-C", repo_dir, "reset", "--hard", f"origin/{ref}"],
+                capture_output=True, text=True, timeout=30
+            )
+            log.info(f"git reset: {result.stdout.strip()}")
+            # 3. Install updated deps
+            subprocess.run(
+                [sys.executable, "-m", "pip", "install", "-q", "-r",
+                 f"{repo_dir}/requirements.txt"],
+                capture_output=True, timeout=120
+            )
+            # 4. Restart daemon (sends SIGTERM → daemon restarts via ch8 up)
+            try:
+                from connect.daemon import get_daemon_pid
+                import signal as _sig
+                pid = get_daemon_pid()
+                if pid:
+                    os.kill(pid, _sig.SIGTERM)
+                    log.info(f"Sent SIGTERM to daemon pid={pid}")
+            except Exception as e:
+                log.warning(f"Could not restart daemon: {e}")
+            log.info("Update complete")
+        except Exception as e:
+            log.error(f"Update failed: {e}")
+
+    # Run in background so we can return 200 immediately
+    threading.Thread(target=_do_update, daemon=True).start()
+
+    git_hash = ""
+    try:
+        git_hash = subprocess.check_output(
+            ["git", "-C", repo_dir, "rev-parse", "--short", "HEAD"],
+            timeout=5
+        ).decode().strip()
+    except Exception:
+        pass
+
+    return {"ok": True, "ref": ref, "current_commit": git_hash, "message": "Update started"}
+
+
+@app.get("/version")
+async def node_version():
+    """Return current version and git commit of this node."""
+    import subprocess
+    repo_dir = str(Path(__file__).parent.parent.resolve())
+    git_hash = ""
+    try:
+        git_hash = subprocess.check_output(
+            ["git", "-C", repo_dir, "rev-parse", "--short", "HEAD"],
+            timeout=5
+        ).decode().strip()
+    except Exception:
+        pass
+    version = ""
+    try:
+        version = (Path(repo_dir) / "VERSION").read_text().strip()
+    except Exception:
+        pass
+    return {"version": version, "commit": git_hash, "node_id": get_node_id()}
+
+
 @app.get("/tools")
 async def list_tools():
     """List all available tools."""

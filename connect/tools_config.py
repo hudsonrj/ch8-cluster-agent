@@ -246,6 +246,33 @@ BUILTIN_TOOLS = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "cluster_update",
+            "description": (
+                "Update all cluster nodes to the latest version from the git repository. "
+                "The master node broadcasts the update command to every online node; each node "
+                "pulls the specified branch/tag and restarts its daemon automatically. "
+                "Use this to keep all nodes on the same version."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "ref": {
+                        "type": "string",
+                        "default": "main",
+                        "description": "Git branch or tag to update to (e.g. 'main', 'v1.2.0')",
+                    },
+                    "nodes": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "Optional list of node_ids to update. Default: all online nodes.",
+                    },
+                },
+            },
+        },
+    },
 ]
 
 # ── Tool execution ──────────────────────────────────────────────────────────
@@ -265,6 +292,7 @@ def execute_tool(name: str, args: dict) -> dict:
         "cluster_task":    _exec_cluster_task,
         "cluster_catalog": _exec_cluster_catalog,
         "ha_status":       _exec_ha_status,
+        "cluster_update":  _exec_cluster_update,
     }
 
     # Check custom tools
@@ -513,6 +541,23 @@ def _exec_cluster_catalog(args: dict) -> dict:
     if detail == "full":
         return {"nodes": ranked, "count": len(ranked)}
     return {"summary": catalog_summary(ranked), "count": len(ranked)}
+
+
+def _exec_cluster_update(args: dict) -> dict:
+    from .cluster_orchestrator import update_cluster
+    ref   = args.get("ref", "main")
+    nodes = args.get("nodes", [])
+    steps = []
+    def _cb(step, msg):
+        steps.append(f"[{step}] {msg}")
+    out = update_cluster(ref=ref, target_nodes=nodes if nodes else None, progress_cb=_cb)
+    return {
+        "updated":  [f"{r.get('hostname','?')} ({r.get('node_id','')[:8]})" for r in out["updated"]],
+        "failed":   [f"{r.get('hostname','?')}: {r.get('error','?')}" for r in out["failed"]],
+        "ref":      out["ref"],
+        "elapsed":  f"{out['elapsed']}s",
+        "progress": steps,
+    }
 
 
 # ── Tool loading ────────────────────────────────────────────────────────────

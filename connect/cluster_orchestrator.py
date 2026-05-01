@@ -554,3 +554,139 @@ def run_cluster_task(
         "nodes_failed": len(failed),
         "elapsed":      elapsed,
     }
+
+
+# ── Cluster Update ────────────────────────────────────────────────────────────
+
+async def _get_node_version_async(node: Dict) -> Dict:
+    """Fetch version/commit from a node."""
+    token = get_access_token()
+    headers = {"Authorization": f"Bearer {token}"}
+    orch_port = int(os.environ.get("CH8_AGENT_PORT", "7879"))
+    address = node.get("address", "")
+    node_id = node.get("node_id", "")
+
+    if address:
+        try:
+            async with httpx.AsyncClient(timeout=10) as c:
+                r = await c.get(f"http://{address}:{orch_port}/version", headers=headers)
+                if r.status_code == 200:
+                    data = r.json()
+                    data["node_id"] = node_id
+                    data["hostname"] = node.get("hostname", "")
+                    return data
+        except Exception:
+            pass
+
+    # Via relay
+    try:
+        async with httpx.AsyncClient(timeout=15) as c:
+            r = await c.get(f"{CONTROL_URL}/api/relay/{node_id}/version", headers=headers)
+            if r.status_code == 200:
+                data = r.json()
+                data["node_id"] = node_id
+                data["hostname"] = node.get("hostname", "")
+                return data
+    except Exception:
+        pass
+
+    return {"node_id": node_id, "hostname": node.get("hostname", ""), "error": "unreachable"}
+
+
+async def _push_update_to_node_async(node: Dict, ref: str, repo: str) -> Dict:
+    """Push update command to a single node."""
+    token = get_access_token()
+    headers = {"Authorization": f"Bearer {token}"}
+    orch_port = int(os.environ.get("CH8_AGENT_PORT", "7879"))
+    address = node.get("address", "")
+    node_id = node.get("node_id", "")
+    payload = {"ref": ref, "repo": repo}
+
+    if address:
+        try:
+            async with httpx.AsyncClient(timeout=15) as c:
+                r = await c.post(f"http://{address}:{orch_port}/update",
+                                 json=payload, headers=headers)
+                if r.status_code == 200:
+                    data = r.json()
+                    data["node_id"] = node_id
+                    data["hostname"] = node.get("hostname", "")
+                    return data
+        except Exception:
+            pass
+
+    # Via relay
+    try:
+        async with httpx.AsyncClient(timeout=20) as c:
+            r = await c.post(f"{CONTROL_URL}/api/relay/{node_id}/update",
+                             json=payload, headers=headers)
+            if r.status_code == 200:
+                data = r.json()
+                data["node_id"] = node_id
+                data["hostname"] = node.get("hostname", "")
+                return data
+    except Exception as e:
+        pass
+
+    return {"node_id": node_id, "hostname": node.get("hostname", ""), "ok": False, "error": "unreachable"}
+
+
+def update_cluster(ref: str = "main", repo: str = "", target_nodes: Optional[List[str]] = None,
+                   progress_cb=None) -> Dict:
+    """
+    Master broadcasts a self-update to all cluster nodes.
+    Each node will git pull origin/<ref> and restart its daemon.
+
+    Args:
+        ref:          Git branch or tag to update to (default: "main")
+        repo:         Optional git remote URL override
+        target_nodes: List of node_ids to update (default: all online nodes)
+        progress_cb:  Optional callback(step, msg)
+
+    Returns:
+        {"updated": [...], "failed": [...], "skipped": [...], "elapsed": N}
+    """
+    def _progress(step, msg):
+        log.info(f"[update/{step}] {msg}")
+        if progress_cb:
+            progress_cb(step, msg)
+
+    t0 = time.time()
+    catalog = get_catalog()
+    if not catalog:
+        return {"updated": [], "failed": [], "skipped": [], "elapsed": 0,
+                "error": "No nodes in catalog"}
+
+    my_id = get_node_id()
+
+    # Filter to target nodes (exclude self — master updates itself separately)
+    nodes = [n for n in catalog if n["node_id"] != my_id]
+    if target_nodes:
+        nodes = [n for n in nodes if n["node_id"] in target_nodes]
+
+    _progress("start", f"Updating {len(nodes)} node(s) to ref={ref}")
+
+    # Check current versions
+    versions = asyncio.run(
+        asyncio.gather(*[_get_node_version_async(n) for n in nodes])
+    )
+    for v in versions:
+        _progress("version", f"{v.get('hostname','?')}: commit={v.get('commit','?')} version={v.get('version','?')}")
+
+    # Push update to all nodes in parallel
+    results = asyncio.run(
+        asyncio.gather(*[_push_update_to_node_async(n, ref, repo) for n in nodes])
+    )
+
+    updated = [r for r in results if r.get("ok")]
+    failed  = [r for r in results if not r.get("ok")]
+
+    _progress("done", f"{len(updated)} updated, {len(failed)} failed in {time.time()-t0:.1f}s")
+
+    return {
+        "updated": updated,
+        "failed":  failed,
+        "skipped": [],
+        "ref":     ref,
+        "elapsed": round(time.time() - t0, 1),
+    }
