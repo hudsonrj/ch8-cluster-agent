@@ -1215,39 +1215,48 @@ async def node_update_endpoint(request: Request):
     repo_dir = str(Path(__file__).parent.parent.resolve())
 
     def _do_update():
-        log = logging.getLogger("ch8.update")
+        import signal as _sig
+        import time as _time
+        _log = logging.getLogger("ch8.update")
+        ch8_bin = str(Path(repo_dir) / "ch8")
         try:
             # 1. Set remote if provided
             if repo:
                 subprocess.run(["git", "-C", repo_dir, "remote", "set-url", "origin", repo],
                                capture_output=True)
-            # 2. Fetch + reset to ref
-            subprocess.run(["git", "-C", repo_dir, "fetch", "origin"],
-                           capture_output=True, timeout=60)
-            result = subprocess.run(
-                ["git", "-C", repo_dir, "reset", "--hard", f"origin/{ref}"],
-                capture_output=True, text=True, timeout=30
-            )
-            log.info(f"git reset: {result.stdout.strip()}")
+            # 2. Pull latest (try requested ref, fall back to master)
+            r = subprocess.run(["git", "-C", repo_dir, "pull", "origin", ref],
+                               capture_output=True, text=True, timeout=60)
+            if r.returncode != 0:
+                subprocess.run(["git", "-C", repo_dir, "pull", "origin", "master"],
+                               capture_output=True, timeout=60)
+            _log.info(f"git pull {ref}: {(r.stdout or r.stderr).strip()[:120]}")
             # 3. Install updated deps
             subprocess.run(
                 [sys.executable, "-m", "pip", "install", "-q", "-r",
                  f"{repo_dir}/requirements.txt"],
                 capture_output=True, timeout=120
             )
-            # 4. Restart daemon (sends SIGTERM → daemon restarts via ch8 up)
-            try:
-                from connect.daemon import get_daemon_pid
-                import signal as _sig
-                pid = get_daemon_pid()
-                if pid:
+            # 4. Stop all agents (*.pid files)
+            from pathlib import Path as _P
+            pid_dir = _P.home() / ".config" / "ch8"
+            for pid_file in pid_dir.glob("*.pid"):
+                try:
+                    pid = int(pid_file.read_text().strip())
                     os.kill(pid, _sig.SIGTERM)
-                    log.info(f"Sent SIGTERM to daemon pid={pid}")
-            except Exception as e:
-                log.warning(f"Could not restart daemon: {e}")
-            log.info("Update complete")
+                    _log.info(f"Stopped {pid_file.stem} (pid {pid})")
+                except Exception:
+                    pid_file.unlink(missing_ok=True)
+            # 5. Re-launch with fresh code
+            _time.sleep(2)
+            subprocess.Popen(
+                [sys.executable, ch8_bin, "up"],
+                cwd=repo_dir, stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL, start_new_session=True,
+            )
+            _log.info("Update complete — ch8 up relaunched")
         except Exception as e:
-            log.error(f"Update failed: {e}")
+            _log.error(f"Update failed: {e}")
 
     # Run in background so we can return 200 immediately
     threading.Thread(target=_do_update, daemon=True).start()

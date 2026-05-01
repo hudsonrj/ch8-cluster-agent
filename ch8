@@ -755,27 +755,89 @@ def cmd_doctor():
     """Diagnose issues"""
     print(f"{Colors.BLUE}CH8 Agent System Diagnostics{Colors.NC}\n")
 
-    checks = [
-        ("Python version", ["python3", "--version"]),
-        ("Redis connection", ["redis-cli", "ping"]),
-        ("Virtual environment", ["test", "-d", "venv"]),
-        ("Master config", ["test", "-f", "config/master.yaml"]),
-        ("Worker config", ["test", "-f", "config/worker.yaml"]),
-    ]
+    config_dir = Path.home() / ".config" / "ch8"
+    script_dir = Path(__file__).resolve().parent
 
-    for name, cmd in checks:
-        result = subprocess.run(cmd, capture_output=True, text=True)
-        if result.returncode == 0:
-            print(f"  {Colors.GREEN}✓{Colors.NC} {name}")
-        else:
-            print(f"  {Colors.RED}✗{Colors.NC} {name}")
+    # Basic checks
+    checks = []
 
-    print(f"\n{Colors.BLUE}Cluster processes:{Colors.NC}")
-    subprocess.run(["ps", "aux"], stdout=subprocess.PIPE)
-    subprocess.run(["grep", "-E", "cluster/(master|worker)"], stdin=subprocess.PIPE)
+    # Python
+    r = subprocess.run(["python3", "--version"], capture_output=True, text=True)
+    checks.append(("Python", r.returncode == 0, r.stdout.strip()))
 
-    print(f"\n{Colors.BLUE}Redis workers:{Colors.NC}")
-    subprocess.run(["redis-cli", "-a", "1q2w3e4r", "SMEMBERS", "cluster:workers"])
+    # Authentication
+    creds = config_dir / "auth.json"
+    checks.append(("Credentials", creds.exists(), "~/.config/ch8/auth.json" if creds.exists() else "not found"))
+
+    # Daemon
+    from connect.daemon import is_daemon_running, get_daemon_pid
+    pid = get_daemon_pid()
+    running = is_daemon_running()
+    checks.append(("Daemon", running, f"pid {pid}" if running else "stopped"))
+
+    # Orchestrator (port 7879)
+    try:
+        import httpx
+        resp = httpx.get("http://127.0.0.1:7879/health", timeout=3)
+        checks.append(("Orchestrator", resp.status_code == 200, resp.json().get("model", "ok")))
+    except Exception as e:
+        checks.append(("Orchestrator", False, str(e)[:60]))
+
+    # Tailscale
+    from connect.daemon import check_tailscale
+    ts = check_tailscale()
+    if ts["running"]:
+        checks.append(("Tailscale", True, ts["ip"]))
+    elif ts["installed"]:
+        checks.append(("Tailscale", False, "installed but not running"))
+    else:
+        checks.append(("Tailscale", False, "not installed"))
+
+    # Control server
+    try:
+        import httpx
+        from connect.auth import CONTROL_URL
+        resp = httpx.get(f"{CONTROL_URL}/health", timeout=5)
+        data = resp.json()
+        checks.append(("Control server", resp.status_code == 200,
+                       f"{data.get('online_nodes',0)} nodes online"))
+    except Exception as e:
+        checks.append(("Control server", False, str(e)[:60]))
+
+    # Git
+    r = subprocess.run(["git", "-C", str(script_dir), "rev-parse", "--short", "HEAD"],
+                       capture_output=True, text=True, timeout=5)
+    version = (script_dir / "VERSION").read_text().strip() if (script_dir / "VERSION").exists() else "?"
+    checks.append(("Version", r.returncode == 0, f"v{version} @ {r.stdout.strip()}"))
+
+    # AI config
+    try:
+        from connect.ai_config import get_provider_info
+        ai = get_provider_info()
+        checks.append(("AI provider", bool(ai.get("provider")),
+                       f"{ai.get('provider')} / {ai.get('model','?')[:40]}"))
+    except Exception as e:
+        checks.append(("AI provider", False, str(e)[:60]))
+
+    # Print results
+    for name, ok, detail in checks:
+        icon = f"{Colors.GREEN}✓{Colors.NC}" if ok else f"{Colors.RED}✗{Colors.NC}"
+        print(f"  {icon} {name:18s} {detail}")
+
+    # Running agents
+    print(f"\n{Colors.BLUE}Agents:{Colors.NC}")
+    skip = {"daemon.pid", "state.lock"}
+    for pid_file in sorted(config_dir.glob("*.pid")):
+        if pid_file.name in skip:
+            continue
+        agent_name = pid_file.stem
+        try:
+            pid = int(pid_file.read_text().strip())
+            os.kill(pid, 0)
+            print(f"  {Colors.GREEN}●{Colors.NC} {agent_name} (pid {pid})")
+        except Exception:
+            print(f"  {Colors.RED}●{Colors.NC} {agent_name} (dead)")
+            pid_file.unlink(missing_ok=True)
 
 def _load_env():
     """Load environment config from ~/.config/ch8/env if it exists."""
