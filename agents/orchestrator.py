@@ -1228,33 +1228,33 @@ async def node_update_endpoint(request: Request):
             r = subprocess.run(["git", "-C", repo_dir, "pull", "origin", ref],
                                capture_output=True, text=True, timeout=60)
             if r.returncode != 0:
-                subprocess.run(["git", "-C", repo_dir, "pull", "origin", "master"],
-                               capture_output=True, timeout=60)
-            _log.info(f"git pull {ref}: {(r.stdout or r.stderr).strip()[:120]}")
-            # 3. Install updated deps
-            subprocess.run(
-                [sys.executable, "-m", "pip", "install", "-q", "-r",
-                 f"{repo_dir}/requirements.txt"],
-                capture_output=True, timeout=120
+                # Try with --rebase to avoid merge conflicts
+                r = subprocess.run(["git", "-C", repo_dir, "pull", "--rebase", "origin", "master"],
+                                   capture_output=True, text=True, timeout=60)
+            _log.info(f"git pull {ref}: {(r.stdout or r.stderr or '').strip()[:120]}")
+            # 3. Install updated deps (try --break-system-packages for system python)
+            pip_r = subprocess.run(
+                [sys.executable, "-m", "pip", "install", "-q", "--break-system-packages",
+                 "-r", f"{repo_dir}/requirements.txt"],
+                capture_output=True, text=True, timeout=120
             )
-            # 4. Stop all agents (*.pid files)
-            from pathlib import Path as _P
-            pid_dir = _P.home() / ".config" / "ch8"
-            for pid_file in pid_dir.glob("*.pid"):
-                try:
-                    pid = int(pid_file.read_text().strip())
-                    os.kill(pid, _sig.SIGTERM)
-                    _log.info(f"Stopped {pid_file.stem} (pid {pid})")
-                except Exception:
-                    pid_file.unlink(missing_ok=True)
-            # 5. Re-launch with fresh code
-            _time.sleep(2)
+            if pip_r.returncode != 0:
+                subprocess.run(
+                    [sys.executable, "-m", "pip", "install", "-q",
+                     "-r", f"{repo_dir}/requirements.txt"],
+                    capture_output=True, timeout=120
+                )
+            # 4. Restart: run `ch8 down && ch8 up` as a shell command
+            #    This properly stops everything and relaunches with new code
+            _time.sleep(1)
             subprocess.Popen(
-                [sys.executable, ch8_bin, "up"],
-                cwd=repo_dir, stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL, start_new_session=True,
+                f"{sys.executable} {ch8_bin} down; sleep 2; {sys.executable} {ch8_bin} up",
+                shell=True, cwd=repo_dir,
+                stdout=open(f"{repo_dir}/update.log", "a"),
+                stderr=subprocess.STDOUT,
+                start_new_session=True,
             )
-            _log.info("Update complete — ch8 up relaunched")
+            _log.info("Update complete — restarting via ch8 down/up")
         except Exception as e:
             _log.error(f"Update failed: {e}")
 
