@@ -454,12 +454,15 @@ def _run_election(my_id: str, nodes: List[Dict]) -> dict:
     else:
         role = "worker"
 
-    # Só o master publica (evita race condition)
+    # Publica a eleição — master tem preferência, mas qualquer nó pode publicar
+    # para garantir que o control server sempre tenha a informação atualizada
     if role == "master":
         publish_election(master, standbys)
         log.info(f"HA: Published election — I am master")
     else:
-        log.info(f"HA: Master is {master.get('hostname')}, I am {role}")
+        # Workers e standbys também publicam para manter o control server atualizado
+        publish_election(master, standbys)
+        log.info(f"HA: Master is {master.get('hostname')}, I am {role} — published election")
 
     state = load_ha_state()
     state["role"]             = role
