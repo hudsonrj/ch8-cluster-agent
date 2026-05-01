@@ -105,18 +105,44 @@ class ConnectDaemon:
         _write_pid()
         log.info(f"CH8 daemon starting  node={get_node_id()}  port={self.port}")
 
+        self._ha_master: Optional[object] = None
+        self._ha_standby: Optional[object] = None
+
         try:
             # Initial registration
             await self._register()
 
-            # Run all background tasks concurrently
-            await asyncio.gather(
+            # Bootstrap HA role after successful registration
+            ha_result = await asyncio.get_event_loop().run_in_executor(None, _bootstrap_ha_safe)
+            role = ha_result.get("role", "worker")
+            log.info(f"HA role: {role}")
+
+            # Build task list based on role
+            tasks = [
                 self._heartbeat_loop(),
                 self._peer_discovery_loop(),
                 self._wait_for_stop(),
-            )
+            ]
+
+            if role == "master":
+                standbys = ha_result.get("standbys", [])
+                from .cluster_ha import MasterHA
+                self._ha_master = MasterHA(standbys)
+                tasks.append(self._ha_master.run())
+            elif role == "standby":
+                master = ha_result.get("master", {})
+                from .cluster_ha import StandbyHA
+                self._ha_standby = StandbyHA(master)
+                tasks.append(self._ha_standby.run())
+
+            # Run all background tasks concurrently
+            await asyncio.gather(*tasks)
         finally:
             log.info("Daemon shutting down...")
+            if self._ha_master:
+                self._ha_master.stop()
+            if self._ha_standby:
+                self._ha_standby.stop()
             await self.control.deregister()
             await self.control.close()
             _clear_pid()
@@ -515,6 +541,16 @@ def _get_advertise_address() -> str:
         return lan_ip
     except Exception:
         return "127.0.0.1"
+
+
+def _bootstrap_ha_safe() -> dict:
+    """Run bootstrap_ha() safely — never raises, returns empty dict on error."""
+    try:
+        from .cluster_ha import bootstrap_ha
+        return bootstrap_ha()
+    except Exception as e:
+        log.warning(f"HA bootstrap failed (non-fatal): {e}")
+        return {"role": "worker"}
 
 
 async def _main(advertise_addr=None, port=NODE_PORT, capabilities=None):

@@ -1098,6 +1098,103 @@ async def execute_tool_endpoint(request: Request):
         return {"ok": False, "error": str(e)}
 
 
+@app.post("/cluster/task")
+async def cluster_task_endpoint(request: Request):
+    """Receive a cluster task from the dashboard and distribute it."""
+    try:
+        body = await request.json()
+
+        # Handle HA sync (from master)
+        if "ha_sync" in body:
+            try:
+                from connect.cluster_ha import _sync_state, load_ha_state, save_ha_state
+                _sync_state.from_dict(body["ha_sync"])
+                state = load_ha_state()
+                state["last_master_seen"] = int(__import__("time").time())
+                save_ha_state(state)
+            except Exception:
+                pass
+            return {"ok": True}
+
+        task     = body.get("task", "")
+        strategy = body.get("strategy", "auto")
+        nodes    = body.get("nodes", [])
+
+        if not task:
+            return {"error": "Missing 'task'"}
+
+        from connect.cluster_orchestrator import run_cluster_task
+        steps = []
+        def _cb(step, msg):
+            steps.append(f"[{step}] {msg}")
+
+        result = run_cluster_task(
+            task, strategy=strategy,
+            target_nodes=nodes if nodes else None,
+            progress_cb=_cb
+        )
+
+        return {
+            "result":       result["result"],
+            "plan":         result["plan"],
+            "results":      result["results"],
+            "nodes_used":   result["nodes_used"],
+            "nodes_failed": result["nodes_failed"],
+            "elapsed":      f"{result['elapsed']:.1f}s",
+            "subtasks":     len(result["plan"].get("subtasks", [])),
+            "reasoning":    result["plan"].get("reasoning", ""),
+            "progress":     steps,
+        }
+    except Exception as e:
+        import logging
+        logging.getLogger("ch8.orchestrator").error(f"cluster_task error: {e}", exc_info=True)
+        return {"error": str(e)}
+
+
+@app.post("/ha/sync")
+async def ha_sync_endpoint(request: Request):
+    """Receive HA state sync from master."""
+    try:
+        body = await request.json()
+        from connect.cluster_ha import _sync_state, load_ha_state, save_ha_state
+        state_dict = body.get("ha_sync", body)
+        _sync_state.from_dict(state_dict)
+        s = load_ha_state()
+        s["last_master_seen"] = int(__import__("time").time())
+        s["master_seq"] = _sync_state.seq
+        save_ha_state(s)
+        return {"ok": True, "seq": _sync_state.seq}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+
+@app.post("/ha/new_master")
+async def ha_new_master_endpoint(request: Request):
+    """Receive notification that a new master was elected."""
+    try:
+        body  = await request.json()
+        info  = body.get("ha_new_master", body)
+        from connect.cluster_ha import load_ha_state, save_ha_state
+        state = load_ha_state()
+        state["master_id"]       = info.get("master_id")
+        state["master_hostname"] = info.get("master_hostname")
+        state["standbys"]        = info.get("standbys", [])
+        state["elected_at"]      = info.get("elected_at", 0)
+        from connect.auth import get_node_id
+        my_id = get_node_id()
+        standby_ids = [s.get("node_id") for s in state["standbys"]]
+        if state["master_id"] == my_id:
+            state["role"] = "master"
+        elif my_id in standby_ids:
+            state["role"] = "standby"
+        else:
+            state["role"] = "worker"
+        save_ha_state(state)
+        return {"ok": True, "role": state["role"]}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+
 @app.get("/tools")
 async def list_tools():
     """List all available tools."""

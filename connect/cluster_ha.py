@@ -304,7 +304,11 @@ class StandbyHA:
         log.info(f"Standby HA started. Watching master: {self.master.get('hostname')}")
         while not self._stop.is_set():
             await asyncio.sleep(5)
-            elapsed = time.time() - self._last_master_sync
+            # Use the file-based timestamp so the orchestrator's /ha/sync endpoint
+            # (running in a different process) can reset the countdown
+            file_last_seen = load_ha_state().get("last_master_seen", 0)
+            effective_last = max(self._last_master_sync, float(file_last_seen))
+            elapsed = time.time() - effective_last
             if elapsed > FAILOVER_TIMEOUT and not self._failed_over:
                 log.warning(
                     f"Master {self.master.get('hostname')} silent for {elapsed:.0f}s — "
