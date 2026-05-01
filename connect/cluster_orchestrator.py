@@ -123,6 +123,16 @@ def rank_nodes(nodes: List[Dict]) -> List[Dict]:
         "deepseek": 60, "phi4": 55, "phi3": 45,
     }
 
+    # Load manual priorities from ~/.config/ch8/ha_priority.json
+    # Format: {"node_id": bonus_score}  e.g. {"node_23b8a646e03f3e74": 99999}
+    import json as _json
+    _prio_file = CONFIG_DIR / "ha_priority.json"
+    _priorities: dict = {}
+    try:
+        _priorities = _json.loads(_prio_file.read_text())
+    except Exception:
+        pass
+
     def score(n):
         model = n.get("ai_model", "").lower()
         rank  = max((v for k, v in MODEL_RANK.items() if k in model), default=30)
@@ -136,7 +146,8 @@ def rank_nodes(nodes: List[Dict]) -> List[Dict]:
         mem   = n.get("mem_total_gb", 0)
         cores = n.get("cpu_cores", 1)
         load  = n.get("cpu_pct", 0) + n.get("mem_pct", 0)
-        return rank * 100 + mem * 10 + cores * 2 - load
+        prio  = _priorities.get(n.get("node_id", ""), 0)
+        return rank * 100 + mem * 10 + cores * 2 - load + prio
 
     return sorted(nodes, key=score, reverse=True)
 
