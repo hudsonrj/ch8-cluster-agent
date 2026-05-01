@@ -1208,17 +1208,8 @@ async def node_update_endpoint(request: Request):
     except Exception:
         body = {}
 
-    ref    = body.get("ref", "main")
-    repo   = body.get("repo", "")
-    token  = request.headers.get("Authorization", "").removeprefix("Bearer ").strip()
-
-    # Validate token
-    try:
-        from connect.auth import get_access_token
-        if token != get_access_token():
-            return {"ok": False, "error": "Unauthorized"}
-    except Exception:
-        pass
+    ref  = body.get("ref", "main")
+    repo = body.get("repo", "")
 
     # Find the repo root (two levels up from this file)
     repo_dir = str(Path(__file__).parent.parent.resolve())
