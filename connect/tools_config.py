@@ -215,6 +215,18 @@ BUILTIN_TOOLS = [
     {
         "type": "function",
         "function": {
+            "name": "ha_status",
+            "description": (
+                "Get the High Availability status of the cluster: which node is the master "
+                "orchestrator, which are standbys, last failover time, and sync state. "
+                "Use this to understand the cluster's resilience posture."
+            ),
+            "parameters": {"type": "object", "properties": {}},
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "cluster_catalog",
             "description": (
                 "Get the live catalog of all nodes in the cluster: their AI models, "
@@ -252,6 +264,7 @@ def execute_tool(name: str, args: dict) -> dict:
         "node_chat":       _exec_node_chat,
         "cluster_task":    _exec_cluster_task,
         "cluster_catalog": _exec_cluster_catalog,
+        "ha_status":       _exec_ha_status,
     }
 
     # Check custom tools
@@ -480,6 +493,16 @@ def _exec_cluster_task(args: dict) -> dict:
         "subtasks":     len(out["plan"].get("subtasks", [])),
         "progress":     steps,
     }
+
+
+def _exec_ha_status(args: dict) -> dict:
+    try:
+        from .cluster_ha import ha_status, get_current_leader
+        local  = ha_status()
+        remote = get_current_leader() or {}
+        return {"local": local, "control_server": remote}
+    except Exception as e:
+        return {"error": str(e)}
 
 
 def _exec_cluster_catalog(args: dict) -> dict:
