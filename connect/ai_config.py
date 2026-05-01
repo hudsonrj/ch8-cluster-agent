@@ -113,6 +113,109 @@ def get_provider_info() -> dict:
     }
 
 
+class AIClient:
+    """
+    Wrapper unificado para qualquer provedor AI configurado.
+    Expõe um único método: chat(messages, **kwargs) -> str
+    """
+    def __init__(self, config: dict):
+        self.provider = config["provider"]
+        self.model    = config["model"]
+        self.api_key  = config["api_key"]
+        self.api_url  = config["api_url"]
+        self.aws_region = config.get("aws_region", "us-east-1")
+
+    def chat(self, messages: list, max_tokens: int = 4096, temperature: float = 0.7) -> str:
+        p = self.provider
+        if p == "ollama":
+            return self._ollama(messages, max_tokens, temperature)
+        elif p in ("openai", "groq", "custom"):
+            return self._openai_compat(messages, max_tokens, temperature)
+        elif p == "anthropic":
+            return self._anthropic(messages, max_tokens, temperature)
+        elif p == "bedrock":
+            return self._bedrock(messages, max_tokens, temperature)
+        else:
+            raise ValueError(f"Unknown provider: {p}")
+
+    def _ollama(self, messages, max_tokens, temperature):
+        import httpx
+        base = self.api_url or "http://localhost:11434"
+        r = httpx.post(f"{base}/api/chat", json={
+            "model": self.model,
+            "messages": messages,
+            "stream": False,
+            "options": {"num_predict": max_tokens, "temperature": temperature},
+        }, timeout=180)
+        r.raise_for_status()
+        return r.json()["message"]["content"]
+
+    def _openai_compat(self, messages, max_tokens, temperature):
+        import httpx
+        base = self.api_url
+        key  = self.api_key
+        if self.provider == "groq":
+            base = base or "https://api.groq.com/openai/v1"
+            key  = key or os.environ.get("GROQ_API_KEY", "")
+        elif self.provider == "openai":
+            base = base or "https://api.openai.com/v1"
+            key  = key or os.environ.get("OPENAI_API_KEY", "")
+        r = httpx.post(f"{base}/chat/completions", json={
+            "model": self.model,
+            "messages": messages,
+            "max_tokens": max_tokens,
+            "temperature": temperature,
+        }, headers={"Authorization": f"Bearer {key}"}, timeout=180)
+        r.raise_for_status()
+        return r.json()["choices"][0]["message"]["content"]
+
+    def _anthropic(self, messages, max_tokens, temperature):
+        import httpx
+        key = self.api_key or os.environ.get("ANTHROPIC_API_KEY", "")
+        system_msgs = [m for m in messages if m["role"] == "system"]
+        user_msgs   = [m for m in messages if m["role"] != "system"]
+        payload = {
+            "model": self.model,
+            "max_tokens": max_tokens,
+            "messages": user_msgs,
+        }
+        if system_msgs:
+            payload["system"] = system_msgs[0]["content"]
+        r = httpx.post("https://api.anthropic.com/v1/messages", json=payload,
+                       headers={"x-api-key": key, "anthropic-version": "2023-06-01"},
+                       timeout=180)
+        r.raise_for_status()
+        return r.json()["content"][0]["text"]
+
+    def _bedrock(self, messages, max_tokens, temperature):
+        import boto3
+        region = self.aws_region or os.environ.get("AWS_DEFAULT_REGION", "us-east-1")
+        client = boto3.client("bedrock-runtime", region_name=region)
+        # Format for Claude on Bedrock
+        system_msgs = [m for m in messages if m["role"] == "system"]
+        user_msgs   = [m for m in messages if m["role"] != "system"]
+        body = {
+            "anthropic_version": "bedrock-2023-05-31",
+            "max_tokens": max_tokens,
+            "messages": user_msgs,
+        }
+        if system_msgs:
+            body["system"] = system_msgs[0]["content"]
+        import json as _json
+        resp = client.invoke_model(
+            modelId=self.model,
+            body=_json.dumps(body),
+            contentType="application/json",
+        )
+        result = _json.loads(resp["body"].read())
+        return result["content"][0]["text"]
+
+
+def get_ai_client() -> AIClient:
+    """Return a configured AIClient ready to call .chat()."""
+    return AIClient(get_provider_info())
+
+
 def interactive_setup() -> dict:
     """Interactive AI provider setup. Returns the config dict."""
     print("\n  AI Provider Configuration\n")

@@ -172,6 +172,68 @@ BUILTIN_TOOLS = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "cluster_task",
+            "description": (
+                "Distribute a complex task across ALL nodes in the cluster in parallel. "
+                "The system automatically: (1) fetches the live catalog of all nodes with their models, "
+                "RAM, CPU, and services; (2) uses the strongest available model to plan and break the "
+                "task into subtasks proportional to each node's capacity; (3) executes subtasks in "
+                "parallel across nodes; (4) consolidates all results into a single coherent response. "
+                "Use this for tasks that benefit from parallelism: large analyses, multi-service "
+                "inspections, distributed code generation, comprehensive reports, etc."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "task": {
+                        "type": "string",
+                        "description": "Full description of the task to distribute across the cluster",
+                    },
+                    "strategy": {
+                        "type": "string",
+                        "enum": ["auto", "parallel", "sequential", "broadcast"],
+                        "default": "auto",
+                        "description": (
+                            "auto=LLM decides, parallel=all at once, "
+                            "sequential=one by one (each result informs the next), "
+                            "broadcast=exact same task sent to every node"
+                        ),
+                    },
+                    "nodes": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "Restrict to specific node hostnames or IDs (empty = use all online nodes)",
+                    },
+                },
+                "required": ["task"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "cluster_catalog",
+            "description": (
+                "Get the live catalog of all nodes in the cluster: their AI models, "
+                "hardware specs (CPU cores, RAM), running services, tools, and current load. "
+                "Use this to understand what the cluster can do before deciding how to distribute work."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "detail": {
+                        "type": "string",
+                        "enum": ["summary", "full"],
+                        "default": "summary",
+                        "description": "summary=compact overview, full=all fields per node",
+                    },
+                },
+            },
+        },
+    },
 ]
 
 # ── Tool execution ──────────────────────────────────────────────────────────
@@ -188,6 +250,8 @@ def execute_tool(name: str, args: dict) -> dict:
         "service_restart": _exec_service_restart,
         "security_scan":   _exec_security_scan,
         "node_chat":       _exec_node_chat,
+        "cluster_task":    _exec_cluster_task,
+        "cluster_catalog": _exec_cluster_catalog,
     }
 
     # Check custom tools
@@ -391,6 +455,41 @@ def _exec_node_chat(args: dict) -> dict:
         return {"error": f"Relay also failed. HTTP {r.status_code}: {r.text[:500]}. Direct error: {direct_error}"}
     except Exception as e:
         return {"error": f"Relay failed: {e}. Direct error: {direct_error}"}
+
+
+def _exec_cluster_task(args: dict) -> dict:
+    from .cluster_orchestrator import run_cluster_task
+    task     = args.get("task", "")
+    strategy = args.get("strategy", "auto")
+    nodes    = args.get("nodes", [])
+    if not task:
+        return {"error": "Missing 'task' argument"}
+    steps = []
+    def _cb(step, msg):
+        steps.append(f"[{step}] {msg}")
+    out = run_cluster_task(task, strategy=strategy,
+                           target_nodes=nodes if nodes else None,
+                           progress_cb=_cb)
+    return {
+        "result":       out["result"],
+        "nodes_used":   out["nodes_used"],
+        "nodes_failed": out["nodes_failed"],
+        "elapsed":      f"{out['elapsed']:.1f}s",
+        "strategy":     out["plan"].get("strategy"),
+        "reasoning":    out["plan"].get("reasoning"),
+        "subtasks":     len(out["plan"].get("subtasks", [])),
+        "progress":     steps,
+    }
+
+
+def _exec_cluster_catalog(args: dict) -> dict:
+    from .cluster_orchestrator import get_catalog, catalog_summary, rank_nodes
+    detail = args.get("detail", "summary")
+    nodes  = get_catalog()
+    ranked = rank_nodes(nodes)
+    if detail == "full":
+        return {"nodes": ranked, "count": len(ranked)}
+    return {"summary": catalog_summary(ranked), "count": len(ranked)}
 
 
 # ── Tool loading ────────────────────────────────────────────────────────────
