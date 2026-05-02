@@ -267,6 +267,9 @@ def cmd_up(token=None):
         _start_agent("inova_test", "inova_test.py")
         _start_agent("fix_agent", "fix_agent.py")
 
+    # Start Knowledge Agent (cluster knowledge vault)
+    if Path("/data2/knowledge").exists():
+        _start_agent("knowledge_agent", "knowledge_agent.py")
 
     # Wait for daemon to write its PID (up to 8s)
     import time

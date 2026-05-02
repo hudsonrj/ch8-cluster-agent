@@ -1295,6 +1295,55 @@ async def node_version():
     return {"version": version, "commit": git_hash, "node_id": _get_nid()}
 
 
+@app.post("/knowledge/write")
+async def knowledge_write(request: Request):
+    """
+    API for any agent to write a note to the knowledge vault.
+    Body: {"category": "docs", "title": "My Note", "content": "...", "tags": ["tag1"]}
+    """
+    try:
+        body = await request.json()
+        category = body.get("category", "inbox")
+        title = body.get("title", f"note-{int(time.time())}")
+        content = body.get("content", "")
+        tags = body.get("tags", [])
+
+        if not content:
+            return {"ok": False, "error": "empty content"}
+
+        sys.path.insert(0, str(Path(__file__).parent))
+        from knowledge_agent import write_note
+        path = write_note(category, title, content, tags)
+        return {"ok": True, "path": path}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+
+@app.get("/knowledge/search")
+async def knowledge_search(q: str = ""):
+    """Search the knowledge vault by text."""
+    if not q:
+        return {"results": []}
+    vault = Path("/data2/knowledge")
+    results = []
+    for md in vault.rglob("*.md"):
+        try:
+            text = md.read_text()
+            if q.lower() in text.lower():
+                # Extract context around match
+                idx = text.lower().index(q.lower())
+                snippet = text[max(0, idx-50):idx+len(q)+100].replace("\n", " ")
+                results.append({
+                    "path": str(md.relative_to(vault)),
+                    "snippet": snippet[:200],
+                })
+                if len(results) >= 20:
+                    break
+        except Exception:
+            continue
+    return {"results": results, "query": q, "count": len(results)}
+
+
 @app.get("/tools")
 async def list_tools():
     """List all available tools."""
