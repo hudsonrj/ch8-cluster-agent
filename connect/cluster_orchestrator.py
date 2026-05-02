@@ -34,6 +34,22 @@ log = logging.getLogger("ch8.cluster")
 
 CONFIG_DIR = Path(os.environ.get("CH8_CONFIG_DIR", Path.home() / ".config" / "ch8"))
 
+
+def _run_async(coro):
+    """Run an async coroutine from sync code, handling nested event loops."""
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = None
+
+    if loop and loop.is_running():
+        # Already in an async context (e.g. called from FastAPI handler)
+        import concurrent.futures
+        with concurrent.futures.ThreadPoolExecutor(1) as pool:
+            return pool.submit(asyncio.run, coro).result()
+    else:
+        return asyncio.run(coro)
+
 # Timeout para esperar resposta de cada nó (segundos)
 NODE_TIMEOUT = 180
 
@@ -542,7 +558,7 @@ def run_cluster_task(
 
     # 3. Execução
     _progress("execute", "Distribuindo e executando subtarefas...")
-    results = asyncio.run(execute_plan_async(plan, catalog))
+    results = _run_async(execute_plan_async(plan, catalog))
 
     successful = [r for r in results if "result" in r]
     failed     = [r for r in results if "error" in r]
@@ -678,14 +694,14 @@ def update_cluster(ref: str = "main", repo: str = "", target_nodes: Optional[Lis
     _progress("start", f"Updating {len(nodes)} node(s) to ref={ref}")
 
     # Check current versions
-    versions = asyncio.run(
+    versions = _run_async(
         asyncio.gather(*[_get_node_version_async(n) for n in nodes])
     )
     for v in versions:
         _progress("version", f"{v.get('hostname','?')}: commit={v.get('commit','?')} version={v.get('version','?')}")
 
     # Push update to all nodes in parallel
-    results = asyncio.run(
+    results = _run_async(
         asyncio.gather(*[_push_update_to_node_async(n, ref, repo) for n in nodes])
     )
 

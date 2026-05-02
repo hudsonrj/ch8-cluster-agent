@@ -393,8 +393,8 @@ def _read_agents_from_state() -> list:
     """Read agents registered by external monitor processes via state.json."""
     try:
         agents = json.loads(STATE_FILE.read_text()).get("agents", [])
-        # Only include agents updated in the last 60s
-        cutoff = time.time() - 60
+        # Include agents updated in the last 35 minutes (covers 30min cycle intervals)
+        cutoff = time.time() - 2100
         return [a for a in agents if a.get("updated_at", 0) > cutoff]
     except Exception:
         return []

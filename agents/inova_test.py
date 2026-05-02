@@ -58,6 +58,11 @@ SAFE_TEST_RE = re.compile(r'^python3\s+[\w./-]+\s*(--test|--check|--validate|--d
 SANDBOX_DIR.mkdir(parents=True, exist_ok=True)
 BACKLOG_DIR.mkdir(parents=True, exist_ok=True)
 
+# Runtime state
+_last_status_msg = "Starting..."
+_action_history = []  # last N actions [{ts, action, result}]
+MAX_HISTORY = 10
+
 
 # ── Safety Checks ─────────────────────────────────────────────────────────────
 
@@ -138,11 +143,39 @@ def _rotate_log():
 
 # ── State Management ──────────────────────────────────────────────────────────
 
+def _record_action(action: str, result: str):
+    """Record an action in history (kept in memory + state details)."""
+    global _action_history
+    _action_history.append({
+        "ts": datetime.now().strftime("%H:%M:%S"),
+        "action": action[:80],
+        "result": result[:80],
+    })
+    _action_history = _action_history[-MAX_HISTORY:]
+
+
 def _update_agent_state(status: str, task: str):
     """Register this agent in the shared state.json."""
+    global _last_status_msg
+    _last_status_msg = task
     try:
         state = json.loads(STATE_FILE.read_text()) if STATE_FILE.exists() else {}
         agents = state.get("agents", [])
+
+        # Build details with history
+        counter = _get_daily_counter()
+        projects = sum(1 for d in SANDBOX_DIR.iterdir() if d.is_dir())
+        details = {
+            "history": _action_history[-MAX_HISTORY:],
+            "stats": {
+                "projects_total": projects,
+                "cycles_today": counter.get("cycles", 0),
+                "max_cycles_day": MAX_CYCLES_PER_DAY,
+                "max_projects": MAX_PROJECTS,
+                "interval_min": CYCLE_INTERVAL // 60,
+            },
+        }
+
         entry = {
             "name": "inova_test",
             "status": status,
@@ -155,7 +188,7 @@ def _update_agent_state(status: str, task: str):
             "predictions": 0,
             "heavy_procs": 0,
             "tools": ["cluster_task", "file_write"],
-            "details": {},
+            "details": details,
             "updated_at": int(time.time()),
         }
         agents = [a for a in agents if a.get("name") != "inova_test"]
@@ -378,18 +411,22 @@ def run_cycle() -> bool:
     # 1. Generate
     idea = generate_idea(ai)
     log.info(f"Idea: {idea['name']} — {idea['description']}")
+    _record_action("idea", f"{idea['name']}: {idea['description'][:50]}")
     _update_agent_state("running", f"Building: {idea['name']}")
 
     # 2. Build
     build_result = build_project(ai, idea)
     if not build_result["files_created"]:
+        _record_action("build", "FAILED: no files")
         log.error("Build produced no files")
         return False
+    _record_action("build", f"{len(build_result['files_created'])} file(s)")
     log.info(f"Built {len(build_result['files_created'])} file(s)")
 
     # 3. Test
     _update_agent_state("running", f"Testing: {idea['name']}")
     test_result = test_project(idea)
+    _record_action("test", f"{idea['name']}: {test_result['status']}")
     log.info(f"Test: {test_result['status']}")
 
     # 4. Save metadata
@@ -482,11 +519,15 @@ def main():
 
 
 def _wait(seconds: int, should_stop):
-    """Wait with early exit on stop signal."""
-    for _ in range(seconds):
+    """Wait with early exit on stop signal. Refreshes state every 30s."""
+    elapsed = 0
+    while elapsed < seconds:
         if should_stop():
             break
         time.sleep(1)
+        elapsed += 1
+        if elapsed % 30 == 0:
+            _update_agent_state("idle", _last_status_msg)
 
 
 if __name__ == "__main__":

@@ -38,6 +38,11 @@ log = logging.getLogger("ch8.fix_agent")
 
 SANDBOX_DIR = Path("/data2/sandbox")
 BACKLOG_DIR = Path("/data2/backlog")
+
+# Runtime state
+_last_status_msg = "Starting..."
+_action_history = []
+MAX_HISTORY = 10
 STATE_FILE = Path.home() / ".config" / "ch8" / "state.json"
 PID_FILE = Path.home() / ".config" / "ch8" / "fix_agent.pid"
 LOG_FILE = Path.home() / ".config" / "ch8" / "fix_agent.log"
@@ -47,11 +52,39 @@ MAX_ATTEMPTS = 3
 
 # ── State Management ──────────────────────────────────────────────────────────
 
+def _record_action(action: str, result: str):
+    global _action_history
+    _action_history.append({
+        "ts": datetime.now().strftime("%H:%M:%S"),
+        "action": action[:80],
+        "result": result[:80],
+    })
+    _action_history = _action_history[-MAX_HISTORY:]
+
+
 def _update_agent_state(status: str, task: str):
     """Register this agent in state.json."""
+    global _last_status_msg
+    _last_status_msg = task
     try:
         state = json.loads(STATE_FILE.read_text()) if STATE_FILE.exists() else {}
         agents = state.get("agents", [])
+
+        # Count backlog stats
+        open_count = sum(1 for f in BACKLOG_DIR.glob("*.json")
+                         if json.loads(f.read_text()).get("status") == "open")
+        resolved = sum(1 for f in BACKLOG_DIR.glob("*.json")
+                       if json.loads(f.read_text()).get("status") == "resolved")
+
+        details = {
+            "history": _action_history[-MAX_HISTORY:],
+            "stats": {
+                "backlog_open": open_count,
+                "backlog_resolved": resolved,
+                "max_attempts": MAX_ATTEMPTS,
+            },
+        }
+
         entry = {
             "name": "fix_agent",
             "status": status,
@@ -64,7 +97,7 @@ def _update_agent_state(status: str, task: str):
             "predictions": 0,
             "heavy_procs": 0,
             "tools": ["file_read", "file_write", "shell_exec"],
-            "details": {},
+            "details": details,
             "updated_at": int(time.time()),
         }
         agents = [a for a in agents if a.get("name") != "fix_agent"]
@@ -258,9 +291,11 @@ def run_check():
 
     project = issue_data["project"]
     _update_agent_state("running", f"Fixing: {project}")
+    _record_action("pick", f"{project}: {issue_data['error'][:40]}")
     log.info(f"Working on: {project} — {issue_data['error'][:60]}")
 
-    attempt_fix(issue_path, issue_data)
+    result = attempt_fix(issue_path, issue_data)
+    _record_action("fix", f"{project}: {'RESOLVED' if result else 'FAILED'}")
 
 
 def main():
@@ -295,10 +330,15 @@ def main():
             log.error(f"Check error: {e}", exc_info=True)
             _update_agent_state("error", str(e)[:80])
 
-        for _ in range(CHECK_INTERVAL):
+        # Wait with periodic state refresh
+        elapsed = 0
+        while elapsed < CHECK_INTERVAL:
             if stop:
                 break
             time.sleep(1)
+            elapsed += 1
+            if elapsed % 30 == 0:
+                _update_agent_state("idle", _last_status_msg)
 
     _update_agent_state("idle", "Stopped")
     PID_FILE.unlink(missing_ok=True)
