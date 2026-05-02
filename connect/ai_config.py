@@ -188,10 +188,13 @@ class AIClient:
         return r.json()["content"][0]["text"]
 
     def _bedrock(self, messages, max_tokens, temperature):
-        import boto3
-        region = self.aws_region or os.environ.get("AWS_DEFAULT_REGION", "us-east-1")
-        client = boto3.client("bedrock-runtime", region_name=region)
-        # Format for Claude on Bedrock
+        import json as _json
+        import httpx
+        from urllib.parse import quote
+
+        region = self.aws_region or os.environ.get("AWS_REGION", "us-east-1")
+        bearer_token = os.environ.get("AWS_BEARER_TOKEN_BEDROCK", "")
+
         system_msgs = [m for m in messages if m["role"] == "system"]
         user_msgs   = [m for m in messages if m["role"] != "system"]
         body = {
@@ -201,7 +204,27 @@ class AIClient:
         }
         if system_msgs:
             body["system"] = system_msgs[0]["content"]
-        import json as _json
+        if temperature is not None:
+            body["temperature"] = temperature
+
+        # Prefer bearer token via httpx (no boto3 needed)
+        if bearer_token:
+            model_id = self.model
+            encoded = quote(model_id, safe="")
+            url = f"https://bedrock-runtime.{region}.amazonaws.com/model/{encoded}/invoke"
+            headers = {
+                "Authorization": f"Bearer {bearer_token}",
+                "Content-Type": "application/json",
+            }
+            resp = httpx.post(url, json=body, headers=headers, timeout=120)
+            if resp.status_code != 200:
+                raise RuntimeError(f"Bedrock error {resp.status_code}: {resp.text[:200]}")
+            result = resp.json()
+            return result["content"][0]["text"]
+
+        # Fallback: boto3 (requires AWS_ACCESS_KEY_ID/SECRET)
+        import boto3
+        client = boto3.client("bedrock-runtime", region_name=region)
         resp = client.invoke_model(
             modelId=self.model,
             body=_json.dumps(body),

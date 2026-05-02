@@ -262,6 +262,11 @@ def cmd_up(token=None):
     if any(ch.get("type") == "telegram" and ch.get("bot_token") and ch.get("chat_id") for ch in load_channels()):
         _start_agent("telegram", "telegram_listener.py")
 
+    # Start sandbox agents (InovaTest + Fix Agent)
+    if Path("/data2/sandbox").exists():
+        _start_agent("inova_test", "inova_test.py")
+        _start_agent("fix_agent", "fix_agent.py")
+
 
     # Wait for daemon to write its PID (up to 8s)
     import time
