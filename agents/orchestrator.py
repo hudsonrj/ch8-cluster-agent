@@ -1360,6 +1360,47 @@ async def knowledge_file(path: str = ""):
     return {"path": path, "content": target.read_text()[:50000]}
 
 
+@app.get("/knowledge/graph")
+async def knowledge_graph():
+    """Return nodes and edges for the knowledge graph visualization."""
+    import re
+    vault = Path("/data2/knowledge")
+    if not vault.exists():
+        return {"nodes": [], "edges": []}
+
+    # Build node list and extract wikilinks
+    file_nodes = {}
+    edges = []
+    wikilink_re = re.compile(r'\[\[([^\]|]+)(?:\|[^\]]+)?\]\]')
+
+    for md in vault.rglob("*.md"):
+        rel = str(md.relative_to(vault))
+        name = md.stem
+        category = md.parent.name if md.parent != vault else "root"
+        file_nodes[name.lower()] = {
+            "id": name,
+            "path": rel,
+            "category": category,
+        }
+
+    # Extract edges from wikilinks
+    for md in vault.rglob("*.md"):
+        source = md.stem
+        try:
+            text = md.read_text()
+            links = wikilink_re.findall(text)
+            for link in links:
+                # Handle paths like "services/overview"
+                target = link.split("/")[-1] if "/" in link else link
+                if target.lower() in file_nodes and target.lower() != source.lower():
+                    edges.append({"source": source, "target": target})
+        except Exception:
+            pass
+
+    nodes = list(file_nodes.values())
+    return {"nodes": nodes, "edges": edges}
+
+
 @app.get("/knowledge/search")
 async def knowledge_search(q: str = ""):
     """Search the knowledge vault by text."""
