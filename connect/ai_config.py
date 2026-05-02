@@ -353,20 +353,73 @@ def interactive_setup() -> dict:
     elif provider_key == "custom":
         config["model"] = input(f"  Model name: ").strip()
 
-    # Bedrock: AWS region + bearer token info
+    # Bedrock: configure via bearer token (saves to env file)
     if provider_key == "bedrock":
-        region = os.environ.get("AWS_REGION", os.environ.get("AWS_DEFAULT_REGION", "us-east-1"))
-        config["aws_region"] = input(f"  AWS region [{region}]: ").strip() or region
-        if os.environ.get("AWS_BEARER_TOKEN_BEDROCK"):
-            print(f"\n  ✓ AWS_BEARER_TOKEN_BEDROCK detected — will use HTTPS bearer auth")
-        elif not os.environ.get("AWS_ACCESS_KEY_ID"):
-            print("\n  AWS credentials not found in environment.")
-            print("  Options:")
-            print("    1. Set these env vars (recommended for HTTPS bearer auth):")
-            print("       CLAUDE_CODE_USE_BEDROCK=1")
-            print("       AWS_BEARER_TOKEN_BEDROCK=<your-token>")
-            print("       AWS_REGION=us-east-1")
-            print("    2. Or use AWS CLI credentials (AWS_ACCESS_KEY_ID + AWS_SECRET_ACCESS_KEY)")
+        existing_token = os.environ.get("AWS_BEARER_TOKEN_BEDROCK", "")
+        existing_region = os.environ.get("AWS_REGION", os.environ.get("AWS_DEFAULT_REGION", "us-east-1"))
+
+        if existing_token:
+            masked = existing_token[:12] + "..." + existing_token[-6:]
+            print(f"\n  ✓ Bearer token found: {masked}")
+            print(f"  ✓ Region: {existing_region}")
+            keep = input("  Keep current config? [Y/n] ").strip().lower()
+            if keep != "n":
+                config["aws_region"] = existing_region
+            else:
+                existing_token = ""  # force re-entry below
+
+        if not existing_token:
+            print("\n  Bedrock via HTTPS (Bearer Token)")
+            print("  ─────────────────────────────────")
+            print("  This uses direct HTTPS calls to AWS Bedrock.")
+            print("  No boto3, no IAM credentials needed.\n")
+
+            token = input("  AWS_BEARER_TOKEN_BEDROCK: ").strip()
+            region = input(f"  AWS_REGION [{existing_region}]: ").strip() or existing_region
+            config["aws_region"] = region
+
+            if token:
+                # Save to env file so all agents pick it up
+                env_file = CONFIG_DIR / "env"
+                env_lines = []
+                if env_file.exists():
+                    env_lines = [l for l in env_file.read_text().splitlines()
+                                 if not l.startswith("AWS_BEARER_TOKEN_BEDROCK=")
+                                 and not l.startswith("AWS_REGION=")
+                                 and not l.startswith("CLAUDE_CODE_USE_BEDROCK=")]
+
+                env_lines.append(f"CLAUDE_CODE_USE_BEDROCK=1")
+                env_lines.append(f"AWS_REGION={region}")
+                env_lines.append(f"AWS_BEARER_TOKEN_BEDROCK={token}")
+
+                env_file.write_text("\n".join(env_lines) + "\n")
+                env_file.chmod(0o600)
+                print(f"\n  ✓ Credentials saved to {env_file}")
+                print(f"  ✓ CLAUDE_CODE_USE_BEDROCK=1")
+                print(f"  ✓ AWS_REGION={region}")
+                print(f"  ✓ AWS_BEARER_TOKEN_BEDROCK={token[:12]}...")
+
+                # Also set in current process
+                os.environ["CLAUDE_CODE_USE_BEDROCK"] = "1"
+                os.environ["AWS_REGION"] = region
+                os.environ["AWS_BEARER_TOKEN_BEDROCK"] = token
+            else:
+                print("\n  ⚠ No token provided. Bedrock will need boto3/IAM credentials.")
+
+        # Test connection
+        print("\n  Testing Bedrock connection...")
+        try:
+            test_client = AIClient({
+                "provider": "bedrock",
+                "model": config.get("model", "us.anthropic.claude-sonnet-4-20250514-v1:0"),
+                "api_key": "", "api_url": "",
+                "aws_region": config.get("aws_region", "us-east-1"),
+            })
+            result = test_client.chat([{"role": "user", "content": "say OK"}], max_tokens=5)
+            print(f"  ✓ Connection OK! Response: {result.strip()}")
+        except Exception as e:
+            print(f"  ✗ Connection failed: {e}")
+            print("    Check your token and try again.")
 
     save_ai_config(config)
     print(f"\n  Config saved to {AI_CONFIG_FILE}")
