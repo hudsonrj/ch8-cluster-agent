@@ -97,7 +97,30 @@ def is_ai_configured() -> bool:
 
 
 def get_provider_info() -> dict:
-    """Return the current provider config with env vars resolved."""
+    """
+    Return the current provider config with env vars resolved.
+
+    Auto-detection priority:
+      1. CLAUDE_CODE_USE_BEDROCK=1 + AWS_BEARER_TOKEN_BEDROCK → bedrock via HTTPS
+      2. ai.json config file
+      3. Fallback to ollama
+    """
+    # Auto-detect: if CLAUDE_CODE_USE_BEDROCK is set, use Bedrock without needing ai.json
+    if os.environ.get("CLAUDE_CODE_USE_BEDROCK", "").strip() in ("1", "true", "yes"):
+        region = os.environ.get("AWS_REGION", "us-east-1")
+        # Try to get model from ai.json or default
+        config = load_ai_config()
+        model = config.get("model", "") or "us.anthropic.claude-sonnet-4-20250514-v1:0"
+        return {
+            "provider":   "bedrock",
+            "name":       "AWS Bedrock (auto)",
+            "api_key":    "",
+            "api_url":    "",
+            "model":      model,
+            "aws_region": region,
+            "extra":      {},
+        }
+
     config = load_ai_config()
     provider = config.get("provider", "ollama")
     pdef = PROVIDERS.get(provider, PROVIDERS["ollama"])
@@ -108,7 +131,7 @@ def get_provider_info() -> dict:
         "api_key":   config.get("api_key") or os.environ.get(pdef.get("key_env", ""), ""),
         "api_url":   config.get("api_url") or pdef["default_url"],
         "model":     config.get("model") or pdef["default_model"],
-        "aws_region": config.get("aws_region", os.environ.get("AWS_DEFAULT_REGION", "us-east-1")),
+        "aws_region": config.get("aws_region", os.environ.get("AWS_REGION", "us-east-1")),
         "extra":     config.get("extra", {}),
     }
 
@@ -330,13 +353,20 @@ def interactive_setup() -> dict:
     elif provider_key == "custom":
         config["model"] = input(f"  Model name: ").strip()
 
-    # Bedrock: AWS region
+    # Bedrock: AWS region + bearer token info
     if provider_key == "bedrock":
-        region = os.environ.get("AWS_DEFAULT_REGION", "us-east-1")
+        region = os.environ.get("AWS_REGION", os.environ.get("AWS_DEFAULT_REGION", "us-east-1"))
         config["aws_region"] = input(f"  AWS region [{region}]: ").strip() or region
-        if not os.environ.get("AWS_ACCESS_KEY_ID"):
+        if os.environ.get("AWS_BEARER_TOKEN_BEDROCK"):
+            print(f"\n  ✓ AWS_BEARER_TOKEN_BEDROCK detected — will use HTTPS bearer auth")
+        elif not os.environ.get("AWS_ACCESS_KEY_ID"):
             print("\n  AWS credentials not found in environment.")
-            print("  Set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY, or configure AWS CLI.")
+            print("  Options:")
+            print("    1. Set these env vars (recommended for HTTPS bearer auth):")
+            print("       CLAUDE_CODE_USE_BEDROCK=1")
+            print("       AWS_BEARER_TOKEN_BEDROCK=<your-token>")
+            print("       AWS_REGION=us-east-1")
+            print("    2. Or use AWS CLI credentials (AWS_ACCESS_KEY_ID + AWS_SECRET_ACCESS_KEY)")
 
     save_ai_config(config)
     print(f"\n  Config saved to {AI_CONFIG_FILE}")
