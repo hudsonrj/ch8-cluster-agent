@@ -1319,6 +1319,47 @@ async def knowledge_write(request: Request):
         return {"ok": False, "error": str(e)}
 
 
+@app.get("/knowledge/index")
+async def knowledge_index():
+    """Return vault index with categories and file lists."""
+    vault = Path("/data2/knowledge")
+    if not vault.exists():
+        return {"error": "vault not found", "total_files": 0, "categories": []}
+
+    categories = []
+    total = 0
+    for d in sorted(vault.iterdir()):
+        if d.is_dir() and not d.name.startswith("."):
+            files = sorted([f.name for f in d.glob("*.md")])
+            categories.append({"name": d.name, "files": files})
+            total += len(files)
+
+    # Root-level files
+    root_files = sorted([f.name for f in vault.glob("*.md")])
+    if root_files:
+        categories.insert(0, {"name": "(root)", "files": root_files})
+        total += len(root_files)
+
+    return {"total_files": total, "categories": categories}
+
+
+@app.get("/knowledge/file")
+async def knowledge_file(path: str = ""):
+    """Return content of a specific vault file."""
+    vault = Path("/data2/knowledge")
+    if not path:
+        return {"error": "path required"}
+
+    target = (vault / path).resolve()
+    # Security: ensure path stays within vault
+    if not str(target).startswith(str(vault.resolve())):
+        return {"error": "invalid path"}
+    if not target.exists():
+        return {"error": "file not found"}
+
+    return {"path": path, "content": target.read_text()[:50000]}
+
+
 @app.get("/knowledge/search")
 async def knowledge_search(q: str = ""):
     """Search the knowledge vault by text."""
