@@ -1216,7 +1216,6 @@ async def node_update_endpoint(request: Request):
     repo_dir = str(Path(__file__).parent.parent.resolve())
 
     def _do_update():
-        import signal as _sig
         import time as _time
         _log = logging.getLogger("ch8.update")
         ch8_bin = str(Path(repo_dir) / "ch8")
@@ -1229,11 +1228,10 @@ async def node_update_endpoint(request: Request):
             r = subprocess.run(["git", "-C", repo_dir, "pull", "origin", ref],
                                capture_output=True, text=True, timeout=60)
             if r.returncode != 0:
-                # Try with --rebase to avoid merge conflicts
                 r = subprocess.run(["git", "-C", repo_dir, "pull", "--rebase", "origin", "master"],
                                    capture_output=True, text=True, timeout=60)
             _log.info(f"git pull {ref}: {(r.stdout or r.stderr or '').strip()[:120]}")
-            # 3. Install updated deps (try --break-system-packages for system python)
+            # 3. Install updated deps
             pip_r = subprocess.run(
                 [sys.executable, "-m", "pip", "install", "-q", "--break-system-packages",
                  "-r", f"{repo_dir}/requirements.txt"],
@@ -1245,17 +1243,50 @@ async def node_update_endpoint(request: Request):
                      "-r", f"{repo_dir}/requirements.txt"],
                     capture_output=True, timeout=120
                 )
-            # 4. Restart: run `ch8 down && ch8 up` as a shell command
-            #    This properly stops everything and relaunches with new code
-            _time.sleep(1)
-            subprocess.Popen(
-                f"{sys.executable} {ch8_bin} down; sleep 2; {sys.executable} {ch8_bin} up",
-                shell=True, cwd=repo_dir,
-                stdout=open(f"{repo_dir}/update.log", "a"),
-                stderr=subprocess.STDOUT,
-                start_new_session=True,
-            )
-            _log.info("Update complete — restarting via ch8 down/up")
+            # 4. Restart via a detached Python subprocess (works on all platforms)
+            #    This script waits, then runs ch8 down + ch8 up independently
+            restart_script = f'''
+import time, subprocess, sys, os
+time.sleep(3)
+python = r"{sys.executable}"
+ch8 = r"{ch8_bin}"
+cwd = r"{repo_dir}"
+log = open(os.path.join(cwd, "update.log"), "a")
+# Stop everything
+subprocess.run([python, ch8, "down"], cwd=cwd, stdout=log, stderr=log)
+time.sleep(2)
+# Start fresh
+subprocess.run([python, ch8, "up"], cwd=cwd, stdout=log, stderr=log)
+log.close()
+'''
+            # Write restart script to temp file and execute detached
+            restart_file = Path(repo_dir) / "_restart.py"
+            restart_file.write_text(restart_script)
+
+            if sys.platform == "win32":
+                # Windows: use CREATE_NEW_PROCESS_GROUP + DETACHED_PROCESS
+                CREATE_NEW_PROCESS_GROUP = 0x00000200
+                DETACHED_PROCESS = 0x00000008
+                subprocess.Popen(
+                    [sys.executable, str(restart_file)],
+                    cwd=repo_dir,
+                    creationflags=CREATE_NEW_PROCESS_GROUP | DETACHED_PROCESS,
+                    close_fds=True,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
+            else:
+                # Unix: start_new_session + double fork via nohup
+                subprocess.Popen(
+                    [sys.executable, str(restart_file)],
+                    cwd=repo_dir,
+                    start_new_session=True,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    close_fds=True,
+                )
+
+            _log.info("Update complete — restart script launched")
         except Exception as e:
             _log.error(f"Update failed: {e}")
 
