@@ -46,12 +46,18 @@ PROVIDERS = {
     },
     "bedrock": {
         "name": "AWS Bedrock",
-        "desc": "Claude, Titan, Llama via AWS — requires AWS credentials",
+        "desc": "Claude via AWS — uses HTTPS bearer token",
         "needs_key": False,
         "key_env": "AWS_ACCESS_KEY_ID",
         "default_url": "",
-        "default_model": "anthropic.claude-sonnet-4-6-v1",
-        "models": ["anthropic.claude-opus-4-6-v1", "anthropic.claude-sonnet-4-6-v1", "anthropic.claude-haiku-4-5-20251001-v1"],
+        "default_model": "us.anthropic.claude-sonnet-4-5-20250929-v1:0",
+        "models": [
+            "us.anthropic.claude-sonnet-4-5-20250929-v1:0",
+            "us.anthropic.claude-sonnet-4-6",
+            "us.anthropic.claude-opus-4-6-v1",
+            "us.anthropic.claude-haiku-4-5-20251001-v1:0",
+            "us.anthropic.claude-sonnet-4-20250514-v1:0",
+        ],
         "extra_config": ["aws_region"],
     },
     "groq": {
