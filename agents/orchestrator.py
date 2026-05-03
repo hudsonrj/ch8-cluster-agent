@@ -240,7 +240,7 @@ def _build_system_prompt(ctx: dict) -> str:
             if p["models"]:
                 parts.append(f"ollama={','.join(p['models'][:3])}")
             if p["services"]:
-                svc_names = [s.get("name", s) if isinstance(s, dict) else s for s in p["services"][:5]]
+                svc_names = [s.get("name", "?") if isinstance(s, dict) else str(s) for s in p["services"][:5]]
                 parts.append(f"services={','.join(svc_names)}")
             peer_lines.append("  ".join(parts) + f"  → use node_chat(node=\"{ref}\", ...)")
         peers_section = "\n".join(peer_lines)
