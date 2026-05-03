@@ -288,6 +288,51 @@ def plan_task(task: str, catalog: List[Dict], ai_client=None) -> Dict:
 
 # ── Execução distribuída ─────────────────────────────────────────────────────
 
+async def _collect_chat_response(url: str, payload: dict, headers: dict) -> Optional[str]:
+    """
+    Send a chat request and collect the full response.
+    Handles both JSON responses and SSE streaming.
+    Returns the collected text or None on failure.
+    """
+    async with httpx.AsyncClient(timeout=NODE_TIMEOUT) as c:
+        r = await c.post(url, json=payload, headers=headers)
+        if r.status_code != 200:
+            raise RuntimeError(f"HTTP {r.status_code}: {r.text[:200]}")
+
+        content_type = r.headers.get("content-type", "")
+
+        # SSE streaming response
+        if "text/event-stream" in content_type or r.text.startswith("data:"):
+            collected = []
+            for line in r.text.split("\n"):
+                line = line.strip()
+                if not line.startswith("data:"):
+                    continue
+                data_str = line[5:].strip()
+                if data_str == "[DONE]":
+                    break
+                try:
+                    msg = json.loads(data_str)
+                    content = msg.get("message", {}).get("content", "")
+                    if content:
+                        collected.append(content)
+                    elif msg.get("response"):
+                        collected.append(msg["response"])
+                    elif msg.get("error"):
+                        raise RuntimeError(msg["error"])
+                except json.JSONDecodeError:
+                    pass
+            text = "".join(collected)
+            return text if text else None
+
+        # Regular JSON response
+        try:
+            data = r.json()
+            return data.get("response") or data.get("result") or data.get("message", {}).get("content", "")
+        except Exception:
+            return r.text[:2000] if r.text else None
+
+
 async def _send_to_node_async(
     subtask: Dict,
     catalog: List[Dict],
@@ -333,7 +378,7 @@ async def _send_to_node_async(
                 continue
 
         # Execução remota
-        payload = {"message": message, "stream": False}
+        payload = {"message": message}
         token = get_access_token()
         headers = {"Authorization": f"Bearer {token}"} if token else {}
         orch_port = int(os.environ.get("CH8_AGENT_PORT", "7879"))
@@ -343,16 +388,13 @@ async def _send_to_node_async(
             addr = node_info["address"]
             url  = f"http://{addr}:{orch_port}/chat"
             try:
-                async with httpx.AsyncClient(timeout=NODE_TIMEOUT) as c:
-                    r = await c.post(url, json=payload)
-                    if r.status_code == 200:
-                        data = r.json()
-                        elapsed = time.time() - t0
-                        log.info(f"[{node_name}] Direct OK ({elapsed:.1f}s)")
-                        return {"subtask_id": subtask_id, "node_name": node_name,
-                                "result": data.get("response", str(data)),
-                                "method": "direct", "elapsed": elapsed}
-                    last_error = f"HTTP {r.status_code}: {r.text[:200]}"
+                result_text = await _collect_chat_response(url, payload, headers)
+                if result_text is not None:
+                    elapsed = time.time() - t0
+                    log.info(f"[{node_name}] Direct OK ({elapsed:.1f}s)")
+                    return {"subtask_id": subtask_id, "node_name": node_name,
+                            "result": result_text, "method": "direct", "elapsed": elapsed}
+                last_error = "Direct: empty response"
             except Exception as e:
                 last_error = str(e)
 
@@ -360,16 +402,13 @@ async def _send_to_node_async(
         if token:
             relay_url = f"{CONTROL_URL}/api/relay/{node_id}"
             try:
-                async with httpx.AsyncClient(timeout=NODE_TIMEOUT) as c:
-                    r = await c.post(relay_url, json=payload, headers=headers)
-                    if r.status_code == 200:
-                        data = r.json()
-                        elapsed = time.time() - t0
-                        log.info(f"[{node_name}] Relay OK ({elapsed:.1f}s)")
-                        return {"subtask_id": subtask_id, "node_name": node_name,
-                                "result": data.get("response", str(data)),
-                                "method": "relay", "elapsed": elapsed}
-                    last_error = f"Relay HTTP {r.status_code}: {r.text[:200]}"
+                result_text = await _collect_chat_response(relay_url, payload, headers)
+                if result_text is not None:
+                    elapsed = time.time() - t0
+                    log.info(f"[{node_name}] Relay OK ({elapsed:.1f}s)")
+                    return {"subtask_id": subtask_id, "node_name": node_name,
+                            "result": result_text, "method": "relay", "elapsed": elapsed}
+                last_error = "Relay: empty response"
             except Exception as e:
                 last_error = f"Relay: {e}"
 
