@@ -398,6 +398,14 @@ def _collect_metrics() -> dict:
     # Local IP (LAN)
     metrics["local_ip"] = _get_local_ip()
 
+    # Autonomy status
+    try:
+        _auto_file = CONFIG_DIR / "autonomy.json"
+        if _auto_file.exists():
+            metrics["autonomous"] = json.loads(_auto_file.read_text()).get("enabled", False)
+    except Exception:
+        pass
+
     global _service_cache, _model_cache, _last_slow_check
     now = time.time()
     if now - _last_slow_check >= SERVICE_REFRESH:

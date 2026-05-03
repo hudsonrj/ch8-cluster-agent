@@ -1327,6 +1327,23 @@ async def node_version():
     return {"version": version, "commit": git_hash, "node_id": _get_nid()}
 
 
+@app.post("/autonomy")
+async def set_autonomy(request: Request):
+    """Enable/disable autonomous mode on this node."""
+    try:
+        body = await request.json()
+        enabled = body.get("enabled", False)
+        # Save to config
+        config_dir = Path.home() / ".config" / "ch8"
+        autonomy_file = config_dir / "autonomy.json"
+        import json as _json
+        autonomy_file.write_text(_json.dumps({"enabled": enabled, "ts": int(time.time())}))
+        log.info(f"Autonomy {'ENABLED' if enabled else 'DISABLED'}")
+        return {"ok": True, "autonomous": enabled}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+
 @app.post("/knowledge/write")
 async def knowledge_write(request: Request):
     """

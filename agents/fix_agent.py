@@ -36,6 +36,17 @@ from connect.ai_config import get_ai_client
 
 log = logging.getLogger("ch8.fix_agent")
 
+AUTONOMY_FILE = Path.home() / ".config" / "ch8" / "autonomy.json"
+
+
+def is_autonomous() -> bool:
+    """Check if this node is in autonomous mode."""
+    try:
+        data = json.loads(AUTONOMY_FILE.read_text())
+        return data.get("enabled", False)
+    except Exception:
+        return False
+
 SANDBOX_DIR = Path("/data2/sandbox")
 BACKLOG_DIR = Path("/data2/backlog")
 
@@ -282,7 +293,11 @@ def attempt_fix(issue_path: Path, issue_data: dict) -> bool:
 # ── Main Loop ─────────────────────────────────────────────────────────────────
 
 def run_check():
-    """Check backlog and fix one issue."""
+    """Check backlog and fix one issue (only if autonomous mode is enabled)."""
+    if not is_autonomous():
+        _update_agent_state("idle", "Autonomous mode OFF — waiting")
+        return
+
     issue_path, issue_data = get_next_issue()
 
     if issue_path is None:

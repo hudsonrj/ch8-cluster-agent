@@ -58,6 +58,18 @@ SAFE_TEST_RE = re.compile(r'^python3\s+[\w./-]+\s*(--test|--check|--validate|--d
 SANDBOX_DIR.mkdir(parents=True, exist_ok=True)
 BACKLOG_DIR.mkdir(parents=True, exist_ok=True)
 
+AUTONOMY_FILE = CONFIG_DIR / "autonomy.json"
+
+
+def is_autonomous() -> bool:
+    """Check if this node is in autonomous mode."""
+    try:
+        data = json.loads(AUTONOMY_FILE.read_text())
+        return data.get("enabled", False)
+    except Exception:
+        return False
+
+
 # Runtime state
 _last_status_msg = "Starting..."
 _action_history = []  # last N actions [{ts, action, result}]
@@ -467,6 +479,12 @@ def main():
     consecutive_failures = 0
 
     while not stop:
+        # Autonomy check
+        if not is_autonomous():
+            _update_agent_state("idle", "Autonomous mode OFF")
+            _wait(60, lambda: stop)
+            continue
+
         # Pre-flight checks
         reason = _check_resources()
         if reason:
