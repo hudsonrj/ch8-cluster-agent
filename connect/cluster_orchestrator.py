@@ -556,6 +556,24 @@ def run_cluster_task(
         if progress_cb:
             progress_cb(step, msg)
 
+    # Fast-path: short tasks with strategy=auto run locally (no distribution)
+    if strategy == "auto" and len(task) < 300 and not target_nodes:
+        _progress("plan", "Short task — executing locally")
+        try:
+            ai = get_ai_client()
+            result = ai.chat([{"role": "user", "content": task}], max_tokens=2000, temperature=0.7)
+            elapsed = time.time() - t0
+            _progress("done", f"Local response in {elapsed:.1f}s")
+            return {
+                "result": result,
+                "plan": {"strategy": "local", "reasoning": "Short task executed locally", "subtasks": []},
+                "results": [{"subtask_id": "local", "node_name": "manager1", "result": result,
+                             "method": "local", "elapsed": elapsed}],
+                "nodes_used": 1, "nodes_failed": 0, "elapsed": elapsed,
+            }
+        except Exception as e:
+            log.warning(f"Local fast-path failed: {e}, falling back to cluster")
+
     # 1. Catálogo
     _progress("catalog", "Buscando nós do cluster...")
     catalog = get_catalog()
