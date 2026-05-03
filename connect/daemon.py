@@ -328,24 +328,75 @@ def _detect_capabilities() -> List[str]:
     return caps
 
 
+def _detect_all_disks() -> list:
+    """Detect all mounted disks/partitions with usage info."""
+    try:
+        import psutil
+        disks = []
+        seen_devices = set()
+        for part in psutil.disk_partitions(all=False):
+            # Skip duplicates and virtual filesystems
+            if part.device in seen_devices:
+                continue
+            if part.fstype in ("squashfs", "tmpfs", "devtmpfs", "overlay"):
+                continue
+            seen_devices.add(part.device)
+            try:
+                usage = psutil.disk_usage(part.mountpoint)
+                disks.append({
+                    "device": part.device,
+                    "mount": part.mountpoint,
+                    "fstype": part.fstype,
+                    "total_gb": round(usage.total / 1e9, 2),
+                    "used_gb": round(usage.used / 1e9, 2),
+                    "free_gb": round(usage.free / 1e9, 2),
+                    "pct": round(usage.percent, 1),
+                })
+            except (PermissionError, OSError):
+                pass
+        return disks
+    except Exception:
+        return []
+
+
+def _get_local_ip() -> str:
+    """Get the LAN IP of this machine."""
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+        s.close()
+        return ip
+    except Exception:
+        return ""
+
+
 def _collect_metrics() -> dict:
     metrics = {}
     try:
         import psutil
         cpu   = psutil.cpu_percent(interval=0.2)
         mem   = psutil.virtual_memory()
-        disk  = psutil.disk_usage(os.environ.get("HOME", "/"))
         cores = psutil.cpu_count(logical=True) or 1
         metrics["cpu_pct"]    = cpu
         metrics["cpu_cores"]  = cores
         metrics["mem_pct"]    = round(mem.percent, 1)
         metrics["mem_total_gb"] = round(mem.total / 1e9, 2)
         metrics["mem_used_gb"]  = round(mem.used  / 1e9, 2)
-        metrics["disk_pct"]   = round(disk.percent, 1)
+
+        # Primary disk (HOME)
+        disk = psutil.disk_usage(os.environ.get("HOME", "/"))
+        metrics["disk_pct"]      = round(disk.percent, 1)
         metrics["disk_total_gb"] = round(disk.total / 1e9, 2)
         metrics["disk_used_gb"]  = round(disk.used  / 1e9, 2)
+
+        # All disks
+        metrics["disks"] = _detect_all_disks()
     except Exception:
         pass
+
+    # Local IP (LAN)
+    metrics["local_ip"] = _get_local_ip()
 
     global _service_cache, _model_cache, _last_slow_check
     now = time.time()
