@@ -51,10 +51,10 @@ def _run_async(coro):
         return asyncio.run(coro)
 
 # Timeout para esperar resposta de cada nó (segundos)
-NODE_TIMEOUT = 180
+NODE_TIMEOUT = 30
 
 # Máximo de tentativas por subtarefa
-MAX_RETRIES = 2
+MAX_RETRIES = 1
 
 
 # ── Catálogo ────────────────────────────────────────────────────────────────
