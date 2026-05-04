@@ -851,6 +851,68 @@ def cmd_doctor():
             print(f"  {Colors.RED}●{Colors.NC} {agent_name} (dead)")
             pid_file.unlink(missing_ok=True)
 
+def cmd_delete(node_id=None):
+    """Permanently remove a node from the cluster."""
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from connect.auth import CONTROL_URL, get_access_token, get_network_id
+    import httpx
+
+    if not node_id:
+        # List nodes and ask which to delete
+        print(f"{Colors.BLUE}Nodes in cluster:{Colors.NC}\n")
+        try:
+            headers = {"Authorization": f"Bearer {get_access_token()}"}
+            r = httpx.get(f"{CONTROL_URL}/nodes?network_id={get_network_id()}", headers=headers, timeout=10)
+            nodes = r.json().get("nodes", r.json()) if r.status_code == 200 else []
+            # Also get offline ones
+            r2 = httpx.get(f"{CONTROL_URL}/api/admin/nodes", timeout=10)
+            if r2.status_code == 200:
+                all_nodes = r2.json()
+            else:
+                all_nodes = nodes
+        except Exception as e:
+            print(f"{Colors.RED}Error fetching nodes: {e}{Colors.NC}")
+            return
+
+        for i, n in enumerate(all_nodes, 1):
+            status = n.get("status", "?")
+            icon = f"{Colors.GREEN}●{Colors.NC}" if status == "online" else f"{Colors.RED}●{Colors.NC}"
+            print(f"  {i}) {icon} {n.get('hostname', '?'):25s} {n.get('address', '?'):18s} [{status}]  {n.get('node_id', '?')}")
+
+        print()
+        choice = input(f"  Enter node number to delete (or node_id): ").strip()
+        if not choice:
+            return
+        try:
+            idx = int(choice) - 1
+            if 0 <= idx < len(all_nodes):
+                node_id = all_nodes[idx]["node_id"]
+            else:
+                print(f"{Colors.RED}Invalid choice{Colors.NC}")
+                return
+        except ValueError:
+            node_id = choice  # assume it's a node_id
+
+    # Confirm
+    print(f"\n  {Colors.YELLOW}Deleting node: {node_id}{Colors.NC}")
+    confirm = input(f"  Type 'yes' to confirm: ").strip()
+    if confirm != "yes":
+        print("  Cancelled.")
+        return
+
+    # Delete via API
+    try:
+        headers = {"Authorization": f"Bearer {get_access_token()}"}
+        r = httpx.delete(f"{CONTROL_URL}/nodes/{node_id}/permanent", headers=headers, timeout=10)
+        if r.status_code == 200:
+            data = r.json()
+            print(f"\n  {Colors.GREEN}✓ Node '{data.get('hostname', node_id)}' permanently deleted.{Colors.NC}")
+        else:
+            print(f"\n  {Colors.RED}✗ Failed: {r.text}{Colors.NC}")
+    except Exception as e:
+        print(f"\n  {Colors.RED}✗ Error: {e}{Colors.NC}")
+
+
 def _load_env():
     """Load environment config from ~/.config/ch8/env if it exists."""
     env_file = Path.home() / ".config" / "ch8" / "env"
@@ -908,6 +970,7 @@ def main():
         'setup':  cmd_setup,
         'update': cmd_update,
         'doctor': cmd_doctor,
+        'delete': lambda: cmd_delete(args.subcommand),
         'help':   cmd_help,
     }
 
