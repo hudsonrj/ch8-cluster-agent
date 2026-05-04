@@ -167,6 +167,7 @@ class ConnectDaemon:
                 await asyncio.sleep(10)
 
     async def _heartbeat_loop(self) -> None:
+        _election_counter = 0
         while not self._stop_event.is_set():
             try:
                 metrics = _collect_metrics()
@@ -176,6 +177,16 @@ class ConnectDaemon:
                     await self._register()
             except Exception as e:
                 log.warning(f"Heartbeat error: {e}")
+
+            # Re-publish election every 60 heartbeats (~5min) to prevent stale leader
+            _election_counter += 1
+            if _election_counter >= 60:
+                _election_counter = 0
+                try:
+                    await asyncio.get_event_loop().run_in_executor(None, _bootstrap_ha_safe)
+                except Exception:
+                    pass
+
             await asyncio.sleep(HEARTBEAT_SECS)
 
     async def _peer_discovery_loop(self) -> None:
