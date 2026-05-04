@@ -435,22 +435,72 @@ def run_cycle() -> bool:
     _record_action("build", f"{len(build_result['files_created'])} file(s)")
     log.info(f"Built {len(build_result['files_created'])} file(s)")
 
-    # 3. Test
+    # 3. Test + Auto-fix loop (up to 3 attempts)
     _update_agent_state("running", f"Testing: {idea['name']}")
     test_result = test_project(idea)
     _record_action("test", f"{idea['name']}: {test_result['status']}")
     log.info(f"Test: {test_result['status']}")
+
+    # Auto-fix: if test failed, try to fix up to 2 more times
+    fix_attempts = 0
+    while test_result["status"] not in ("passed", "skipped") and fix_attempts < 2:
+        fix_attempts += 1
+        _update_agent_state("running", f"Auto-fixing: {idea['name']} (attempt {fix_attempts})")
+        _record_action("auto-fix", f"{idea['name']} attempt {fix_attempts}")
+        log.info(f"Auto-fix attempt {fix_attempts} for {idea['name']}")
+
+        # Read current code and error
+        project_dir = SANDBOX_DIR / idea["name"]
+        code = ""
+        for f in project_dir.glob("*.py"):
+            code += f"\n# --- {f.name} ---\n" + f.read_text()[:3000]
+
+        error = test_result.get("error", "unknown error")
+
+        fix_prompt = (
+            f"Fix this Python code. The test failed with:\n{error[:500]}\n\n"
+            f"Code:\n{code[:4000]}\n\n"
+            f"Return ONLY the fixed Python code, no explanation."
+        )
+
+        try:
+            fixed = ai.chat([{"role": "user", "content": fix_prompt}], max_tokens=3000, temperature=0.1)
+            if "```python" in fixed:
+                fixed = fixed.split("```python")[1].split("```")[0]
+            elif "```" in fixed:
+                fixed = fixed.split("```")[1].split("```")[0]
+            fixed = fixed.strip()
+
+            if fixed and len(fixed) > 30:
+                main_file = idea["files"][0] if idea.get("files") else "main.py"
+                (project_dir / main_file).write_text(fixed + "\n")
+                log.info(f"Applied fix to {main_file}")
+
+                # Re-test
+                test_result = test_project(idea)
+                _record_action("re-test", f"{idea['name']}: {test_result['status']}")
+                log.info(f"Re-test: {test_result['status']}")
+        except Exception as e:
+            log.warning(f"Auto-fix failed: {e}")
+            break
+
+    # Only report to backlog if still failing after auto-fix attempts
+    if test_result["status"] not in ("passed", "skipped") and fix_attempts > 0:
+        report_error(idea["name"], test_result.get("error", "failed after auto-fix"), "auto-fix exhausted")
 
     # 4. Save metadata
     meta = {
         "idea": idea,
         "build": build_result,
         "test": test_result,
+        "fix_attempts": fix_attempts,
         "created_at": datetime.now().isoformat(),
     }
     (SANDBOX_DIR / idea["name"] / "project.json").write_text(json.dumps(meta, indent=2))
 
     status_msg = f"{idea['name']} ({test_result['status']})"
+    if fix_attempts:
+        status_msg += f" [fixed after {fix_attempts} attempt(s)]" if test_result["status"] == "passed" else f" [auto-fix failed]"
     _update_agent_state("idle", f"Last: {status_msg}")
     return test_result["status"] in ("passed", "skipped")
 
