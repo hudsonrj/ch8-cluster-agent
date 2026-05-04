@@ -60,13 +60,11 @@ def get_offline_nodes() -> list:
     """Get nodes that are offline from the control server."""
     import httpx
     try:
-        from connect.auth import CONTROL_URL, get_access_token, get_network_id
-        headers = {"Authorization": f"Bearer {get_access_token()}"}
-        r = httpx.get(f"{CONTROL_URL}/nodes?network_id={get_network_id()}",
-                      headers=headers, timeout=10)
+        from connect.auth import CONTROL_URL
+        # Use admin endpoint which returns ALL nodes (including offline)
+        r = httpx.get(f"{CONTROL_URL}/api/admin/nodes", timeout=10)
         if r.status_code == 200:
-            data = r.json()
-            nodes = data.get("nodes", data) if isinstance(data, dict) else data
+            nodes = r.json()
             now = int(time.time())
             return [n for n in nodes
                     if n.get("status") == "offline"
