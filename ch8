@@ -271,6 +271,10 @@ def cmd_up(token=None):
     if Path("/data2/knowledge").exists():
         _start_agent("knowledge_agent", "knowledge_agent.py")
 
+    # Start Recovery Agent (auto-heals offline nodes)
+    if (Path.home() / ".config" / "ch8" / "node_access.json").exists():
+        _start_agent("recovery_agent", "recovery_agent.py")
+
     # Wait for daemon to write its PID (up to 8s)
     import time
     from connect.daemon import is_daemon_running, read_state
