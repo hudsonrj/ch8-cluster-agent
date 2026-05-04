@@ -561,7 +561,7 @@ def run_cluster_task(
         _progress("plan", "Short task — executing locally")
         try:
             ai = get_ai_client()
-            result = ai.chat([{"role": "user", "content": task}], max_tokens=2000, temperature=0.7)
+            result = ai.chat([{"role": "user", "content": task + "\n\nResponda de forma concisa (máximo 3 parágrafos)."}], max_tokens=800, temperature=0.7)
             elapsed = time.time() - t0
             _progress("done", f"Local response in {elapsed:.1f}s")
             return {
