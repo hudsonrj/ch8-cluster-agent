@@ -906,7 +906,6 @@ async def chat(request: Request):
             if extract.strip().startswith("json"): extract = extract.strip()[4:]
             info = _j.loads(extract.strip())
             # Call create-agent internally
-            from starlette.testclient import TestClient
             # Use internal function directly instead
             import subprocess, time as _t2
             safe_name = info["name"].lower().replace(" ", "_").replace("-", "_")
@@ -961,7 +960,6 @@ Return ONLY Python code."""
                     pass
 
                 # Return as SSE response
-                from starlette.responses import StreamingResponse
                 async def _stream_created():
                     msg = f"✅ Agente **{safe_name}** criado e iniciado (PID {proc.pid})!\n\n📋 Arquivo: `agents/{safe_name}.py`\n🔧 Descrição: {desc}\n\nO agente já está rodando e aparece no dashboard."
                     yield f"data: {_j.dumps({'message': {'content': msg}})}\n\n"
