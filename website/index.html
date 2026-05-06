@@ -404,9 +404,36 @@
                         <a href="https://github.com/hudsonrj/ch8-cluster-agent" target="_blank" style="display:inline-block;padding:12px 28px;background:#7c3aed;color:#fff;border-radius:8px;font-weight:600;text-decoration:none;font-size:14px">
                             Implemente o Seu →
                         </a>
-                        <a href="mailto:hudsonrj@gmail.com?subject=CH8 Workflow Studio — Solicitar Acesso" style="display:inline-block;padding:12px 28px;background:transparent;color:#7c3aed;border:2px solid #7c3aed;border-radius:8px;font-weight:600;text-decoration:none;font-size:14px">
+                        <button onclick="document.getElementById('access-form').style.display='block'" style="padding:12px 28px;background:transparent;color:#7c3aed;border:2px solid #7c3aed;border-radius:8px;font-weight:600;font-size:14px;cursor:pointer">
                             Peça Acesso
-                        </a>
+                        </button>
+                    </div>
+                    <!-- Access form -->
+                    <div id="access-form" style="display:none;margin-top:24px;padding:20px;background:#161b22;border:1px solid #30363d;border-radius:12px">
+                        <form onsubmit="sendAccessRequest(event)" style="display:flex;flex-direction:column;gap:12px">
+                            <div style="font-size:14px;font-weight:600;color:#f8fafc;margin-bottom:4px">Solicitar Acesso ao Workflow Studio</div>
+                            <input id="access-name" type="text" placeholder="Seu nome" required style="padding:10px 14px;background:#0d1117;border:1px solid #30363d;border-radius:8px;color:#f8fafc;font-size:13px;font-family:inherit" />
+                            <input id="access-email" type="email" placeholder="Seu e-mail" required style="padding:10px 14px;background:#0d1117;border:1px solid #30363d;border-radius:8px;color:#f8fafc;font-size:13px;font-family:inherit" />
+                            <textarea id="access-msg" placeholder="Por que quer acesso? (opcional)" rows="3" style="padding:10px 14px;background:#0d1117;border:1px solid #30363d;border-radius:8px;color:#f8fafc;font-size:13px;font-family:inherit;resize:vertical"></textarea>
+                            <button type="submit" style="padding:12px;background:#7c3aed;color:#fff;border:none;border-radius:8px;font-weight:600;font-size:14px;cursor:pointer">
+                                Enviar Solicitação →
+                            </button>
+                            <div id="access-status" style="font-size:12px;color:#8b949e"></div>
+                        </form>
+                    </div>
+                    <script>
+                    function sendAccessRequest(e) {
+                        e.preventDefault();
+                        const name = document.getElementById('access-name').value;
+                        const email = document.getElementById('access-email').value;
+                        const msg = document.getElementById('access-msg').value;
+                        const subject = encodeURIComponent('Quero Acesso — CH8 Workflow Studio');
+                        const body = encodeURIComponent(`Nome: ${name}\nEmail: ${email}\nMensagem: ${msg || 'Gostaria de acesso ao Workflow Studio'}`);
+                        window.location.href = `mailto:hudsonrj@gmail.com?subject=${subject}&body=${body}`;
+                        document.getElementById('access-status').textContent = '✓ Abrindo seu cliente de e-mail...';
+                        document.getElementById('access-status').style.color = '#10b981';
+                    }
+                    </script>
                     </div>
                 </div>
                 <div style="background:#0d1117;border:1px solid #30363d;border-radius:12px;padding:24px;font-family:'JetBrains Mono',monospace;font-size:12px;color:#8b949e">
