@@ -49,7 +49,7 @@ COOLDOWN_AFTER_FAILURES = 7200  # 2 hours
 MAX_CONSECUTIVE_FAILURES = 3
 TEST_TIMEOUT = 15              # seconds
 MAX_LOG_SIZE = 5 * 1024 * 1024  # 5MB
-CPU_THRESHOLD = 70.0
+CPU_THRESHOLD = 90.0
 DISK_THRESHOLD = 85.0
 
 # Allowed test command pattern: only python3 with safe args
@@ -283,10 +283,39 @@ Proponha UM micro-projeto. Responda APENAS JSON válido:
 """
 
 
+def _pop_user_idea() -> str:
+    """Pop the oldest idea from the user queue, or return empty string."""
+    queue_file = SANDBOX_DIR / ".ideas_queue.json"
+    try:
+        if queue_file.exists():
+            queue = json.loads(queue_file.read_text())
+            if queue:
+                idea = queue.pop(0)
+                queue_file.write_text(json.dumps(queue))
+                return idea.get("idea", "")
+    except Exception:
+        pass
+    return ""
+
+
 def generate_idea(ai) -> dict:
-    """Ask LLM for a new project idea."""
+    """Check user ideas queue first, then ask LLM for a new project idea."""
     existing = [d.name for d in SANDBOX_DIR.iterdir() if d.is_dir()]
-    prompt = IDEAS_PROMPT.format(existing=", ".join(existing) if existing else "(nenhum)")
+
+    # Priority: user-submitted ideas
+    user_idea = _pop_user_idea()
+    if user_idea:
+        log.info(f"Using user-submitted idea: {user_idea}")
+        prompt = (
+            f"Create a micro-project based on this user idea:\n\n"
+            f"\"{user_idea}\"\n\n"
+            f"Already existing projects (don't repeat): {', '.join(existing)}\n\n"
+            f"Respond ONLY in JSON:\n"
+            f'{{"name": "project-name", "description": "what it does", '
+            f'"files": ["main.py"], "test_command": "python3 main.py --test", "delegation": null}}'
+        )
+    else:
+        prompt = IDEAS_PROMPT.format(existing=", ".join(existing) if existing else "(nenhum)")
 
     response = ai.chat([{"role": "user", "content": prompt}], max_tokens=600, temperature=0.8)
 
