@@ -383,19 +383,22 @@
             </div>
             <div data-aos="fade-up" data-aos-delay="100" style="display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:center;margin-top:40px">
                 <div>
-                    <h3 style="font-size:20px;margin-bottom:16px;color:#f8fafc">Your cluster, your workflows</h3>
+                    <h3 style="font-size:20px;margin-bottom:16px;color:#f8fafc">Orquestre IA com máquinas que estavam paradas</h3>
                     <p style="color:#94a3b8;line-height:1.7;margin-bottom:20px">
-                        The Workflow Studio connects directly to your CH8 cluster. Every node, every AI model (Bedrock, Ollama, OpenAI), every running agent — all available as draggable blocks on a visual canvas.
+                        Transforme aquele notebook antigo, aquele Raspberry Pi na gaveta, aquele PC do escritório em <strong style="color:#f8fafc">nós produtivos de um cluster de IA</strong>. O Workflow Studio usa os agentes, modelos e MCPs reais do seu cluster — tudo distribuído, gastando pouco, sem GPU dedicada, sem cloud cara.
+                    </p>
+                    <p style="color:#64748b;line-height:1.6;margin-bottom:20px;font-size:13px">
+                        Cada máquina contribui com o que tem: CPU para modelos leves (Qwen, Gemma, TinyLlama via Ollama), ou apenas como relay e executor de tarefas. O Bedrock/OpenAI entra só quando precisa de raciocínio pesado — e o custo é centavos por hora, distribuído entre todos os nós.
                     </p>
                     <ul style="list-style:none;padding:0;color:#cbd5e1;line-height:2.2">
-                        <li>🖥 <strong>Real cluster nodes</strong> — see CPU, memory, models per node</li>
-                        <li>🤖 <strong>AI agents</strong> — Bedrock Claude, Ollama Qwen, Gemma, custom agents</li>
-                        <li>🔀 <strong>Flow control</strong> — routers, loops, parallel splits, retry with backoff</li>
-                        <li>⚙️ <strong>Operations</strong> — formatters, parsers, vector search, cache</li>
-                        <li>🤝 <strong>AI Copilot</strong> — describe what you want, AI builds the workflow</li>
-                        <li>💾 <strong>Save & Export</strong> — save workflows, load later, export as JSON</li>
-                        <li>🔧 <strong>Config per block</strong> — system prompt, temperature, endpoints, credentials</li>
-                        <li>📋 <strong>Context menu</strong> — right-click to duplicate, clone, edit, delete</li>
+                        <li>🖥 <strong>Nós reais do cluster</strong> — PCs, notebooks, Raspberry Pi, VMs com CPU/RAM/disco</li>
+                        <li>🤖 <strong>Agentes distribuídos</strong> — cada nó roda seus agentes com modelos locais ou cloud</li>
+                        <li>🏠 <strong>Modelos locais Ollama</strong> — Qwen, Gemma, TinyLlama rodando sem custo de API</li>
+                        <li>☁️ <strong>Cloud sob demanda</strong> — Bedrock Claude só quando o local não resolve</li>
+                        <li>🔧 <strong>MCPs e Tools</strong> — cada nó expõe suas ferramentas (Docker, SQL, HTTP, arquivos)</li>
+                        <li>🔀 <strong>Fluxos inteligentes</strong> — routers, retry, parallelismo, consenso multi-LLM</li>
+                        <li>🤝 <strong>Copiloto IA</strong> — descreva o que quer, a IA monta o workflow</li>
+                        <li>💰 <strong>FinOps</strong> — custo real por agente, projeção mensal, zero surpresa</li>
                     </ul>
                     <div style="display:flex;gap:12px;margin-top:24px;flex-wrap:wrap">
                         <a href="https://github.com/hudsonrj/ch8-cluster-agent" target="_blank" style="display:inline-block;padding:12px 28px;background:#7c3aed;color:#fff;border-radius:8px;font-weight:600;text-decoration:none;font-size:14px">
