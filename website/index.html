@@ -27,7 +27,9 @@
                 <a href="#how-it-works">How it works</a>
                 <a href="#agents">Agents</a>
                 <a href="#features">Features</a>
+                <a href="#platform">Platform</a>
                 <a href="#install">Install</a>
+                <a href="https://workflow.ch8ai.com.br" target="_blank" style="color:#7c3aed;font-weight:600">⬡ Workflow Studio</a>
                 <a href="https://github.com/hudsonrj/ch8-cluster-agent" target="_blank" class="btn-github">
                     <i class="fab fa-github"></i> GitHub
                 </a>
@@ -366,6 +368,52 @@
                 <div class="number-item">
                     <span class="number-val">60s</span>
                     <span class="number-label">From install to first chat</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Workflow Studio Highlight -->
+    <section id="workflow-studio" style="padding: 80px 0; background: linear-gradient(135deg, rgba(124,58,237,0.06) 0%, rgba(37,99,235,0.04) 100%);">
+        <div class="container">
+            <div class="section-header" data-aos="fade-up">
+                <p class="section-label" style="color:#7c3aed">New</p>
+                <h2>⬡ Workflow Studio</h2>
+                <p>Visual orchestration of AI agents across your private cluster.<br>Build, connect and execute complex workflows with drag & drop.</p>
+            </div>
+            <div data-aos="fade-up" data-aos-delay="100" style="display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:center;margin-top:40px">
+                <div>
+                    <h3 style="font-size:20px;margin-bottom:16px;color:#f8fafc">Your cluster, your workflows</h3>
+                    <p style="color:#94a3b8;line-height:1.7;margin-bottom:20px">
+                        The Workflow Studio connects directly to your CH8 cluster. Every node, every AI model (Bedrock, Ollama, OpenAI), every running agent — all available as draggable blocks on a visual canvas.
+                    </p>
+                    <ul style="list-style:none;padding:0;color:#cbd5e1;line-height:2.2">
+                        <li>🖥 <strong>Real cluster nodes</strong> — see CPU, memory, models per node</li>
+                        <li>🤖 <strong>AI agents</strong> — Bedrock Claude, Ollama Qwen, Gemma, custom agents</li>
+                        <li>🔀 <strong>Flow control</strong> — routers, loops, parallel splits, retry with backoff</li>
+                        <li>⚙️ <strong>Operations</strong> — formatters, parsers, vector search, cache</li>
+                        <li>🤝 <strong>AI Copilot</strong> — describe what you want, AI builds the workflow</li>
+                        <li>💾 <strong>Save & Export</strong> — save workflows, load later, export as JSON</li>
+                        <li>🔧 <strong>Config per block</strong> — system prompt, temperature, endpoints, credentials</li>
+                        <li>📋 <strong>Context menu</strong> — right-click to duplicate, clone, edit, delete</li>
+                    </ul>
+                    <a href="https://workflow.ch8ai.com.br" target="_blank" style="display:inline-block;margin-top:24px;padding:12px 28px;background:#7c3aed;color:#fff;border-radius:8px;font-weight:600;text-decoration:none;font-size:14px">
+                        Open Workflow Studio →
+                    </a>
+                </div>
+                <div style="background:#0d1117;border:1px solid #30363d;border-radius:12px;padding:24px;font-family:'JetBrains Mono',monospace;font-size:12px;color:#8b949e">
+                    <div style="margin-bottom:16px;display:flex;align-items:center;gap:8px">
+                        <span style="width:10px;height:10px;border-radius:50%;background:#7c3aed;box-shadow:0 0 6px #7c3aed"></span>
+                        <span style="color:#f8fafc;font-weight:600;font-size:13px">CH8 ⬡ Workflow Studio</span>
+                    </div>
+                    <div style="color:#484f58;margin-bottom:12px">// Example: Telegram Bot → AI → Reply</div>
+                    <div style="padding:8px 12px;background:#161b22;border:1px solid #7c3aed;border-radius:8px;margin-bottom:8px;color:#c9d1d9">📨 Telegram Listener <span style="color:#484f58">→</span></div>
+                    <div style="padding:8px 12px;background:#161b22;border:1px solid #2563eb;border-radius:8px;margin-bottom:8px;color:#60a5fa">🤖 Claude Sonnet 4.5 <span style="color:#484f58;font-size:10px">@ manager1</span></div>
+                    <div style="padding:8px 12px;background:#161b22;border:1px solid #0891b2;border-radius:8px;margin-bottom:8px;color:#22d3ee">⚙️ Formatter</div>
+                    <div style="padding:8px 12px;background:#161b22;border:1px solid #6d28d9;border-radius:8px;color:#a78bfa">💬 Telegram Reply</div>
+                    <div style="margin-top:16px;padding:10px 12px;background:#7c3aed10;border:1px solid #7c3aed30;border-radius:8px">
+                        <span style="color:#7c3aed">🤖 Copiloto:</span> <span style="color:#8b949e">Workflow criado. 1 config pendente: Bot Token</span>
+                    </div>
                 </div>
             </div>
         </div>
