@@ -454,6 +454,150 @@
         </div>
     </section>
 
+    <!-- Control Dashboard -->
+    <section id="control" style="padding: 80px 0; background: rgba(59,130,246,0.03);">
+        <div class="container">
+            <div class="section-header" data-aos="fade-up">
+                <p class="section-label" style="color:#3b82f6">Control Dashboard</p>
+                <h2>Visibilidade total do cluster</h2>
+                <p>Um painel web unificado com 7 abas especializadas para operar, monitorar e otimizar seu cluster de IA.</p>
+            </div>
+
+            <!-- Tabs visual -->
+            <div data-aos="fade-up" data-aos-delay="100" style="margin-top:40px">
+                <!-- Tab bar mock -->
+                <div style="display:flex;gap:4px;background:#1e293b;padding:8px 16px;border-radius:12px 12px 0 0;border:1px solid #334155;border-bottom:none;overflow-x:auto">
+                    <span style="padding:8px 16px;background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.3);border-radius:6px;color:#60a5fa;font-size:12px;font-weight:600;white-space:nowrap">Nodes</span>
+                    <span style="padding:8px 16px;border-radius:6px;color:#94a3b8;font-size:12px;white-space:nowrap">Cluster</span>
+                    <span style="padding:8px 16px;border-radius:6px;color:#94a3b8;font-size:12px;white-space:nowrap">Observability</span>
+                    <span style="padding:8px 16px;border-radius:6px;color:#94a3b8;font-size:12px;white-space:nowrap">Strategic Room</span>
+                    <span style="padding:8px 16px;border-radius:6px;color:#94a3b8;font-size:12px;white-space:nowrap">Ops Deck</span>
+                    <span style="padding:8px 16px;border-radius:6px;color:#94a3b8;font-size:12px;white-space:nowrap">Lab</span>
+                    <span style="padding:8px 16px;border-radius:6px;color:#94a3b8;font-size:12px;white-space:nowrap">Analytics</span>
+                </div>
+
+                <!-- Tabs description grid -->
+                <div style="background:#0f172a;border:1px solid #334155;border-radius:0 0 12px 12px;padding:32px">
+                    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px">
+
+                        <div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:20px">
+                            <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+                                <span style="font-size:20px">🖥</span>
+                                <h4 style="color:#f8fafc;font-size:15px;margin:0">Nodes</h4>
+                            </div>
+                            <p style="color:#94a3b8;font-size:12px;line-height:1.6;margin-bottom:12px">Visão de cada nó do cluster com métricas em tempo real, agentes rodando, serviços detectados e toggle de autonomia.</p>
+                            <ul style="list-style:none;padding:0;font-size:11px;color:#64748b;line-height:2">
+                                <li>● Cards com CPU, MEM, Disk por nó</li>
+                                <li>● Agents ativos com status e tasks</li>
+                                <li>● Services Docker e processos</li>
+                                <li>● HA badges (Master ★ / Standby ⊙)</li>
+                                <li>● Chat direto com cada nó</li>
+                                <li>● Toggle Auto (autonomia por nó)</li>
+                                <li>● Knowledge Vault 🧠</li>
+                                <li>● Networks (Tailscale + LAN)</li>
+                            </ul>
+                        </div>
+
+                        <div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:20px">
+                            <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+                                <span style="font-size:20px">🌐</span>
+                                <h4 style="color:#f8fafc;font-size:15px;margin:0">Cluster</h4>
+                            </div>
+                            <p style="color:#94a3b8;font-size:12px;line-height:1.6;margin-bottom:12px">Visão agregada como um supercomputador. Topologia visual, KPIs globais, grafo de conexões entre nós.</p>
+                            <ul style="list-style:none;padding:0;font-size:11px;color:#64748b;line-height:2">
+                                <li>● CPU/RAM/Disk totais do cluster</li>
+                                <li>● Topologia visual (grafo de nós)</li>
+                                <li>● Catálogo de modelos e serviços</li>
+                                <li>● Status online/offline por nó</li>
+                            </ul>
+                        </div>
+
+                        <div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:20px">
+                            <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+                                <span style="font-size:20px">🛡</span>
+                                <h4 style="color:#f8fafc;font-size:15px;margin:0">Observability</h4>
+                            </div>
+                            <p style="color:#94a3b8;font-size:12px;line-height:1.6;margin-bottom:12px">Security findings, alertas, predições, performance e discos — tudo categorizado por severidade com ações de fix.</p>
+                            <ul style="list-style:none;padding:0;font-size:11px;color:#64748b;line-height:2">
+                                <li>● Security findings (databases expostos, portas)</li>
+                                <li>● Errors & Alerts por nó e agente</li>
+                                <li>● Predictions (CPU/MEM vai atingir X em Y min)</li>
+                                <li>● Disks (uso por partição, por nó)</li>
+                                <li>● Botão Fix com execução em modal</li>
+                            </ul>
+                        </div>
+
+                        <div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:20px">
+                            <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+                                <span style="font-size:20px">⚡</span>
+                                <h4 style="color:#f8fafc;font-size:15px;margin:0">Strategic Room</h4>
+                            </div>
+                            <p style="color:#94a3b8;font-size:12px;line-height:1.6;margin-bottom:12px">Grafo force-directed dos agentes, feed de atividades, command bar para executar tarefas no cluster.</p>
+                            <ul style="list-style:none;padding:0;font-size:11px;color:#64748b;line-height:2">
+                                <li>● Grafo visual (drag & drop dos agentes)</li>
+                                <li>● Data flow particles (animação)</li>
+                                <li>● Projects & Tasks com progresso</li>
+                                <li>● Live Activity feed</li>
+                                <li>● Command bar (IA + execução)</li>
+                            </ul>
+                        </div>
+
+                        <div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:20px">
+                            <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+                                <span style="font-size:20px">📈</span>
+                                <h4 style="color:#f8fafc;font-size:15px;margin:0">Ops Deck</h4>
+                            </div>
+                            <p style="color:#94a3b8;font-size:12px;line-height:1.6;margin-bottom:12px">Cockpit operacional estilo GCP. Scoreboard, asset book, AI insights em tempo real, SLA e latência.</p>
+                            <ul style="list-style:none;padding:0;font-size:11px;color:#64748b;line-height:2">
+                                <li>● Health Score, SLA%, Latency, Cost</li>
+                                <li>● Server cards com sparklines</li>
+                                <li>● AI Insights panel (auto-análise)</li>
+                                <li>● Database security (EXPOSED/OK)</li>
+                                <li>● Logs por nó (categorias de erro)</li>
+                                <li>● Network scan (portas abertas)</li>
+                                <li>● AI Fix com ▶ RUN em code blocks</li>
+                            </ul>
+                        </div>
+
+                        <div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:20px">
+                            <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+                                <span style="font-size:20px">🧪</span>
+                                <h4 style="color:#f8fafc;font-size:15px;margin:0">Innovation Lab</h4>
+                            </div>
+                            <p style="color:#94a3b8;font-size:12px;line-height:1.6;margin-bottom:12px">Agente autônomo que cria micro-projetos, testa, corrige com IA e disponibiliza para deploy.</p>
+                            <ul style="list-style:none;padding:0;font-size:11px;color:#64748b;line-height:2">
+                                <li>● Submit ideas → IA cria o projeto</li>
+                                <li>● Auto-fix (3 tentativas antes do backlog)</li>
+                                <li>● Editor inline de código</li>
+                                <li>● Run Test no browser</li>
+                                <li>● Deploy package (.zip download)</li>
+                                <li>● Backlog com status (open/resolved)</li>
+                            </ul>
+                        </div>
+
+                        <div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:20px">
+                            <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+                                <span style="font-size:20px">📊</span>
+                                <h4 style="color:#f8fafc;font-size:15px;margin:0">Analytics & FinOps</h4>
+                            </div>
+                            <p style="color:#94a3b8;font-size:12px;line-height:1.6;margin-bottom:12px">Intelligence completa: distribuição de OS, modelos, custos por agente, projeções financeiras.</p>
+                            <ul style="list-style:none;padding:0;font-size:11px;color:#64748b;line-height:2">
+                                <li>● CPU/MEM horizontal bars por nó</li>
+                                <li>● OS, Arch, Models distribution charts</li>
+                                <li>● Model Catalog (Cloud + Ollama local)</li>
+                                <li>● Burn rate: $/hr, $/day, $/month, $/year</li>
+                                <li>● Cost by model, by agent, by node</li>
+                                <li>● Projections: semester, annual</li>
+                                <li>● Node resources table (gauges inline)</li>
+                            </ul>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <!-- Platform -->
     <section id="platform" class="features" style="background: rgba(124,58,237,0.03);">
         <div class="container">
