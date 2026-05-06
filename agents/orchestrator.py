@@ -892,6 +892,86 @@ async def chat(request: Request):
     stream   = body.get("stream", True)
     model    = body.get("model") or _best_model()
 
+    # Intercept: if user asks to create an agent, handle it directly
+    user_msg = (messages[-1].get("content", "") if messages else "").lower()
+    create_keywords = ["crie um agente", "criar agente", "create agent", "cria um agente", "novo agente", "new agent"]
+    if any(kw in user_msg for kw in create_keywords):
+        # Extract name and description from the message
+        from connect.ai_config import get_ai_client
+        ai = get_ai_client()
+        extract = ai.chat([{"role": "user", "content": f'Extract from this request the agent name and description. Return ONLY JSON: {{"name":"agent-name","description":"what it does"}}\n\nRequest: {messages[-1]["content"]}'}], max_tokens=200, temperature=0.1)
+        try:
+            import json as _j
+            if "```" in extract: extract = extract.split("```")[1].split("```")[0]
+            if extract.strip().startswith("json"): extract = extract.strip()[4:]
+            info = _j.loads(extract.strip())
+            # Call create-agent internally
+            from starlette.testclient import TestClient
+            # Use internal function directly instead
+            import subprocess, time as _t2
+            safe_name = info["name"].lower().replace(" ", "_").replace("-", "_")
+            safe_name = ''.join(c for c in safe_name if c.isalnum() or c == '_')
+            desc = info.get("description", messages[-1]["content"])
+
+            # Generate and create
+            prompt = f"""Create a Python agent script for CH8 cluster.
+Agent name: {safe_name}
+Description: {desc}
+Requirements:
+- main() loop with signal handling (SIGTERM)
+- PID to ~/.config/ch8/{safe_name}.pid
+- Register in ~/.config/ch8/state.json every 30s
+- Logging to ~/.config/ch8/{safe_name}.log
+- sys.path.insert(0, str(Path(__file__).parent.parent))
+- Under 120 lines, functional
+Return ONLY Python code."""
+
+            code = ai.chat([{"role": "user", "content": prompt}], max_tokens=2000, temperature=0.2)
+            if "```python" in code: code = code.split("```python")[1].split("```")[0]
+            elif "```" in code: code = code.split("```")[1].split("```")[0]
+            code = code.strip()
+
+            if code and len(code) > 50 and "def main" in code:
+                agents_dir = Path(__file__).parent
+                agent_file = agents_dir / f"{safe_name}.py"
+                agent_file.write_text(code + "\n")
+
+                install_dir = str(Path(__file__).parent.parent)
+                env = {**os.environ, "PYTHONPATH": install_dir}
+                log_f = Path.home() / ".config" / "ch8" / f"{safe_name}.log"
+                pid_f = Path.home() / ".config" / "ch8" / f"{safe_name}.pid"
+                proc = subprocess.Popen([sys.executable, str(agent_file)], cwd=install_dir, env=env,
+                    stdout=open(log_f, "w"), stderr=subprocess.STDOUT, start_new_session=True)
+                pid_f.write_text(str(proc.pid))
+
+                # Register in state
+                _t2.sleep(1)
+                state_file = Path.home() / ".config" / "ch8" / "state.json"
+                try:
+                    state = _j.loads(state_file.read_text()) if state_file.exists() else {}
+                    al = state.get("agents", [])
+                    al = [a for a in al if a.get("name") != safe_name]
+                    al.append({"name": safe_name, "status": "running", "task": desc[:60], "model": "custom",
+                        "platform": "custom", "autonomous": True, "updated_at": int(_t2.time()),
+                        "tools": [], "details": {"description": desc}, "alerts": 0,
+                        "security_findings": 0, "predictions": 0, "heavy_procs": 0})
+                    state["agents"] = al
+                    state_file.write_text(_j.dumps(state, indent=2))
+                except Exception:
+                    pass
+
+                # Return as SSE response
+                from starlette.responses import StreamingResponse
+                async def _stream_created():
+                    msg = f"✅ Agente **{safe_name}** criado e iniciado (PID {proc.pid})!\n\n📋 Arquivo: `agents/{safe_name}.py`\n🔧 Descrição: {desc}\n\nO agente já está rodando e aparece no dashboard."
+                    yield f"data: {_j.dumps({'message': {'content': msg}})}\n\n"
+                    yield "data: [DONE]\n\n"
+                return StreamingResponse(_stream_created(), media_type="text/event-stream")
+            else:
+                pass  # Fall through to normal chat if code generation failed
+        except Exception:
+            pass  # Fall through to normal chat
+
     loop = _asyncio.get_event_loop()
     ctx     = await loop.run_in_executor(None, _get_context)
     sys_msg = _build_system_prompt(ctx)
@@ -1325,6 +1405,128 @@ async def node_version():
         pass
     from connect.auth import get_node_id as _get_nid
     return {"version": version, "commit": git_hash, "node_id": _get_nid()}
+
+
+@app.post("/create-agent")
+async def create_agent_endpoint(request: Request):
+    """
+    Create a real agent on this node from a description.
+    1. LLM generates the agent code
+    2. Saves to agents/ directory
+    3. Starts the process
+    4. Registers in state.json (appears in dashboard immediately)
+
+    Body: {"name": "my-agent", "description": "what it does", "model": "optional model override"}
+    """
+    import subprocess, time as _t
+    try:
+        body = await request.json()
+        name = body.get("name", "").strip()
+        description = body.get("description", "").strip()
+
+        if not name or not description:
+            return {"ok": False, "error": "name and description required"}
+
+        # Sanitize name
+        safe_name = name.lower().replace(" ", "_").replace("-", "_")
+        safe_name = ''.join(c for c in safe_name if c.isalnum() or c == '_')
+
+        agents_dir = Path(__file__).parent
+        agent_file = agents_dir / f"{safe_name}.py"
+
+        if agent_file.exists():
+            return {"ok": False, "error": f"Agent '{safe_name}' already exists"}
+
+        # Generate agent code via AI
+        from connect.ai_config import get_ai_client
+        ai = get_ai_client()
+
+        prompt = f"""Create a Python agent script for CH8 cluster.
+
+Agent name: {safe_name}
+Description: {description}
+
+Requirements:
+- Must have a main() function that loops with signal handling (SIGTERM to stop)
+- Must write PID to ~/.config/ch8/<name>.pid on start
+- Must register in ~/.config/ch8/state.json agents array every 30s with:
+  {{"name": "{safe_name}", "status": "running"|"idle"|"error", "task": "current task",
+   "model": "what it uses", "platform": "custom", "autonomous": True,
+   "updated_at": unix_timestamp, "tools": [], "details": {{}}}}
+- Use logging to ~/.config/ch8/<name>.log
+- Import sys; sys.path.insert(0, str(Path(__file__).parent.parent))
+- Keep it under 150 lines, functional, no placeholders
+- Include proper error handling
+
+Return ONLY Python code, no markdown, no explanation."""
+
+        code = ai.chat([{"role": "user", "content": prompt}], max_tokens=2000, temperature=0.2)
+
+        # Clean response
+        if "```python" in code:
+            code = code.split("```python")[1].split("```")[0]
+        elif "```" in code:
+            code = code.split("```")[1].split("```")[0]
+        code = code.strip()
+
+        if not code or len(code) < 50 or "def main" not in code:
+            return {"ok": False, "error": "AI generated invalid code"}
+
+        # Save the agent file
+        agent_file.write_text(code + "\n")
+
+        # Start the agent
+        install_dir = str(Path(__file__).parent.parent)
+        env = {**os.environ, "PYTHONPATH": install_dir}
+        log_file = Path.home() / ".config" / "ch8" / f"{safe_name}.log"
+        pid_file = Path.home() / ".config" / "ch8" / f"{safe_name}.pid"
+
+        proc = subprocess.Popen(
+            [sys.executable, str(agent_file)],
+            cwd=install_dir, env=env,
+            stdout=open(log_file, "w"), stderr=subprocess.STDOUT,
+            start_new_session=True,
+        )
+
+        # Write PID
+        pid_file.write_text(str(proc.pid))
+
+        # Register immediately in state.json so it appears in dashboard
+        _t.sleep(1)
+        state_file = Path.home() / ".config" / "ch8" / "state.json"
+        try:
+            import json as _json2
+            state = _json2.loads(state_file.read_text()) if state_file.exists() else {}
+            agents_list = state.get("agents", [])
+            agents_list = [a for a in agents_list if a.get("name") != safe_name]
+            agents_list.append({
+                "name": safe_name,
+                "status": "running",
+                "task": f"Started: {description[:50]}",
+                "model": "custom",
+                "platform": "custom",
+                "autonomous": True,
+                "alerts": 0, "security_findings": 0, "predictions": 0, "heavy_procs": 0,
+                "tools": [],
+                "details": {"description": description},
+                "updated_at": int(_t.time()),
+            })
+            state["agents"] = agents_list
+            state_file.write_text(_json2.dumps(state, indent=2))
+        except Exception:
+            pass
+
+        return {
+            "ok": True,
+            "agent": safe_name,
+            "pid": proc.pid,
+            "file": str(agent_file),
+            "description": description,
+            "message": f"Agent '{safe_name}' created and started (PID {proc.pid})",
+        }
+
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
 
 
 @app.post("/autonomy")
