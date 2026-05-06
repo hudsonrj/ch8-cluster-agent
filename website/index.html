@@ -376,40 +376,62 @@
     <!-- Workflow Studio Highlight -->
     <section id="workflow-studio" style="padding: 80px 0; background: linear-gradient(135deg, rgba(124,58,237,0.06) 0%, rgba(37,99,235,0.04) 100%);">
         <div class="container">
-            <div data-aos="fade-up" style="text-align:center;max-width:700px;margin:0 auto">
-                <div style="display:inline-flex;align-items:center;gap:8px;padding:6px 16px;background:rgba(124,58,237,0.1);border:1px solid rgba(124,58,237,0.25);border-radius:20px;margin-bottom:20px">
-                    <span style="width:8px;height:8px;border-radius:50%;background:#7c3aed;box-shadow:0 0 8px #7c3aed"></span>
-                    <span style="font-size:11px;color:#a78bfa;font-weight:600;text-transform:uppercase;letter-spacing:1px">Novo</span>
-                </div>
-                <h2 style="font-size:36px;font-weight:800;color:#f8fafc;margin-bottom:16px;line-height:1.2">
+            <!-- Header -->
+            <div data-aos="fade-up" style="text-align:center;max-width:640px;margin:0 auto 48px">
+                <h2 style="font-size:32px;font-weight:800;color:#f8fafc;margin-bottom:12px">
                     <span style="color:#7c3aed">⬡</span> Workflow Studio
                 </h2>
-                <p style="font-size:18px;color:#94a3b8;line-height:1.6;margin-bottom:8px">
-                    Orquestração visual de agentes de IA no seu cluster privado.
-                </p>
-                <p style="font-size:14px;color:#64748b;line-height:1.5">
-                    Arraste nós, modelos e ferramentas reais do cluster para um canvas interativo. Conecte, configure e execute workflows complexos — com um Copiloto IA que ajuda a montar tudo.
+                <p style="font-size:16px;color:#94a3b8;line-height:1.5">
+                    Orquestração visual de agentes de IA distribuídos.<br>
+                    <span style="color:#cbd5e1">Use máquinas que estavam paradas como nós produtivos de um cluster inteligente.</span>
                 </p>
             </div>
-            <div data-aos="fade-up" data-aos-delay="100" style="display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:center;margin-top:40px">
+
+            <!-- 3 value props -->
+            <div data-aos="fade-up" data-aos-delay="50" style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:40px">
+                <div style="background:#1e293b;border:1px solid #334155;border-radius:12px;padding:24px;text-align:center">
+                    <div style="font-size:28px;margin-bottom:8px">🏠</div>
+                    <div style="font-size:14px;font-weight:700;color:#f8fafc;margin-bottom:6px">Modelos Locais</div>
+                    <div style="font-size:12px;color:#64748b;line-height:1.5">Qwen, Gemma, TinyLlama via Ollama. Rodam no seu hardware, custo zero de API.</div>
+                </div>
+                <div style="background:#1e293b;border:1px solid #334155;border-radius:12px;padding:24px;text-align:center">
+                    <div style="font-size:28px;margin-bottom:8px">☁️</div>
+                    <div style="font-size:14px;font-weight:700;color:#f8fafc;margin-bottom:6px">Cloud sob Demanda</div>
+                    <div style="font-size:12px;color:#64748b;line-height:1.5">Bedrock Claude, GPT-4o só quando precisa. Centavos por hora, distribuído entre nós.</div>
+                </div>
+                <div style="background:#1e293b;border:1px solid #334155;border-radius:12px;padding:24px;text-align:center">
+                    <div style="font-size:28px;margin-bottom:8px">💰</div>
+                    <div style="font-size:14px;font-weight:700;color:#f8fafc;margin-bottom:6px">FinOps Integrado</div>
+                    <div style="font-size:12px;color:#64748b;line-height:1.5">Custo real por agente e por nó. Projeção mensal. Zero surpresa na fatura.</div>
+                </div>
+            </div>
+
+            <!-- Main content: description + mock -->
+            <div data-aos="fade-up" data-aos-delay="100" style="display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:start">
                 <div>
-                    <h3 style="font-size:20px;margin-bottom:16px;color:#f8fafc">Orquestre IA com máquinas que estavam paradas</h3>
-                    <p style="color:#94a3b8;line-height:1.7;margin-bottom:20px">
-                        Transforme aquele notebook antigo, aquele Raspberry Pi na gaveta, aquele PC do escritório em <strong style="color:#f8fafc">nós produtivos de um cluster de IA</strong>. O Workflow Studio usa os agentes, modelos e MCPs reais do seu cluster — tudo distribuído, gastando pouco, sem GPU dedicada, sem cloud cara.
+                    <h3 style="font-size:18px;margin-bottom:14px;color:#f8fafc">Como funciona</h3>
+                    <p style="color:#94a3b8;line-height:1.7;margin-bottom:20px;font-size:14px">
+                        O Workflow Studio se conecta ao seu cluster CH8 e mostra <strong style="color:#f8fafc">todos os nós, agentes, modelos Ollama e MCPs disponíveis</strong> como blocos arrastáveis. Você monta o fluxo visualmente — a execução é distribuída automaticamente entre as máquinas.
                     </p>
-                    <p style="color:#64748b;line-height:1.6;margin-bottom:20px;font-size:13px">
-                        Cada máquina contribui com o que tem: CPU para modelos leves (Qwen, Gemma, TinyLlama via Ollama), ou apenas como relay e executor de tarefas. O Bedrock/OpenAI entra só quando precisa de raciocínio pesado — e o custo é centavos por hora, distribuído entre todos os nós.
-                    </p>
-                    <ul style="list-style:none;padding:0;color:#cbd5e1;line-height:2.2">
-                        <li>🖥 <strong>Nós reais do cluster</strong> — PCs, notebooks, Raspberry Pi, VMs com CPU/RAM/disco</li>
-                        <li>🤖 <strong>Agentes distribuídos</strong> — cada nó roda seus agentes com modelos locais ou cloud</li>
-                        <li>🏠 <strong>Modelos locais Ollama</strong> — Qwen, Gemma, TinyLlama rodando sem custo de API</li>
-                        <li>☁️ <strong>Cloud sob demanda</strong> — Bedrock Claude só quando o local não resolve</li>
-                        <li>🔧 <strong>MCPs e Tools</strong> — cada nó expõe suas ferramentas (Docker, SQL, HTTP, arquivos)</li>
-                        <li>🔀 <strong>Fluxos inteligentes</strong> — routers, retry, parallelismo, consenso multi-LLM</li>
-                        <li>🤝 <strong>Copiloto IA</strong> — descreva o que quer, a IA monta o workflow</li>
-                        <li>💰 <strong>FinOps</strong> — custo real por agente, projeção mensal, zero surpresa</li>
-                    </ul>
+
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:24px">
+                        <div style="background:#0f172a;border:1px solid #334155;border-radius:8px;padding:12px;font-size:11px">
+                            <div style="color:#60a5fa;font-weight:600;margin-bottom:4px">🖥 Nós do Cluster</div>
+                            <div style="color:#64748b">PCs, notebooks, Raspberry Pi, VMs — cada um contribui</div>
+                        </div>
+                        <div style="background:#0f172a;border:1px solid #334155;border-radius:8px;padding:12px;font-size:11px">
+                            <div style="color:#34d399;font-weight:600;margin-bottom:4px">🤖 Agentes</div>
+                            <div style="color:#64748b">Cada nó roda agentes com modelos locais ou cloud</div>
+                        </div>
+                        <div style="background:#0f172a;border:1px solid #334155;border-radius:8px;padding:12px;font-size:11px">
+                            <div style="color:#fbbf24;font-weight:600;margin-bottom:4px">🔧 MCPs & Tools</div>
+                            <div style="color:#64748b">Docker, SQL, HTTP, arquivos — expostos por nó</div>
+                        </div>
+                        <div style="background:#0f172a;border:1px solid #334155;border-radius:8px;padding:12px;font-size:11px">
+                            <div style="color:#a78bfa;font-weight:600;margin-bottom:4px">🤝 Copiloto IA</div>
+                            <div style="color:#64748b">Descreva o que quer — a IA monta o workflow</div>
+                        </div>
+                    </div>
                     <div style="display:flex;gap:12px;margin-top:24px;flex-wrap:wrap">
                         <a href="https://github.com/hudsonrj/ch8-cluster-agent" target="_blank" style="display:inline-block;padding:12px 28px;background:#7c3aed;color:#fff;border-radius:8px;font-weight:600;text-decoration:none;font-size:14px">
                             Implemente o Seu →
