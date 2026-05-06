@@ -275,6 +275,9 @@ def cmd_up(token=None):
     if (Path.home() / ".config" / "ch8" / "node_access.json").exists():
         _start_agent("recovery_agent", "recovery_agent.py")
 
+    # Start Mesh Relay Agent (LAN bridge for unreachable nodes)
+    _start_agent("mesh_relay", "mesh_relay.py")
+
     # Wait for daemon to write its PID (up to 8s)
     import time
     from connect.daemon import is_daemon_running, read_state
