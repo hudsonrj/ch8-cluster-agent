@@ -99,6 +99,15 @@ def run_server():
         return {"voices": [{"name": v["ShortName"], "gender": v["Gender"]} for v in pt_voices]}
 
     _update_state("running", f"TTS server on :7881 — voice: {DEFAULT_VOICE}")
+
+    # Background heartbeat to keep state fresh
+    import threading
+    def _heartbeat():
+        while True:
+            time.sleep(30)
+            _update_state("running", f"TTS on :7881 — {DEFAULT_VOICE}")
+    threading.Thread(target=_heartbeat, daemon=True).start()
+
     uvicorn.run(app, host="0.0.0.0", port=7881, log_level="warning")
 
 
