@@ -1,108 +1,188 @@
 #!/bin/bash
 # ═══════════════════════════════════════════════════════════════
 # CH8 Agent — Tailscale Auto-Install & Auth
-# Installs Tailscale and authenticates using OAuth credentials
+# Installs Tailscale and authenticates using embedded OAuth credentials
 # Called automatically by `ch8 up` if Tailscale is not detected
+#
+# NEVER fails fatally — if incompatible, skips gracefully
 # ═══════════════════════════════════════════════════════════════
 
-set -e
-
+# Embedded credentials (no external config needed)
 TS_CLIENT_ID="kxMbsoMmCf11CNTRL"
 TS_CLIENT_SECRET="tskey-client-kxMbsoMmCf11CNTRL-airVftRcWuLcLf41xKvzuLzCUbs7MWdi"
 
-echo "  [Tailscale] Checking installation..."
+# ── Helper: safe exit (never fatal) ──
+fail_gracefully() {
+    echo "  [Tailscale] SKIP: $1"
+    echo "  [Tailscale] Agent will use LAN IP instead (mesh relay for cross-network)"
+    exit 0  # Always exit 0 so ch8 up continues
+}
 
-# ── Detect OS ──
+echo "  [Tailscale] Auto-setup starting..."
+
+# ── Check if already connected ──
+if command -v tailscale &>/dev/null; then
+    TS_IP=$(tailscale ip --4 2>/dev/null || echo "")
+    if [ -n "$TS_IP" ]; then
+        echo "  [Tailscale] Already connected: $TS_IP"
+        exit 0
+    fi
+    echo "  [Tailscale] Installed but not connected. Authenticating..."
+fi
+
+# ── Detect OS and architecture ──
 OS="unknown"
-if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+ARCH=$(uname -m 2>/dev/null || echo "unknown")
+
+if [[ "$OSTYPE" == "linux-gnu"* ]] || [ "$(uname -s)" = "Linux" ]; then
     OS="linux"
-elif [[ "$OSTYPE" == "darwin"* ]]; then
+elif [[ "$OSTYPE" == "darwin"* ]] || [ "$(uname -s)" = "Darwin" ]; then
     OS="macos"
-elif [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" || "$OSTYPE" == "win32" ]]; then
+elif [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" ]]; then
     OS="windows"
 fi
 
-# ── Check if already installed ──
-if command -v tailscale &>/dev/null; then
-    echo "  [Tailscale] Already installed: $(tailscale version 2>/dev/null | head -1)"
-    # Check if connected
-    if tailscale status &>/dev/null; then
-        TS_IP=$(tailscale ip --4 2>/dev/null || echo "")
-        if [ -n "$TS_IP" ]; then
-            echo "  [Tailscale] Connected: $TS_IP"
-            exit 0
-        fi
-    fi
-    echo "  [Tailscale] Installed but not connected. Authenticating..."
-else
-    # ── Install ──
-    echo "  [Tailscale] Installing for $OS..."
+echo "  [Tailscale] OS=$OS ARCH=$ARCH"
+
+# ── Check prerequisites ──
+if ! command -v curl &>/dev/null && ! command -v wget &>/dev/null; then
+    fail_gracefully "curl/wget not available — cannot download"
+fi
+
+if ! command -v python3 &>/dev/null && ! command -v python &>/dev/null; then
+    fail_gracefully "python not available — cannot parse OAuth response"
+fi
+
+# ── Install if not present ──
+if ! command -v tailscale &>/dev/null; then
+    echo "  [Tailscale] Installing..."
     case $OS in
         linux)
-            curl -fsSL https://tailscale.com/install.sh | sh
+            # Try official installer (handles all distros + architectures)
+            if curl -fsSL https://tailscale.com/install.sh 2>/dev/null | sh 2>&1; then
+                echo "  [Tailscale] Installed via official script"
+            else
+                # Fallback: try apt
+                if command -v apt-get &>/dev/null; then
+                    curl -fsSL https://pkgs.tailscale.com/stable/ubuntu/jammy.gpg 2>/dev/null | sudo apt-key add - 2>/dev/null
+                    sudo apt-get install -y tailscale 2>/dev/null || fail_gracefully "apt install failed"
+                else
+                    fail_gracefully "Linux distro not supported for auto-install"
+                fi
+            fi
             ;;
         macos)
             if command -v brew &>/dev/null; then
-                brew install tailscale
+                brew install tailscale 2>/dev/null || fail_gracefully "brew install failed"
             else
-                echo "  [Tailscale] ERROR: brew not found. Install manually: https://tailscale.com/download"
-                exit 1
+                # Try direct download
+                echo "  [Tailscale] Downloading macOS package..."
+                curl -fsSL "https://pkgs.tailscale.com/stable/tailscale-latest-macos.zip" -o /tmp/tailscale.zip 2>/dev/null
+                if [ -f /tmp/tailscale.zip ]; then
+                    unzip -o /tmp/tailscale.zip -d /tmp/tailscale 2>/dev/null
+                    if [ -d /tmp/tailscale/Tailscale.app ]; then
+                        cp -R /tmp/tailscale/Tailscale.app /Applications/ 2>/dev/null || \
+                            cp -R /tmp/tailscale/Tailscale.app ~/Applications/ 2>/dev/null || \
+                            fail_gracefully "Cannot copy Tailscale.app"
+                        open /Applications/Tailscale.app 2>/dev/null || open ~/Applications/Tailscale.app 2>/dev/null
+                        echo "  [Tailscale] App installed. Waiting for CLI..."
+                        sleep 5
+                    else
+                        fail_gracefully "Tailscale.app not found in zip"
+                    fi
+                else
+                    fail_gracefully "Download failed — macOS incompatible or no internet"
+                fi
             fi
             ;;
         windows)
-            echo "  [Tailscale] Windows detected. Install from: https://tailscale.com/download/windows"
-            echo "  Or run: winget install Tailscale.Tailscale"
-            exit 1
+            fail_gracefully "Windows auto-install not supported. Run: winget install Tailscale.Tailscale"
             ;;
         *)
-            echo "  [Tailscale] Unknown OS. Install manually: https://tailscale.com/download"
-            exit 1
+            fail_gracefully "Unknown OS ($OSTYPE) — cannot auto-install"
             ;;
     esac
-    echo "  [Tailscale] Installed successfully"
+
+    # Verify installation
+    if ! command -v tailscale &>/dev/null; then
+        fail_gracefully "Installation completed but 'tailscale' command not found in PATH"
+    fi
 fi
 
 # ── Start daemon if needed (Linux) ──
 if [ "$OS" = "linux" ]; then
     if ! pgrep -x tailscaled &>/dev/null; then
-        echo "  [Tailscale] Starting tailscaled..."
-        sudo tailscaled --state=/var/lib/tailscale/tailscaled.state &>/dev/null &
-        sleep 2
+        echo "  [Tailscale] Starting daemon..."
+        if command -v systemctl &>/dev/null; then
+            sudo systemctl start tailscaled 2>/dev/null || \
+                sudo tailscaled --state=/var/lib/tailscale/tailscaled.state &>/dev/null &
+        else
+            sudo tailscaled --state=/var/lib/tailscale/tailscaled.state &>/dev/null &
+        fi
+        sleep 3
     fi
 fi
 
-# ── Authenticate using OAuth ──
+# ── Authenticate using OAuth credentials ──
 echo "  [Tailscale] Authenticating with CH8 network..."
 
-# Step 1: Get access token from OAuth credentials
-ACCESS_TOKEN=$(curl -s -d "client_id=${TS_CLIENT_ID}&client_secret=${TS_CLIENT_SECRET}" \
-    "https://api.tailscale.com/api/v2/oauth/token" | python3 -c "import sys,json;print(json.load(sys.stdin).get('access_token',''))" 2>/dev/null)
+# Get Python command
+PY="python3"
+command -v python3 &>/dev/null || PY="python"
+
+# Step 1: Get OAuth access token
+ACCESS_TOKEN=$($PY -c "
+import urllib.request, json
+try:
+    data = 'client_id=${TS_CLIENT_ID}&client_secret=${TS_CLIENT_SECRET}'.encode()
+    req = urllib.request.Request('https://api.tailscale.com/api/v2/oauth/token', data=data)
+    resp = urllib.request.urlopen(req, timeout=15)
+    print(json.loads(resp.read()).get('access_token', ''))
+except Exception as e:
+    pass
+" 2>/dev/null)
 
 if [ -z "$ACCESS_TOKEN" ]; then
-    echo "  [Tailscale] ERROR: Failed to get OAuth token"
-    exit 1
+    fail_gracefully "OAuth token request failed (no internet or invalid credentials)"
 fi
 
-# Step 2: Create a reusable auth key
-AUTH_KEY=$(curl -s -H "Authorization: Bearer ${ACCESS_TOKEN}" \
-    -d '{"capabilities":{"devices":{"create":{"reusable":true,"ephemeral":false,"preauthorized":true}}}}' \
-    "https://api.tailscale.com/api/v2/tailnet/-/keys" | python3 -c "import sys,json;print(json.load(sys.stdin).get('key',''))" 2>/dev/null)
+# Step 2: Create reusable auth key
+AUTH_KEY=$($PY -c "
+import urllib.request, json
+try:
+    data = json.dumps({'capabilities':{'devices':{'create':{'reusable':True,'ephemeral':False,'preauthorized':True}}}}).encode()
+    req = urllib.request.Request('https://api.tailscale.com/api/v2/tailnet/-/keys', data=data)
+    req.add_header('Authorization', 'Bearer ${ACCESS_TOKEN}')
+    req.add_header('Content-Type', 'application/json')
+    resp = urllib.request.urlopen(req, timeout=15)
+    print(json.loads(resp.read()).get('key', ''))
+except Exception as e:
+    pass
+" 2>/dev/null)
 
 if [ -z "$AUTH_KEY" ]; then
-    echo "  [Tailscale] ERROR: Failed to create auth key"
-    exit 1
+    fail_gracefully "Auth key creation failed"
 fi
 
-# Step 3: Connect with the auth key
-echo "  [Tailscale] Connecting to network..."
-sudo tailscale up --authkey="$AUTH_KEY" --hostname="$(hostname)" 2>/dev/null || \
-    tailscale up --authkey="$AUTH_KEY" --hostname="$(hostname)" 2>/dev/null
+# Step 3: Connect
+echo "  [Tailscale] Connecting to CH8 network..."
+HOSTNAME=$(hostname 2>/dev/null || echo "ch8-node")
 
-# Step 4: Verify
-sleep 3
-TS_IP=$(tailscale ip --4 2>/dev/null || echo "")
-if [ -n "$TS_IP" ]; then
-    echo "  [Tailscale] ✓ Connected! IP: $TS_IP"
+if sudo tailscale up --authkey="$AUTH_KEY" --hostname="$HOSTNAME" 2>/dev/null; then
+    sleep 3
+    TS_IP=$(tailscale ip --4 2>/dev/null || echo "")
+    if [ -n "$TS_IP" ]; then
+        echo "  [Tailscale] ✓ Connected! IP: $TS_IP"
+        exit 0
+    else
+        echo "  [Tailscale] Connected but no IP yet (may take a moment)"
+        exit 0
+    fi
 else
-    echo "  [Tailscale] WARNING: Connected but no IPv4 yet. May take a moment."
+    # Try without sudo (macOS app mode)
+    tailscale up --authkey="$AUTH_KEY" --hostname="$HOSTNAME" 2>/dev/null || \
+        fail_gracefully "tailscale up failed — may need manual setup"
 fi
+
+echo "  [Tailscale] Setup complete"
+exit 0
