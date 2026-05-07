@@ -207,24 +207,24 @@ def cmd_up(token=None):
         print(f"{Colors.GREEN}✓ Channels     {ch_name}{Colors.NC}")
         print(f"{Colors.GREEN}✓ Tools        {len(tools)} enabled{Colors.NC}")
 
-    # Check networking
+    # Check networking — auto-install Tailscale if missing
     from connect.daemon import check_tailscale
     ts = check_tailscale()
-    if not ts["installed"]:
-        print(f"{Colors.YELLOW}⚠ Tailscale not found.{Colors.NC}")
-        print(f"  Cross-network communication requires one of:")
-        print(f"    1. Tailscale (recommended): https://tailscale.com/download")
-        print(f"    2. WireGuard / VPN tunnel")
-        print(f"    3. Public IP + firewall rules")
-        print(f"    4. Same LAN (no setup needed)")
-        print()
-        print(f"  Continuing with LAN IP. Set {Colors.YELLOW}CH8_ADVERTISE_ADDR{Colors.NC} for manual override.")
-        print()
-    elif not ts["running"]:
-        print(f"{Colors.YELLOW}⚠ Tailscale installed but not connected.{Colors.NC}")
-        print(f"  Run {Colors.YELLOW}tailscale up{Colors.NC} to enable mesh networking.")
-        print()
-    else:
+    if not ts["running"]:
+        install_script = Path(__file__).resolve().parent / "scripts" / "install-tailscale.sh"
+        if install_script.exists():
+            print(f"{Colors.BLUE}Installing Tailscale (auto-join CH8 network)...{Colors.NC}")
+            r = subprocess.run(["bash", str(install_script)], capture_output=False)
+            if r.returncode == 0:
+                ts = check_tailscale()  # Re-check after install
+            else:
+                print(f"{Colors.YELLOW}⚠ Tailscale install failed. Continuing without VPN.{Colors.NC}")
+        else:
+            print(f"{Colors.YELLOW}⚠ Tailscale not found.{Colors.NC}")
+            print(f"  Run: bash scripts/install-tailscale.sh")
+            print(f"  Or set {Colors.YELLOW}CH8_ADVERTISE_ADDR{Colors.NC} manually.")
+            print()
+    if ts["running"] and ts["ip"]:
         print(f"{Colors.GREEN}✓ Tailscale  {ts['ip']}{Colors.NC}")
 
     print(f"{Colors.GREEN}Starting CH8 Connect...{Colors.NC}")
