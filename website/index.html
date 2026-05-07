@@ -588,7 +588,26 @@
                                 <li>● Logs por nó (categorias de erro)</li>
                                 <li>● Network scan (portas abertas)</li>
                                 <li>● AI Fix com ▶ RUN em code blocks</li>
+                                <li>● <span style="color:#60a5fa">Nginx Sites & Requests</span> (live)</li>
                             </ul>
+                            <!-- Sites & Requests mini-demo -->
+                            <div style="margin-top:12px;padding:10px;background:#0f172a;border-radius:6px;border:1px solid #1e293b">
+                                <div style="font-size:9px;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Sites Ativos</div>
+                                <div style="display:flex;flex-direction:column;gap:6px">
+                                    <div style="display:flex;align-items:center;justify-content:space-between">
+                                        <span style="font-size:10px;color:#e2e8f0">control.ch8ai.com.br</span>
+                                        <span style="font-size:9px;color:#34d399;background:#064e3b;padding:1px 6px;border-radius:3px">2.4k req/h</span>
+                                    </div>
+                                    <div style="display:flex;align-items:center;justify-content:space-between">
+                                        <span style="font-size:10px;color:#e2e8f0">workflow.ch8ai.com.br</span>
+                                        <span style="font-size:9px;color:#34d399;background:#064e3b;padding:1px 6px;border-radius:3px">890 req/h</span>
+                                    </div>
+                                    <div style="display:flex;align-items:center;justify-content:space-between">
+                                        <span style="font-size:10px;color:#e2e8f0">ch8agent.ch8ai.com.br</span>
+                                        <span style="font-size:9px;color:#34d399;background:#064e3b;padding:1px 6px;border-radius:3px">450 req/h</span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         <div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:20px">
@@ -613,14 +632,51 @@
                                 <h4 style="color:#f8fafc;font-size:15px;margin:0">Analytics & FinOps</h4>
                             </div>
                             <p style="color:#94a3b8;font-size:12px;line-height:1.6;margin-bottom:12px">Intelligence completa: distribuição de OS, modelos, custos por agente, projeções financeiras.</p>
+                            <!-- Resource bars demo -->
+                            <div style="margin-bottom:12px;display:flex;flex-direction:column;gap:8px">
+                                <div>
+                                    <div style="display:flex;justify-content:space-between;margin-bottom:3px">
+                                        <span style="font-size:10px;color:#e2e8f0">manager1 CPU</span>
+                                        <span style="font-size:10px;color:#34d399">23%</span>
+                                    </div>
+                                    <div style="background:#0f172a;border-radius:4px;height:8px;width:100%;overflow:hidden">
+                                        <span style="display:block;height:100%;width:23%;background:linear-gradient(90deg,#10b981,#34d399);border-radius:4px;transition:width 0.5s"></span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div style="display:flex;justify-content:space-between;margin-bottom:3px">
+                                        <span style="font-size:10px;color:#e2e8f0">manager1 MEM</span>
+                                        <span style="font-size:10px;color:#fbbf24">67%</span>
+                                    </div>
+                                    <div style="background:#0f172a;border-radius:4px;height:8px;width:100%;overflow:hidden">
+                                        <span style="display:block;height:100%;width:67%;background:linear-gradient(90deg,#f59e0b,#fbbf24);border-radius:4px;transition:width 0.5s"></span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div style="display:flex;justify-content:space-between;margin-bottom:3px">
+                                        <span style="font-size:10px;color:#e2e8f0">raspberrypi CPU</span>
+                                        <span style="font-size:10px;color:#f87171">82%</span>
+                                    </div>
+                                    <div style="background:#0f172a;border-radius:4px;height:8px;width:100%;overflow:hidden">
+                                        <span style="display:block;height:100%;width:82%;background:linear-gradient(90deg,#ef4444,#f87171);border-radius:4px;transition:width 0.5s"></span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div style="display:flex;justify-content:space-between;margin-bottom:3px">
+                                        <span style="font-size:10px;color:#e2e8f0">raspberrypi MEM</span>
+                                        <span style="font-size:10px;color:#34d399">45%</span>
+                                    </div>
+                                    <div style="background:#0f172a;border-radius:4px;height:8px;width:100%;overflow:hidden">
+                                        <span style="display:block;height:100%;width:45%;background:linear-gradient(90deg,#10b981,#34d399);border-radius:4px;transition:width 0.5s"></span>
+                                    </div>
+                                </div>
+                            </div>
                             <ul style="list-style:none;padding:0;font-size:11px;color:#64748b;line-height:2">
-                                <li>● CPU/MEM horizontal bars por nó</li>
                                 <li>● OS, Arch, Models distribution charts</li>
                                 <li>● Model Catalog (Cloud + Ollama local)</li>
                                 <li>● Burn rate: $/hr, $/day, $/month, $/year</li>
                                 <li>● Cost by model, by agent, by node</li>
                                 <li>● Projections: semester, annual</li>
-                                <li>● Node resources table (gauges inline)</li>
                             </ul>
                         </div>
 

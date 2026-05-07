@@ -129,6 +129,15 @@ def run_server():
     _update_state("running", f"Loading whisper-{MODEL_SIZE}...")
     get_model()
     _update_state("running", f"STT server on :7882 — model: whisper-{MODEL_SIZE}")
+
+    # Background heartbeat to keep state fresh (visible in dashboard)
+    import threading
+    def _heartbeat():
+        while True:
+            time.sleep(30)
+            _update_state("running", f"STT on :7882 — whisper-{MODEL_SIZE}")
+    threading.Thread(target=_heartbeat, daemon=True).start()
+
     uvicorn.run(app, host="0.0.0.0", port=7882, log_level="warning")
 
 

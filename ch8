@@ -280,6 +280,7 @@ def cmd_up(token=None):
 
     # Start Voice + RAG agents
     _start_agent("tts_agent", "tts_agent.py")
+    _start_agent("stt_agent", "stt_agent.py")
     _start_agent("rag_agent", "rag_agent.py")
 
     # Wait for daemon to write its PID (up to 8s)

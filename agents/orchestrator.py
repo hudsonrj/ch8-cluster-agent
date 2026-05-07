@@ -1675,6 +1675,42 @@ async def knowledge_search(q: str = ""):
     return {"results": results, "query": q, "count": len(results)}
 
 
+@app.get("/ops/nginx-sites")
+async def nginx_sites():
+    """List active nginx sites with request counts from access logs."""
+    import subprocess, re
+    sites = []
+    try:
+        # Get enabled sites from nginx
+        result = subprocess.run(["ls", "/etc/nginx/sites-enabled/"], capture_output=True, text=True, timeout=5)
+        for fname in result.stdout.strip().split("\n"):
+            if not fname or fname == "default":
+                continue
+            conf_path = f"/etc/nginx/sites-enabled/{fname}"
+            try:
+                conf = open(conf_path).read()
+                server_names = re.findall(r"server_name\s+([^;]+);", conf)
+                domain = server_names[0].split()[0] if server_names else fname
+                # Count requests from access log in last hour
+                log_path = f"/var/log/nginx/{fname}.access.log"
+                if not os.path.exists(log_path):
+                    log_path = "/var/log/nginx/access.log"
+                try:
+                    count_result = subprocess.run(
+                        ["bash", "-c", f"awk -v d=\"$(date -d '1 hour ago' '+%d/%b/%Y:%H')\" '$0 ~ d' {log_path} | grep -c '{domain}' 2>/dev/null || echo 0"],
+                        capture_output=True, text=True, timeout=5
+                    )
+                    req_count = int(count_result.stdout.strip() or "0")
+                except Exception:
+                    req_count = 0
+                sites.append({"domain": domain, "config": fname, "requests_last_hour": req_count, "status": "active"})
+            except Exception:
+                sites.append({"domain": fname, "config": fname, "requests_last_hour": 0, "status": "unknown"})
+    except Exception as e:
+        return {"sites": [], "error": str(e)}
+    return {"sites": sites, "total": len(sites)}
+
+
 @app.get("/tools")
 async def list_tools():
     """List all available tools."""
