@@ -84,7 +84,7 @@ mkdir -p "$INSTALL_DIR"
 if [ -d "$INSTALL_DIR/.git" ]; then
     echo -e "${YELLOW}Existing installation found, updating...${NC}"
     cd "$INSTALL_DIR"
-    git pull origin main 2>/dev/null || git pull origin master 2>/dev/null || true
+    git pull origin master 2>/dev/null || git pull origin main 2>/dev/null || true
 else
     git clone -b master https://github.com/hudsonrj/ch8-cluster-agent.git "$INSTALL_DIR"
     cd "$INSTALL_DIR"
