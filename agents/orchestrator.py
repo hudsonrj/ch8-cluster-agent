@@ -1677,10 +1677,13 @@ async def knowledge_search(q: str = ""):
 
 @app.get("/ops/nginx-sites")
 async def nginx_sites():
-    """List active nginx sites with request counts from access logs."""
-    import subprocess, re
+    """List active nginx sites with stats from access logs."""
+    import subprocess, re, glob as _glob
     from pathlib import Path
     sites = []
+    total_requests = 0
+    total_errors = 0
+    total_ips = set()
     try:
         enabled_dir = Path("/etc/nginx/sites-enabled")
         if not enabled_dir.exists():
@@ -1699,33 +1702,70 @@ async def nginx_sites():
 
                 # Read access_log path directly from config
                 access_logs = re.findall(r"access_log\s+(/[^;]+);", conf)
-                req_total = 0
+                req_current = 0
+                req_all = 0
+                errors = 0
+                unique_ips = 0
+                avg_bytes = 0
                 log_found = ""
+
                 for lp in access_logs:
                     lp = lp.strip()
                     if lp == "off" or not os.path.exists(lp):
                         continue
+                    log_found = lp
+                    # Current log stats
                     try:
-                        result = subprocess.run(["wc", "-l", lp], capture_output=True, text=True, timeout=3)
-                        req_total += int(result.stdout.strip().split()[0])
-                        log_found = lp
+                        result = subprocess.run(
+                            ["awk", '{reqs++; if($9>=400)errs++; ips[$1]; bytes+=$10} END {printf "%d %d %d %.0f", reqs, errs, length(ips), (reqs>0?bytes/reqs:0)}', lp],
+                            capture_output=True, text=True, timeout=5)
+                        parts = result.stdout.strip().split()
+                        if len(parts) >= 4:
+                            req_current = int(parts[0])
+                            errors = int(parts[1])
+                            unique_ips = int(parts[2])
+                            avg_bytes = int(parts[3])
                     except Exception:
                         pass
+                    # Count all rotated logs for total
+                    base = lp.rsplit('.log', 1)[0]
+                    for rotated in _glob.glob(f"{base}*"):
+                        if rotated.endswith('.gz'):
+                            continue  # skip compressed for speed
+                        try:
+                            r2 = subprocess.run(["wc", "-l", rotated], capture_output=True, text=True, timeout=3)
+                            req_all += int(r2.stdout.strip().split()[0])
+                        except Exception:
+                            pass
 
+                error_pct = round(errors * 100 / req_current, 1) if req_current > 0 else 0
+                total_requests += req_all
+                total_errors += errors
                 sites.append({
                     "domain": domain,
                     "backend": backend,
                     "ssl": ssl,
-                    "requests_total": req_total,
-                    "log": os.path.basename(log_found) if log_found else None,
+                    "requests": req_current,
+                    "requests_all": req_all,
+                    "unique_ips": unique_ips,
+                    "error_pct": error_pct,
+                    "avg_bytes": avg_bytes,
                     "status": "active",
                 })
             except Exception:
-                sites.append({"domain": fname, "backend": "", "ssl": False, "requests_total": 0, "log": None, "status": "error"})
+                sites.append({"domain": fname, "backend": "", "ssl": False, "requests": 0, "requests_all": 0, "unique_ips": 0, "error_pct": 0, "avg_bytes": 0, "status": "error"})
     except Exception as e:
         return {"sites": [], "error": str(e)}
-    sites.sort(key=lambda s: s["requests_total"], reverse=True)
-    return {"sites": sites, "total": len(sites)}
+    sites.sort(key=lambda s: s["requests_all"], reverse=True)
+    return {
+        "sites": sites,
+        "total": len(sites),
+        "stats": {
+            "total_requests": total_requests,
+            "total_errors": total_errors,
+            "error_rate": round(total_errors * 100 / total_requests, 1) if total_requests > 0 else 0,
+        }
+    }
 
 
 @app.get("/tools")
