@@ -4,26 +4,43 @@
   <meta charset="utf-8">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { width: 380px; max-height: 520px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f172a; color: #f1f5f9; font-size: 12px; overflow-y: auto; }
+    body { width: 420px; height: 560px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f172a; color: #f1f5f9; font-size: 12px; display: flex; flex-direction: column; overflow: hidden; }
 
     /* Header */
-    .header { padding: 12px 16px; background: #1e293b; border-bottom: 1px solid #334155; display: flex; align-items: center; gap: 10px; }
+    .header { padding: 10px 16px; background: #1e293b; border-bottom: 1px solid #334155; display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
     .header-logo { width: 8px; height: 8px; border-radius: 50%; background: #7c3aed; box-shadow: 0 0 6px #7c3aed; }
     .header-title { font-size: 13px; font-weight: 700; color: #f8fafc; }
-    .header-status { margin-left: auto; font-size: 10px; padding: 2px 8px; border-radius: 10px; }
+    .header-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+    .header-status { font-size: 10px; padding: 2px 8px; border-radius: 10px; }
     .status-ok { background: #064e3b; color: #34d399; }
     .status-err { background: #450a0a; color: #f87171; }
+    .header-link { font-size: 9px; color: #64748b; text-decoration: none; padding: 2px 6px; border-radius: 4px; border: 1px solid #334155; }
+    .header-link:hover { color: #f8fafc; border-color: #7c3aed; }
+
+    /* Tabs */
+    .tabs { display: flex; background: #1e293b; border-bottom: 1px solid #334155; flex-shrink: 0; }
+    .tab { flex: 1; text-align: center; padding: 8px; font-size: 10px; font-weight: 600; color: #64748b; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s; }
+    .tab:hover { color: #94a3b8; }
+    .tab.active { color: #7c3aed; border-bottom-color: #7c3aed; }
+
+    /* Tab content */
+    .tab-content { flex: 1; overflow-y: auto; }
+    .tab-panel { display: none; padding: 12px; height: 100%; }
+    .tab-panel.active { display: flex; flex-direction: column; }
 
     /* Summary cards */
-    .summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 12px 16px; }
-    .stat { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 10px; text-align: center; }
-    .stat-value { font-size: 18px; font-weight: 700; color: #f8fafc; font-family: 'JetBrains Mono', monospace; }
-    .stat-label { font-size: 9px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
+    .summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 10px; flex-shrink: 0; }
+    .stat { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 8px; text-align: center; }
+    .stat-value { font-size: 16px; font-weight: 700; color: #f8fafc; font-family: 'JetBrains Mono', monospace; }
+    .stat-label { font-size: 8px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
+    .stat-value.green { color: #34d399; }
+    .stat-value.yellow { color: #fbbf24; }
+    .stat-value.red { color: #f87171; }
 
     /* Nodes list */
-    .section-title { padding: 8px 16px 4px; font-size: 10px; color: #64748b; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
-    .nodes { padding: 0 12px 8px; }
-    .node { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 10px 12px; margin-bottom: 6px; }
+    .nodes { flex: 1; overflow-y: auto; }
+    .node { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 10px 12px; margin-bottom: 6px; cursor: pointer; transition: border-color 0.2s; }
+    .node:hover { border-color: #7c3aed; }
     .node-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
     .node-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
     .dot-online { background: #10b981; box-shadow: 0 0 4px #10b981; }
@@ -37,83 +54,193 @@
     .bar-fill { height: 100%; border-radius: 3px; transition: width 0.3s; }
     .bar-cpu { background: linear-gradient(90deg, #3b82f6, #60a5fa); }
     .bar-mem { background: linear-gradient(90deg, #8b5cf6, #a78bfa); }
+    .bar-disk { background: linear-gradient(90deg, #0891b2, #22d3ee); }
     .bar-high { background: linear-gradient(90deg, #ef4444, #f87171) !important; }
-
-    /* Agents row */
     .node-agents { margin-top: 6px; display: flex; flex-wrap: wrap; gap: 4px; }
     .agent-badge { font-size: 9px; padding: 1px 6px; border-radius: 4px; background: #312e81; color: #a5b4fc; }
+    .node-model { margin-top: 4px; font-size: 9px; color: #60a5fa; }
 
-    /* Command bar */
-    .cmd-section { padding: 8px 12px 12px; border-top: 1px solid #334155; }
-    .cmd-bar { display: flex; gap: 6px; }
-    .cmd-input { flex: 1; background: #1e293b; border: 1px solid #334155; border-radius: 6px; padding: 8px 10px; color: #f8fafc; font-size: 11px; outline: none; font-family: 'JetBrains Mono', monospace; }
-    .cmd-input:focus { border-color: #7c3aed; }
-    .cmd-input::placeholder { color: #475569; }
-    .cmd-btn { background: #7c3aed; border: none; border-radius: 6px; padding: 8px 12px; color: white; font-size: 11px; font-weight: 600; cursor: pointer; }
-    .cmd-btn:hover { background: #6d28d9; }
-    .cmd-btn:disabled { background: #374151; color: #6b7280; cursor: not-allowed; }
-    .cmd-result { margin-top: 8px; padding: 8px 10px; background: #0f172a; border: 1px solid #1e293b; border-radius: 6px; font-size: 10px; color: #94a3b8; font-family: 'JetBrains Mono', monospace; max-height: 100px; overflow-y: auto; white-space: pre-wrap; word-break: break-all; display: none; }
+    /* AI Chat tab */
+    .chat-messages { flex: 1; overflow-y: auto; padding: 4px 0; display: flex; flex-direction: column; gap: 8px; }
+    .chat-msg { padding: 8px 10px; border-radius: 8px; font-size: 11px; line-height: 1.5; max-width: 90%; white-space: pre-wrap; word-break: break-word; }
+    .chat-user { background: #312e81; color: #c4b5fd; align-self: flex-end; border-bottom-right-radius: 2px; }
+    .chat-ai { background: #1e293b; color: #cbd5e1; border: 1px solid #334155; align-self: flex-start; border-bottom-left-radius: 2px; }
+    .chat-system { background: #0f172a; color: #64748b; font-size: 10px; align-self: center; border: 1px solid #1e293b; }
+    .chat-input-area { display: flex; gap: 6px; padding-top: 8px; border-top: 1px solid #334155; margin-top: 8px; flex-shrink: 0; }
+    .chat-input { flex: 1; background: #1e293b; border: 1px solid #334155; border-radius: 6px; padding: 8px 10px; color: #f8fafc; font-size: 11px; outline: none; resize: none; font-family: inherit; }
+    .chat-input:focus { border-color: #7c3aed; }
+    .chat-input::placeholder { color: #475569; }
+    .send-btn { background: #7c3aed; border: none; border-radius: 6px; padding: 8px 14px; color: white; font-size: 11px; font-weight: 600; cursor: pointer; align-self: flex-end; }
+    .send-btn:hover { background: #6d28d9; }
+    .send-btn:disabled { background: #374151; color: #6b7280; cursor: not-allowed; }
+
+    /* Alerts tab */
+    .alert-item { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 10px 12px; margin-bottom: 6px; }
+    .alert-item.high { border-left: 3px solid #ef4444; }
+    .alert-item.medium { border-left: 3px solid #f59e0b; }
+    .alert-item.low { border-left: 3px solid #3b82f6; }
+    .alert-header { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+    .alert-severity { font-size: 9px; padding: 1px 6px; border-radius: 3px; font-weight: 600; text-transform: uppercase; }
+    .sev-high { background: #450a0a; color: #f87171; }
+    .sev-medium { background: #451a03; color: #fbbf24; }
+    .sev-low { background: #0c4a6e; color: #38bdf8; }
+    .alert-text { font-size: 11px; color: #94a3b8; line-height: 1.4; }
+    .alert-action { margin-top: 6px; }
+    .alert-action button { font-size: 9px; padding: 3px 8px; background: #7c3aed; border: none; border-radius: 4px; color: white; cursor: pointer; }
+    .alert-action button:hover { background: #6d28d9; }
+    .alert-empty { text-align: center; padding: 30px; color: #64748b; font-size: 11px; }
+
+    /* Quick Actions tab */
+    .actions-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .action-card { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 14px; cursor: pointer; transition: all 0.2s; text-align: center; }
+    .action-card:hover { border-color: #7c3aed; transform: translateY(-1px); }
+    .action-icon { font-size: 22px; margin-bottom: 6px; }
+    .action-title { font-size: 11px; font-weight: 600; color: #e2e8f0; margin-bottom: 2px; }
+    .action-desc { font-size: 9px; color: #64748b; }
+    .action-result { margin-top: 10px; padding: 10px; background: #0f172a; border: 1px solid #1e293b; border-radius: 6px; font-size: 10px; color: #94a3b8; font-family: 'JetBrains Mono', monospace; white-space: pre-wrap; max-height: 150px; overflow-y: auto; display: none; }
 
     /* Settings */
-    .settings { padding: 8px 16px; border-top: 1px solid #334155; }
-    .settings-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
-    .settings-row label { font-size: 10px; color: #94a3b8; width: 60px; }
-    .settings-row input { flex: 1; background: #1e293b; border: 1px solid #334155; border-radius: 4px; padding: 4px 8px; color: #f8fafc; font-size: 10px; outline: none; }
+    .settings-section { margin-bottom: 12px; }
+    .settings-title { font-size: 10px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; font-weight: 600; }
+    .settings-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .settings-row label { font-size: 10px; color: #94a3b8; width: 70px; flex-shrink: 0; }
+    .settings-row input { flex: 1; background: #1e293b; border: 1px solid #334155; border-radius: 4px; padding: 6px 8px; color: #f8fafc; font-size: 10px; outline: none; }
     .settings-row input:focus { border-color: #7c3aed; }
-    .btn-sm { font-size: 9px; padding: 3px 8px; background: #334155; border: none; border-radius: 4px; color: #94a3b8; cursor: pointer; }
-    .btn-sm:hover { background: #475569; color: #f8fafc; }
+    .btn-primary { font-size: 10px; padding: 6px 14px; background: #7c3aed; border: none; border-radius: 4px; color: white; cursor: pointer; font-weight: 600; }
+    .btn-primary:hover { background: #6d28d9; }
+    .btn-secondary { font-size: 10px; padding: 6px 14px; background: #334155; border: none; border-radius: 4px; color: #94a3b8; cursor: pointer; }
+    .btn-secondary:hover { background: #475569; color: #f8fafc; }
 
-    /* Footer */
-    .footer { padding: 6px 16px; text-align: center; font-size: 9px; color: #475569; border-top: 1px solid #1e293b; }
-
-    /* Loading */
     .loading { text-align: center; padding: 40px; color: #64748b; }
     .spin { display: inline-block; animation: spin 1s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
+  <!-- Header -->
   <div class="header">
     <div class="header-logo"></div>
     <span class="header-title">CH8 Cluster</span>
-    <span class="header-status" id="status">...</span>
-  </div>
-
-  <div class="summary" id="summary">
-    <div class="stat"><div class="stat-value" id="nodesOnline">-</div><div class="stat-label">Nodes</div></div>
-    <div class="stat"><div class="stat-value" id="agentsCount">-</div><div class="stat-label">Agents</div></div>
-    <div class="stat"><div class="stat-value" id="avgCpu">-</div><div class="stat-label">Avg CPU</div></div>
-  </div>
-
-  <div class="section-title">Nodes</div>
-  <div class="nodes" id="nodes">
-    <div class="loading"><span class="spin">&#9696;</span> Loading...</div>
-  </div>
-
-  <div class="cmd-section">
-    <div class="section-title" style="padding:0 0 6px">Command</div>
-    <div class="cmd-bar">
-      <input class="cmd-input" id="cmdInput" placeholder="Ask cluster anything..." />
-      <button class="cmd-btn" id="cmdBtn" onclick="sendCommand()">Send</button>
+    <div class="header-right">
+      <span class="header-status" id="status">...</span>
+      <a class="header-link" id="dashLink" href="#" target="_blank">Dashboard</a>
     </div>
-    <div class="cmd-result" id="cmdResult"></div>
   </div>
 
-  <div class="footer">
-    <span id="lastUpdate">-</span> &middot; <button class="btn-sm" onclick="toggleSettings()">Settings</button> &middot; <button class="btn-sm" onclick="refresh()">Refresh</button>
+  <!-- Tabs -->
+  <div class="tabs">
+    <div class="tab active" data-tab="overview">Overview</div>
+    <div class="tab" data-tab="chat">AI Chat</div>
+    <div class="tab" data-tab="alerts">Alerts</div>
+    <div class="tab" data-tab="actions">Actions</div>
+    <div class="tab" data-tab="settings">Settings</div>
   </div>
 
-  <div class="settings" id="settingsPanel" style="display:none">
-    <div class="settings-row">
-      <label>Server</label>
-      <input id="serverUrl" placeholder="https://control.ch8ai.com.br" />
+  <!-- Tab panels -->
+  <div class="tab-content">
+
+    <!-- Overview -->
+    <div class="tab-panel active" id="panel-overview">
+      <div class="summary">
+        <div class="stat"><div class="stat-value" id="nodesOnline">-</div><div class="stat-label">Nodes</div></div>
+        <div class="stat"><div class="stat-value" id="agentsCount">-</div><div class="stat-label">Agents</div></div>
+        <div class="stat"><div class="stat-value" id="avgCpu">-</div><div class="stat-label">CPU</div></div>
+        <div class="stat"><div class="stat-value" id="avgMem">-</div><div class="stat-label">MEM</div></div>
+      </div>
+      <div class="nodes" id="nodes">
+        <div class="loading"><span class="spin">&#9696;</span> Loading...</div>
+      </div>
     </div>
-    <div class="settings-row">
-      <label>Session</label>
-      <input id="sessionKey" placeholder="session cookie value" type="password" />
+
+    <!-- AI Chat -->
+    <div class="tab-panel" id="panel-chat">
+      <div class="chat-messages" id="chatMessages">
+        <div class="chat-system">Send commands or ask questions to your cluster AI.</div>
+      </div>
+      <div class="chat-input-area">
+        <input class="chat-input" id="chatInput" placeholder="e.g. restart nginx, check disk, summarize alerts..." />
+        <button class="send-btn" id="chatSend">Send</button>
+      </div>
     </div>
-    <div class="settings-row" style="justify-content:flex-end">
-      <button class="btn-sm" onclick="saveSettings()">Save</button>
+
+    <!-- Alerts -->
+    <div class="tab-panel" id="panel-alerts">
+      <div id="alertsList">
+        <div class="loading"><span class="spin">&#9696;</span> Loading alerts...</div>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="tab-panel" id="panel-actions">
+      <div class="actions-grid" id="actionsGrid">
+        <div class="action-card" onclick="runAction('health')">
+          <div class="action-icon">🏥</div>
+          <div class="action-title">Health Check</div>
+          <div class="action-desc">Full cluster diagnostics</div>
+        </div>
+        <div class="action-card" onclick="runAction('deploy')">
+          <div class="action-icon">🚀</div>
+          <div class="action-title">Deploy Status</div>
+          <div class="action-desc">Docker containers state</div>
+        </div>
+        <div class="action-card" onclick="runAction('security')">
+          <div class="action-icon">🛡️</div>
+          <div class="action-title">Security Scan</div>
+          <div class="action-desc">Exposed ports & vulns</div>
+        </div>
+        <div class="action-card" onclick="runAction('costs')">
+          <div class="action-icon">💰</div>
+          <div class="action-title">FinOps</div>
+          <div class="action-desc">Token costs & burn rate</div>
+        </div>
+        <div class="action-card" onclick="runAction('logs')">
+          <div class="action-icon">📋</div>
+          <div class="action-title">Recent Logs</div>
+          <div class="action-desc">Error logs across nodes</div>
+        </div>
+        <div class="action-card" onclick="runAction('network')">
+          <div class="action-icon">🌐</div>
+          <div class="action-title">Network</div>
+          <div class="action-desc">Connectivity & latency</div>
+        </div>
+        <div class="action-card" onclick="runAction('backup')">
+          <div class="action-icon">💾</div>
+          <div class="action-title">Backup Status</div>
+          <div class="action-desc">Last backup & disk space</div>
+        </div>
+        <div class="action-card" onclick="runAction('restart')">
+          <div class="action-icon">🔄</div>
+          <div class="action-title">Restart Agent</div>
+          <div class="action-desc">Restart orchestrator</div>
+        </div>
+      </div>
+      <div class="action-result" id="actionResult"></div>
+    </div>
+
+    <!-- Settings -->
+    <div class="tab-panel" id="panel-settings">
+      <div class="settings-section">
+        <div class="settings-title">Connection</div>
+        <div class="settings-row">
+          <label>Server URL</label>
+          <input id="serverUrl" placeholder="https://control.ch8ai.com.br" />
+        </div>
+        <div class="settings-row">
+          <label>Session</label>
+          <input id="sessionKey" placeholder="session cookie (from browser)" type="password" />
+        </div>
+      </div>
+      <div class="settings-section">
+        <div class="settings-title">Notifications</div>
+        <div class="settings-row">
+          <label>Alert level</label>
+          <input id="alertLevel" placeholder="high (high, medium, all)" />
+        </div>
+      </div>
+      <div class="settings-section" style="display:flex;gap:8px">
+        <button class="btn-primary" onclick="saveSettings()">Save Settings</button>
+        <button class="btn-secondary" onclick="refresh()">Test Connection</button>
+      </div>
     </div>
   </div>
 
