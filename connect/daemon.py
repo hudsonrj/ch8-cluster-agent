@@ -520,8 +520,13 @@ def _detect_services() -> list:
             ("postgres",     "PostgreSQL"),
             ("postmaster",   "PostgreSQL"),
             ("mysqld",       "MySQL"),
+            ("mariadbd",     "MariaDB"),
             ("mongod",       "MongoDB"),
             ("redis-server", "Redis"),
+            ("oracle",       "Oracle DB"),
+            ("tnslsnr",      "Oracle DB"),
+            ("ora_pmon",     "Oracle DB"),
+            ("sqlservr",     "SQL Server"),
             ("nginx",        "Nginx"),
             ("httpd",        "Apache"),
             ("apache2",      "Apache"),
@@ -529,6 +534,10 @@ def _detect_services() -> list:
             ("ollama",       "Ollama"),
             ("tailscaled",   "Tailscale"),
             ("tailscale",    "Tailscale"),  # macOS app process
+            ("elasticsearch","Elasticsearch"),
+            ("java",         "Java App"),
+            ("node",         "Node.js"),
+            ("dotnet",       "Dotnet"),
         ]
         seen_labels: set = set()
         for proc_key, label in known:
