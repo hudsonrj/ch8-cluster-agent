@@ -63,24 +63,81 @@ def cmd_help():
 # Connect commands (Tailscale-style)
 
 def cmd_login():
-    """Authenticate with CH8 network (device-code flow)."""
+    """Authenticate with CH8 network. Plan A: Tailscale + auto-register."""
     sys.path.insert(0, str(Path(__file__).resolve().parent))
-    from connect.auth import is_authenticated, login_interactive, get_node_id
+
+    # Check deps first
+    missing = []
+    for mod in ['httpx', 'psutil', 'fastapi', 'uvicorn']:
+        try:
+            __import__(mod)
+        except ImportError:
+            missing.append(mod)
+    if missing:
+        print(f"{Colors.BLUE}Installing dependencies...{Colors.NC}")
+        r = subprocess.run([sys.executable, "-m", "pip", "install", "--break-system-packages", "--quiet"] + missing,
+                           capture_output=True)
+        if r.returncode != 0:
+            subprocess.run([sys.executable, "-m", "pip", "install", "--quiet"] + missing)
+
+    from connect.auth import is_authenticated, login_interactive, login_with_token, get_node_id
+    from connect.daemon import check_tailscale
 
     if is_authenticated():
-        print(f"{Colors.GREEN}Already authenticated.{Colors.NC} Run `ch8 nodes` to see your cluster.")
+        ts = check_tailscale()
+        if ts["running"]:
+            print(f"{Colors.GREEN}Already authenticated.{Colors.NC} Tailscale: {ts['ip']}")
+        else:
+            print(f"{Colors.GREEN}Already authenticated.{Colors.NC}")
+        print(f"Run {Colors.YELLOW}ch8 up{Colors.NC} to start the node.")
         return
 
-    print(f"{Colors.BLUE}Authenticating with CH8 network...{Colors.NC}\n")
+    print(f"{Colors.BLUE}{'='*50}{Colors.NC}")
+    print(f"{Colors.BLUE}  CH8 Network Login{Colors.NC}")
+    print(f"{Colors.BLUE}{'='*50}{Colors.NC}\n")
+
+    # ── Plan A: Install Tailscale + join CH8 VPN ──
+    print(f"{Colors.BLUE}[1/3] Setting up Tailscale VPN...{Colors.NC}")
+    ts = check_tailscale()
+    if ts["running"] and ts["ip"]:
+        print(f"  {Colors.GREEN}✓ Already connected: {ts['ip']}{Colors.NC}")
+    else:
+        install_script = Path(__file__).resolve().parent / "scripts" / "install-tailscale.sh"
+        if install_script.exists():
+            r = subprocess.run(["bash", str(install_script)])
+            ts = check_tailscale()
+            if ts["running"] and ts["ip"]:
+                print(f"  {Colors.GREEN}✓ Tailscale connected: {ts['ip']}{Colors.NC}")
+            else:
+                print(f"  {Colors.YELLOW}⚠ Tailscale setup incomplete (will use LAN IP){Colors.NC}")
+        else:
+            print(f"  {Colors.YELLOW}⚠ Install script not found{Colors.NC}")
+
+    # ── Plan A cont: Auto-register with pre-auth token ──
+    print(f"\n{Colors.BLUE}[2/3] Registering node with CH8 cluster...{Colors.NC}")
+    pre_auth_token = "tk_cf3nyX8Qdveb5ohTVPSCNf_583cWE4CN"
     try:
-        auth = login_interactive()
-        print(f"\n{Colors.GREEN}✓ Authenticated!{Colors.NC}")
-        print(f"  Node ID:    {auth['node_id']}")
-        print(f"  Network:    {auth['network_id']}")
-        print(f"\nRun {Colors.YELLOW}ch8 up{Colors.NC} to connect to your cluster.")
+        auth = login_with_token(pre_auth_token)
+        print(f"  {Colors.GREEN}✓ Registered!{Colors.NC}")
+        print(f"    Node ID:  {auth['node_id']}")
+        print(f"    Network:  {auth['network_id']}")
     except Exception as e:
-        print(f"{Colors.RED}Login failed: {e}{Colors.NC}")
-        sys.exit(1)
+        # Plan B: interactive login
+        print(f"  {Colors.YELLOW}Auto-register failed ({e}). Trying interactive...{Colors.NC}")
+        try:
+            auth = login_interactive()
+            print(f"  {Colors.GREEN}✓ Authenticated!{Colors.NC}")
+            print(f"    Node ID:  {auth['node_id']}")
+            print(f"    Network:  {auth['network_id']}")
+        except Exception as e2:
+            print(f"  {Colors.RED}Login failed: {e2}{Colors.NC}")
+            sys.exit(1)
+
+    print(f"\n{Colors.BLUE}[3/3] Ready!{Colors.NC}")
+    print(f"\n{Colors.GREEN}{'='*50}{Colors.NC}")
+    print(f"{Colors.GREEN}  Node registered successfully!{Colors.NC}")
+    print(f"{Colors.GREEN}{'='*50}{Colors.NC}")
+    print(f"\nRun {Colors.YELLOW}ch8 up{Colors.NC} to start the node and join the cluster.")
 
 
 def _start_agent(name, script_name, port_check=None):
