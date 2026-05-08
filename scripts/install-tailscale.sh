@@ -131,44 +131,58 @@ PY="python3"
 command -v python3 &>/dev/null || PY="python"
 
 # Step 1: Get OAuth access token
+echo "  [Tailscale] Getting OAuth token..."
 ACCESS_TOKEN=$($PY -c "
-import urllib.request, json
+import urllib.request, json, sys
 try:
     data = 'client_id=${TS_CLIENT_ID}&client_secret=${TS_CLIENT_SECRET}'.encode()
     req = urllib.request.Request('https://api.tailscale.com/api/v2/oauth/token', data=data)
     resp = urllib.request.urlopen(req, timeout=15)
-    print(json.loads(resp.read()).get('access_token', ''))
+    token = json.loads(resp.read()).get('access_token', '')
+    if token:
+        print(token)
+    else:
+        print('', file=sys.stderr)
 except Exception as e:
-    pass
-" 2>/dev/null)
+    print(f'Error: {e}', file=sys.stderr)
+" 2>&1)
 
-if [ -z "$ACCESS_TOKEN" ]; then
+if [ -z "$ACCESS_TOKEN" ] || echo "$ACCESS_TOKEN" | grep -q "Error:"; then
+    echo "  [Tailscale] OAuth response: $ACCESS_TOKEN"
     fail_gracefully "OAuth token request failed (no internet or invalid credentials)"
 fi
+echo "  [Tailscale] ✓ OAuth token obtained"
 
 # Step 2: Create reusable auth key
+echo "  [Tailscale] Creating auth key..."
 AUTH_KEY=$($PY -c "
-import urllib.request, json
+import urllib.request, json, sys
 try:
     data = json.dumps({'capabilities':{'devices':{'create':{'reusable':True,'ephemeral':False,'preauthorized':True}}}}).encode()
     req = urllib.request.Request('https://api.tailscale.com/api/v2/tailnet/-/keys', data=data)
     req.add_header('Authorization', 'Bearer ${ACCESS_TOKEN}')
     req.add_header('Content-Type', 'application/json')
     resp = urllib.request.urlopen(req, timeout=15)
-    print(json.loads(resp.read()).get('key', ''))
+    key = json.loads(resp.read()).get('key', '')
+    if key:
+        print(key)
+    else:
+        print('', file=sys.stderr)
 except Exception as e:
-    pass
-" 2>/dev/null)
+    print(f'Error: {e}', file=sys.stderr)
+" 2>&1)
 
-if [ -z "$AUTH_KEY" ]; then
+if [ -z "$AUTH_KEY" ] || echo "$AUTH_KEY" | grep -q "Error:"; then
+    echo "  [Tailscale] Auth key response: $AUTH_KEY"
     fail_gracefully "Auth key creation failed"
 fi
+echo "  [Tailscale] ✓ Auth key created"
 
-# Step 3: Connect
-echo "  [Tailscale] Connecting to CH8 network..."
+# Step 3: Connect with authkey (no browser needed)
+echo "  [Tailscale] Connecting to CH8 network (no browser required)..."
 HOSTNAME=$(hostname 2>/dev/null || echo "ch8-node")
 
-if sudo tailscale up --authkey="$AUTH_KEY" --hostname="$HOSTNAME" 2>/dev/null; then
+if sudo tailscale up --authkey="$AUTH_KEY" --hostname="$HOSTNAME" --accept-routes 2>&1; then
     sleep 3
     TS_IP=$(tailscale ip --4 2>/dev/null || echo "")
     if [ -n "$TS_IP" ]; then
@@ -180,7 +194,7 @@ if sudo tailscale up --authkey="$AUTH_KEY" --hostname="$HOSTNAME" 2>/dev/null; t
     fi
 else
     # Try without sudo (macOS app mode)
-    tailscale up --authkey="$AUTH_KEY" --hostname="$HOSTNAME" 2>/dev/null || \
+    tailscale up --authkey="$AUTH_KEY" --hostname="$HOSTNAME" --accept-routes 2>&1 || \
         fail_gracefully "tailscale up failed — may need manual setup"
 fi
 
