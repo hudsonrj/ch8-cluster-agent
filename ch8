@@ -155,10 +155,19 @@ def cmd_up(token=None):
             missing.append(mod)
     if missing:
         print(f"{Colors.RED}Missing dependencies: {', '.join(missing)}{Colors.NC}")
-        print(f"Install with: pip3 install {' '.join(missing)}")
-        import subprocess
-        subprocess.run([sys.executable, "-m", "pip", "install", "--break-system-packages"] + missing)
-        print(f"{Colors.GREEN}✓ Installed. Retrying...{Colors.NC}")
+        # Ensure pip exists
+        if subprocess.run([sys.executable, "-m", "pip", "--version"], capture_output=True).returncode != 0:
+            print(f"{Colors.YELLOW}Installing pip...{Colors.NC}")
+            subprocess.run(["apt-get", "install", "-y", "python3-pip"], capture_output=True)
+            if subprocess.run([sys.executable, "-m", "pip", "--version"], capture_output=True).returncode != 0:
+                subprocess.run([sys.executable, "-c",
+                    "import urllib.request; urllib.request.urlretrieve('https://bootstrap.pypa.io/get-pip.py', '/tmp/get-pip.py')"])
+                subprocess.run([sys.executable, "/tmp/get-pip.py", "--break-system-packages", "--quiet"])
+        print(f"{Colors.BLUE}Installing: {', '.join(missing)}...{Colors.NC}")
+        r = subprocess.run([sys.executable, "-m", "pip", "install", "--break-system-packages", "--quiet"] + missing)
+        if r.returncode != 0:
+            subprocess.run([sys.executable, "-m", "pip", "install", "--quiet"] + missing)
+        print(f"{Colors.GREEN}✓ Installed. Continuing...{Colors.NC}")
 
     from connect.auth import is_authenticated, login_with_token
     from connect.daemon import is_daemon_running
@@ -763,6 +772,18 @@ def cmd_update():
 
 def _cmd_update_deps():
     """Finish update after re-exec: install deps and stop old agents."""
+    # Ensure pip is available
+    r = subprocess.run([sys.executable, "-m", "pip", "--version"], capture_output=True)
+    if r.returncode != 0:
+        print(f"{Colors.YELLOW}pip not found, installing...{Colors.NC}")
+        subprocess.run(["apt-get", "install", "-y", "python3-pip"],
+                       capture_output=True)
+        # Fallback: get-pip.py
+        if subprocess.run([sys.executable, "-m", "pip", "--version"], capture_output=True).returncode != 0:
+            subprocess.run([sys.executable, "-c",
+                "import urllib.request; urllib.request.urlretrieve('https://bootstrap.pypa.io/get-pip.py', '/tmp/get-pip.py')"])
+            subprocess.run([sys.executable, "/tmp/get-pip.py", "--break-system-packages", "--quiet"])
+
     pip_args = [sys.executable, "-m", "pip", "install", "--quiet", "--upgrade",
                 "httpx", "psutil", "fastapi", "uvicorn", "pydantic"]
     print(f"{Colors.BLUE}Updating dependencies...{Colors.NC}")
