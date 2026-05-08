@@ -1679,35 +1679,52 @@ async def knowledge_search(q: str = ""):
 async def nginx_sites():
     """List active nginx sites with request counts from access logs."""
     import subprocess, re
+    from pathlib import Path
     sites = []
     try:
-        # Get enabled sites from nginx
-        result = subprocess.run(["ls", "/etc/nginx/sites-enabled/"], capture_output=True, text=True, timeout=5)
-        for fname in result.stdout.strip().split("\n"):
-            if not fname or fname == "default":
+        enabled_dir = Path("/etc/nginx/sites-enabled")
+        if not enabled_dir.exists():
+            return {"sites": [], "error": "sites-enabled not found"}
+        for conf_path in sorted(enabled_dir.iterdir()):
+            fname = conf_path.name
+            if fname == "default":
                 continue
-            conf_path = f"/etc/nginx/sites-enabled/{fname}"
             try:
-                conf = open(conf_path).read()
+                conf = conf_path.read_text()
                 server_names = re.findall(r"server_name\s+([^;]+);", conf)
                 domain = server_names[0].split()[0] if server_names else fname
-                # Count requests from access log in last hour
-                log_path = f"/var/log/nginx/{fname}.access.log"
-                if not os.path.exists(log_path):
-                    log_path = "/var/log/nginx/access.log"
-                try:
-                    count_result = subprocess.run(
-                        ["bash", "-c", f"awk -v d=\"$(date -d '1 hour ago' '+%d/%b/%Y:%H')\" '$0 ~ d' {log_path} | grep -c '{domain}' 2>/dev/null || echo 0"],
-                        capture_output=True, text=True, timeout=5
-                    )
-                    req_count = int(count_result.stdout.strip() or "0")
-                except Exception:
-                    req_count = 0
-                sites.append({"domain": domain, "config": fname, "requests_last_hour": req_count, "status": "active"})
+                proxy_pass = re.findall(r"proxy_pass\s+([^;]+);", conf)
+                backend = proxy_pass[0].strip() if proxy_pass else ""
+                ssl = "ssl" in conf or "443" in conf
+
+                # Read access_log path directly from config
+                access_logs = re.findall(r"access_log\s+(/[^;]+);", conf)
+                req_total = 0
+                log_found = ""
+                for lp in access_logs:
+                    lp = lp.strip()
+                    if lp == "off" or not os.path.exists(lp):
+                        continue
+                    try:
+                        result = subprocess.run(["wc", "-l", lp], capture_output=True, text=True, timeout=3)
+                        req_total += int(result.stdout.strip().split()[0])
+                        log_found = lp
+                    except Exception:
+                        pass
+
+                sites.append({
+                    "domain": domain,
+                    "backend": backend,
+                    "ssl": ssl,
+                    "requests_total": req_total,
+                    "log": os.path.basename(log_found) if log_found else None,
+                    "status": "active",
+                })
             except Exception:
-                sites.append({"domain": fname, "config": fname, "requests_last_hour": 0, "status": "unknown"})
+                sites.append({"domain": fname, "backend": "", "ssl": False, "requests_total": 0, "log": None, "status": "error"})
     except Exception as e:
         return {"sites": [], "error": str(e)}
+    sites.sort(key=lambda s: s["requests_total"], reverse=True)
     return {"sites": sites, "total": len(sites)}
 
 
