@@ -145,6 +145,21 @@ def _stop_agent(name):
 def cmd_up(token=None):
     """Start the connect daemon — auto-joins the network."""
     sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+    # Check core dependencies
+    missing = []
+    for mod in ['httpx', 'psutil', 'fastapi', 'uvicorn']:
+        try:
+            __import__(mod)
+        except ImportError:
+            missing.append(mod)
+    if missing:
+        print(f"{Colors.RED}Missing dependencies: {', '.join(missing)}{Colors.NC}")
+        print(f"Install with: pip3 install {' '.join(missing)}")
+        import subprocess
+        subprocess.run([sys.executable, "-m", "pip", "install", "--break-system-packages"] + missing)
+        print(f"{Colors.GREEN}✓ Installed. Retrying...{Colors.NC}")
+
     from connect.auth import is_authenticated, login_with_token
     from connect.daemon import is_daemon_running
 

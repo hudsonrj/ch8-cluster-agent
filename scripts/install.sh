@@ -97,13 +97,30 @@ if [ "$OS" = "linux" ]; then
     PIP_ARGS="$PIP_ARGS --break-system-packages"
 fi
 
-python3 -m pip install $PIP_ARGS --upgrade pip 2>/dev/null || true
-python3 -m pip install $PIP_ARGS \
-    httpx psutil fastapi uvicorn pydantic 2>/dev/null || \
-python3 -m pip install --user \
-    httpx psutil fastapi uvicorn pydantic 2>/dev/null || true
+# Ensure pip is available
+if ! python3 -m pip --version >/dev/null 2>&1; then
+    echo -e "${YELLOW}pip not found, installing...${NC}"
+    if [ "$OS" = "linux" ]; then
+        sudo apt-get install -y python3-pip 2>/dev/null || \
+        sudo yum install -y python3-pip 2>/dev/null || \
+        curl -fsSL https://bootstrap.pypa.io/get-pip.py | python3
+    else
+        curl -fsSL https://bootstrap.pypa.io/get-pip.py | python3
+    fi
+fi
 
-echo -e "${GREEN}✓ Dependencies installed${NC}"
+python3 -m pip install $PIP_ARGS --upgrade pip 2>/dev/null || true
+
+DEPS="httpx psutil fastapi uvicorn pydantic python-dotenv pyyaml"
+if python3 -m pip install $PIP_ARGS $DEPS; then
+    echo -e "${GREEN}✓ Dependencies installed${NC}"
+elif python3 -m pip install --user $PIP_ARGS $DEPS; then
+    echo -e "${GREEN}✓ Dependencies installed (user)${NC}"
+else
+    echo -e "${RED}✗ Failed to install dependencies. Try manually:${NC}"
+    echo -e "  pip3 install $DEPS"
+    echo -e "${YELLOW}Continuing anyway...${NC}"
+fi
 
 # ── Make ch8 CLI executable and add to PATH ────────────────────────────────
 chmod +x "$INSTALL_DIR/ch8"
