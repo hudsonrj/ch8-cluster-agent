@@ -51,7 +51,9 @@ def _run_async(coro):
         return asyncio.run(coro)
 
 # Timeout para esperar resposta de cada nó (segundos)
-NODE_TIMEOUT = 30
+NODE_TIMEOUT = 15  # seconds per node attempt (direct/relay)
+PEER_RELAY_TIMEOUT = 12  # seconds per peer relay attempt
+BROADCAST_NODE_TIMEOUT = 10  # faster timeout for broadcast mode
 
 # Máximo de tentativas por subtarefa
 MAX_RETRIES = 1
@@ -288,13 +290,13 @@ def plan_task(task: str, catalog: List[Dict], ai_client=None) -> Dict:
 
 # ── Execução distribuída ─────────────────────────────────────────────────────
 
-async def _collect_chat_response(url: str, payload: dict, headers: dict) -> Optional[str]:
+async def _collect_chat_response(url: str, payload: dict, headers: dict, timeout: int = None) -> Optional[str]:
     """
     Send a chat request and collect the full response.
     Handles both JSON responses and SSE streaming.
     Returns the collected text or None on failure.
     """
-    async with httpx.AsyncClient(timeout=NODE_TIMEOUT) as c:
+    async with httpx.AsyncClient(timeout=timeout or NODE_TIMEOUT) as c:
         r = await c.post(url, json=payload, headers=headers)
         if r.status_code != 200:
             raise RuntimeError(f"HTTP {r.status_code}: {r.text[:200]}")
@@ -337,6 +339,7 @@ async def _send_to_node_async(
     subtask: Dict,
     catalog: List[Dict],
     retries: int = MAX_RETRIES,
+    timeout_override: Optional[int] = None,
 ) -> Dict:
     """
     Envia uma subtarefa para um nó via conexão direta ou relay.
@@ -382,13 +385,14 @@ async def _send_to_node_async(
         token = get_access_token()
         headers = {"Authorization": f"Bearer {token}"} if token else {}
         orch_port = int(os.environ.get("CH8_AGENT_PORT", "7879"))
+        _timeout = timeout_override or NODE_TIMEOUT
 
         # Tenta direto primeiro
         if node_info and node_info.get("address"):
             addr = node_info["address"]
             url  = f"http://{addr}:{orch_port}/chat"
             try:
-                result_text = await _collect_chat_response(url, payload, headers)
+                result_text = await _collect_chat_response(url, payload, headers, timeout=_timeout)
                 if result_text is not None:
                     elapsed = time.time() - t0
                     log.info(f"[{node_name}] Direct OK ({elapsed:.1f}s)")
@@ -402,7 +406,7 @@ async def _send_to_node_async(
         if token:
             relay_url = f"{CONTROL_URL}/api/relay/{node_id}"
             try:
-                result_text = await _collect_chat_response(relay_url, payload, headers)
+                result_text = await _collect_chat_response(relay_url, payload, headers, timeout=_timeout)
                 if result_text is not None:
                     elapsed = time.time() - t0
                     log.info(f"[{node_name}] Relay OK ({elapsed:.1f}s)")
@@ -477,7 +481,7 @@ async def _try_peer_relay(target_node_id: str, target_name: str, payload: dict,
         bridge_name = bridge.get("hostname", bridge_addr)[:14]
         forward_url = f"http://{bridge_addr}:{orch_port}/relay/forward"
         try:
-            async with httpx.AsyncClient(timeout=45) as c:
+            async with httpx.AsyncClient(timeout=PEER_RELAY_TIMEOUT) as c:
                 r = await c.post(forward_url, json={
                     "target_node_id": target_node_id,
                     "payload": payload,
@@ -508,7 +512,7 @@ async def _run_locally(message: str) -> str:
     return response
 
 
-async def execute_plan_async(plan: Dict, catalog: List[Dict]) -> List[Dict]:
+async def execute_plan_async(plan: Dict, catalog: List[Dict], is_broadcast: bool = False) -> List[Dict]:
     """
     Executa o plano de subtarefas.
     - "parallel": todas ao mesmo tempo
@@ -523,7 +527,8 @@ async def execute_plan_async(plan: Dict, catalog: List[Dict]) -> List[Dict]:
     log.info(f"Executing {len(subtasks)} subtasks ({strategy})")
 
     if strategy == "parallel":
-        tasks = [_send_to_node_async(s, catalog) for s in subtasks]
+        _t = BROADCAST_NODE_TIMEOUT if is_broadcast else None
+        tasks = [_send_to_node_async(s, catalog, timeout_override=_t) for s in subtasks]
         results = await asyncio.gather(*tasks, return_exceptions=True)
         out = []
         for i, r in enumerate(results):
@@ -696,7 +701,7 @@ def run_cluster_task(
 
     # 3. Execução
     _progress("execute", "Distribuindo e executando subtarefas...")
-    results = _run_async(execute_plan_async(plan, catalog))
+    results = _run_async(execute_plan_async(plan, catalog, is_broadcast=(strategy == "broadcast")))
 
     successful = [r for r in results if "result" in r]
     failed     = [r for r in results if "error" in r]
