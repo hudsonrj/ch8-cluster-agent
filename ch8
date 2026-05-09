@@ -221,16 +221,24 @@ def cmd_up(token=None):
                     "import urllib.request; urllib.request.urlretrieve('https://bootstrap.pypa.io/get-pip.py', '/tmp/get-pip.py')"])
                 subprocess.run([sys.executable, "/tmp/get-pip.py", "--quiet"])
         print(f"{Colors.BLUE}Installing: {', '.join(missing)}...{Colors.NC}")
-        # Try with --break-system-packages (Python 3.11+), fallback without
-        r = subprocess.run([sys.executable, "-m", "pip", "install", "--break-system-packages", "--quiet"] + missing,
-                           capture_output=True)
-        if r.returncode != 0:
-            subprocess.run([sys.executable, "-m", "pip", "install", "--quiet"] + missing)
+        # Try multiple strategies to install packages
+        pip_strategies = [
+            [sys.executable, "-m", "pip", "install", "--break-system-packages", "--quiet"] + missing,
+            [sys.executable, "-m", "pip", "install", "--user", "--quiet"] + missing,
+            [sys.executable, "-m", "pip", "install", "--quiet"] + missing,
+            ["sudo", sys.executable, "-m", "pip", "install", "--break-system-packages", "--quiet"] + missing,
+            ["sudo", "pip3", "install", "--break-system-packages", "--quiet"] + missing,
+            ["pip3", "install", "--user", "--quiet"] + missing,
+        ]
+        for strategy in pip_strategies:
+            r = subprocess.run(strategy, capture_output=True)
+            if r.returncode == 0:
+                break
         # Verify installation worked
         still_missing = [m for m in missing if subprocess.run([sys.executable, "-c", f"import {m}"], capture_output=True).returncode != 0]
         if still_missing:
             print(f"{Colors.RED}Failed to install: {', '.join(still_missing)}{Colors.NC}")
-            print(f"Try manually: sudo apt install python3-pip && pip3 install {' '.join(still_missing)}")
+            print(f"Try manually: sudo pip3 install --break-system-packages {' '.join(still_missing)}")
             sys.exit(1)
         print(f"{Colors.GREEN}✓ Installed. Continuing...{Colors.NC}")
 
