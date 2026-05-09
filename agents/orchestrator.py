@@ -1959,6 +1959,15 @@ async def list_all_agents():
     except Exception:
         pass
 
+    # Get all running python agent processes for cross-reference
+    import subprocess as _sp3
+    try:
+        ps_out = _sp3.check_output(["ps", "aux"], text=True, timeout=5)
+        running_procs = {line.split()[-1]: line.split()[1] for line in ps_out.split('\n')
+                         if 'agents/' in line and 'python' in line and 'grep' not in line}
+    except Exception:
+        running_procs = {}
+
     # Scan all agent files
     all_agents = []
     for f in sorted(agents_dir.glob("*.py")):
@@ -1968,13 +1977,21 @@ async def list_all_agents():
         pid_file = pid_dir / f"{name}.pid"
         is_running = False
         pid = None
+        # Check PID file first
         if pid_file.exists():
             try:
                 pid = int(pid_file.read_text().strip())
-                os.kill(pid, 0)  # Check if alive
+                os.kill(pid, 0)
                 is_running = True
             except (OSError, ValueError):
                 is_running = False
+        # Fallback: check ps output for this agent file
+        if not is_running:
+            for proc_cmd, proc_pid in running_procs.items():
+                if f.name in proc_cmd:
+                    is_running = True
+                    pid = int(proc_pid)
+                    break
 
         # Get info from state if available
         state_info = active_agents.get(name, {})
