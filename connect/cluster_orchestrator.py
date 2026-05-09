@@ -726,6 +726,83 @@ def run_cluster_task(
     }
 
 
+async def run_cluster_task_async(
+    task: str,
+    strategy: str = "auto",
+    target_nodes: Optional[List[str]] = None,
+    progress_cb=None,
+) -> Dict:
+    """Async version of run_cluster_task — can be awaited directly from FastAPI handlers."""
+    t0 = time.time()
+
+    def _progress(step, msg):
+        log.info(f"[cluster] {step}: {msg}")
+        if progress_cb:
+            progress_cb(step, msg)
+
+    # Fast-path
+    if strategy == "auto" and len(task) < 300 and not target_nodes:
+        _progress("plan", "Short task — executing locally")
+        try:
+            ai = get_ai_client()
+            wants_json = "json" in task.lower() or "JSON" in task
+            result = ai.chat([{"role": "user", "content": task + ("" if wants_json else "\n\nResponda de forma concisa.")}],
+                             max_tokens=1500 if wants_json else 800, temperature=0.1 if wants_json else 0.7)
+            elapsed = time.time() - t0
+            return {"result": result, "plan": {"strategy": "local", "reasoning": "Short task", "subtasks": []},
+                    "results": [{"subtask_id": "local", "node_name": "manager1", "result": result, "method": "local", "elapsed": elapsed}],
+                    "nodes_used": 1, "nodes_failed": 0, "elapsed": elapsed}
+        except Exception as e:
+            log.warning(f"Local fast-path failed: {e}")
+
+    # Catalog
+    _progress("catalog", "Buscando nós do cluster...")
+    catalog = get_catalog()
+    if target_nodes:
+        catalog = [n for n in catalog if n.get("node_id") in target_nodes or n.get("hostname") in target_nodes]
+    _progress("catalog", f"{len(catalog)} nó(s) disponível(is)")
+
+    # Plan
+    _progress("plan", "Planejando distribuição...")
+    ai = get_ai_client()
+    is_broadcast = (strategy == "broadcast")
+
+    if is_broadcast:
+        plan = {
+            "strategy": "parallel",
+            "reasoning": "Broadcast: mesma tarefa para todos os nós",
+            "subtasks": [
+                {"id": f"s{i+1}", "node_id": n["node_id"],
+                 "node_name": n.get("hostname", n["node_id"][:12]),
+                 "instruction": task, "context": "", "priority": 1, "complexity": "medium"}
+                for i, n in enumerate(catalog)
+            ]
+        }
+    else:
+        plan = plan_task(task, catalog, ai_client=ai)
+        if strategy in ("parallel", "sequential"):
+            plan["strategy"] = strategy
+
+    _progress("plan", f"{plan['strategy'].upper()}: {len(plan['subtasks'])} subtarefa(s)")
+
+    # Execute (async directly!)
+    _progress("execute", "Executando...")
+    results = await execute_plan_async(plan, catalog, is_broadcast=is_broadcast)
+
+    successful = [r for r in results if "result" in r]
+    failed = [r for r in results if "error" in r]
+    _progress("execute", f"{len(successful)} OK, {len(failed)} falhas")
+
+    # Consolidate
+    _progress("consolidate", "Consolidando respostas...")
+    final = consolidate_results(task, plan, results, ai_client=ai)
+    elapsed = time.time() - t0
+    _progress("done", f"Concluído em {elapsed:.1f}s")
+
+    return {"result": final, "plan": plan, "results": results,
+            "nodes_used": len(successful), "nodes_failed": len(failed), "elapsed": elapsed}
+
+
 # ── Cluster Update ────────────────────────────────────────────────────────────
 
 async def _get_node_version_async(node: Dict) -> Dict:

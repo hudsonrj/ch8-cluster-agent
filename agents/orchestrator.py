@@ -1202,19 +1202,16 @@ async def cluster_task_endpoint(request: Request):
         if not task:
             return {"error": "Missing 'task'"}
 
-        from connect.cluster_orchestrator import run_cluster_task
-        import asyncio as _aio
+        from connect.cluster_orchestrator import run_cluster_task_async
         steps = []
         def _cb(step, msg):
             steps.append(f"[{step}] {msg}")
 
-        # Run in thread to avoid blocking the event loop (broadcasts can take 30s+)
-        loop = _aio.get_event_loop()
-        result = await loop.run_in_executor(None, lambda: run_cluster_task(
+        result = await run_cluster_task_async(
             task, strategy=strategy,
             target_nodes=nodes if nodes else None,
             progress_cb=_cb
-        ))
+        )
 
         return {
             "result":       result["result"],
