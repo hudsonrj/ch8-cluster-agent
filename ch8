@@ -380,6 +380,9 @@ def cmd_up(token=None):
     _start_agent("stt_agent", "stt_agent.py")
     _start_agent("rag_agent", "rag_agent.py")
 
+    # Start Log Shipper (sends logs to PostgreSQL)
+    _start_agent("log_shipper", "log_shipper.py")
+
     # Wait for daemon to write its PID (up to 8s)
     import time
     from connect.daemon import is_daemon_running, read_state
