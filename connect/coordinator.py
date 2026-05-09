@@ -69,6 +69,7 @@ class ControlClient:
             "node_id":    self.node_id,
             "network_id": get_network_id(),
             "ts":         int(time.time()),
+            "version":    _get_version(),
             **(metrics or {}),
         }
         # ensure services/models are always lists
@@ -143,9 +144,20 @@ def _get_local_ip() -> str:
 
 
 def _get_version() -> str:
+    from pathlib import Path
+    import subprocess
+    repo = Path(__file__).parent.parent
+    # Try VERSION file first
     try:
-        from pathlib import Path
-        v = (Path(__file__).parent.parent / "VERSION").read_text().strip()
-        return v
+        v = (repo / "VERSION").read_text().strip()
+        if v:
+            return v
     except Exception:
-        return "0.0.0"
+        pass
+    # Fallback: git short hash
+    try:
+        h = subprocess.check_output(["git", "rev-parse", "--short", "HEAD"],
+                                    cwd=str(repo), timeout=3, stderr=subprocess.DEVNULL).decode().strip()
+        return f"1.0.0-{h}" if h else "1.0.0"
+    except Exception:
+        return "1.0.0"
