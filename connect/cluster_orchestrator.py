@@ -812,6 +812,17 @@ async def run_cluster_task_async(
     elapsed = time.time() - t0
     _progress("done", f"Concluído em {elapsed:.1f}s")
 
+    # Persist broadcast to PostgreSQL
+    try:
+        from .db import save_broadcast, log_event
+        save_broadcast(task, strategy or plan.get("strategy", "auto"),
+                       len(successful), len(failed), elapsed, results)
+        if failed:
+            log_event("broadcast_partial", f"{len(failed)} nodes failed: {', '.join(r.get('node_name','?') for r in failed[:5])}",
+                      severity="warning", details={"task": task[:200], "elapsed": elapsed})
+    except Exception:
+        pass
+
     return {"result": final, "plan": plan, "results": results,
             "nodes_used": len(successful), "nodes_failed": len(failed), "elapsed": elapsed}
 

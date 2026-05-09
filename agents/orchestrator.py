@@ -1126,6 +1126,18 @@ Return ONLY Python code."""
             yield "data: " + json.dumps({"error": str(ex)[:200]}) + "\n\n"
         finally:
             _update_agent_state("idle", "waiting for tasks")
+            # Persist chat to PostgreSQL (best effort)
+            try:
+                from connect.db import save_chat_message
+                from connect.auth import get_node_id
+                _nid = get_node_id()
+                user_content = next((m["content"] for m in reversed(messages) if m["role"] == "user"), "")
+                if user_content:
+                    save_chat_message(_nid, "user", user_content, model=model)
+                if full_text:
+                    save_chat_message(_nid, "assistant", full_text[:5000], model=model)
+            except Exception:
+                pass
         yield "data: [DONE]\n\n"
 
     # Non-streaming mode: collect full text and return JSON
@@ -1966,6 +1978,34 @@ async def _keepalive():
                 )
                 _update_agent_state("running" if alerts else "idle", task)
                 _refresh_sub_agents()
+
+                # Persist metrics + SLA to PostgreSQL (best effort)
+                try:
+                    from connect.db import save_node_metrics, save_sla_check
+                    from connect.auth import get_node_id, CONTROL_URL as _CU
+                    import httpx as _hx2
+                    my_id = get_node_id()
+                    from pathlib import Path as _P2
+                    _ver = (_P2(__file__).parent.parent / "VERSION").read_text().strip() if (_P2(__file__).parent.parent / "VERSION").exists() else "1.0.0"
+                    save_node_metrics(my_id, __import__('socket').gethostname(),
+                                      ctx.get('cpu_pct', 0), ctx.get('mem_pct', 0),
+                                      ctx.get('disk_pct', 0), 0,
+                                      len(ctx.get('containers', [])),
+                                      len(ctx.get('agents', [])), _ver)
+                    # SLA checks for all known peers
+                    try:
+                        r = await loop.run_in_executor(None, lambda: _hx2.get(
+                            f"{_CU}/nodes?network_id=net_default", timeout=5).json())
+                        peers = r if isinstance(r, list) else r.get('nodes', [])
+                        for peer in peers:
+                            if peer.get('node_id') == my_id:
+                                continue
+                            save_sla_check(peer['node_id'], peer.get('hostname', ''),
+                                          peer.get('status') == 'online')
+                    except Exception:
+                        pass
+                except Exception:
+                    pass
             except Exception:
                 pass
             await _asyncio.sleep(30)
