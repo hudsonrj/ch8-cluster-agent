@@ -33,19 +33,10 @@ DEFAULT_VOICE = "pt-BR-FranciscaNeural"
 
 def _update_state(status, task):
     try:
-        state = json.loads(STATE_FILE.read_text()) if STATE_FILE.exists() else {}
-        agents = state.get("agents", [])
-        entry = {
-            "name": "tts_agent", "status": status, "task": task,
-            "model": "edge-tts", "platform": "microsoft",
-            "autonomous": True, "updated_at": int(time.time()),
-            "tools": ["speak", "list_voices"], "details": {},
-            "alerts": 0, "security_findings": 0, "predictions": 0, "heavy_procs": 0,
-        }
-        agents = [a for a in agents if a.get("name") != "tts_agent"]
-        agents.append(entry)
-        state["agents"] = agents
-        STATE_FILE.write_text(json.dumps(state, indent=2))
+        from connect.state import update_agent_state
+        update_agent_state("tts_agent", status, task,
+                           model="edge-tts", platform="microsoft",
+                           tools=["speak", "list_voices"])
     except Exception:
         pass
 

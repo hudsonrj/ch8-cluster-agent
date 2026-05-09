@@ -30,19 +30,10 @@ MODEL_SIZE = "base"  # base=~150MB, small=~500MB, medium=~1.5GB
 
 def _update_state(status, task):
     try:
-        state = json.loads(STATE_FILE.read_text()) if STATE_FILE.exists() else {}
-        agents = state.get("agents", [])
-        entry = {
-            "name": "stt_agent", "status": status, "task": task,
-            "model": f"whisper-{MODEL_SIZE}", "platform": "faster-whisper",
-            "autonomous": True, "updated_at": int(time.time()),
-            "tools": ["transcribe"], "details": {},
-            "alerts": 0, "security_findings": 0, "predictions": 0, "heavy_procs": 0,
-        }
-        agents = [a for a in agents if a.get("name") != "stt_agent"]
-        agents.append(entry)
-        state["agents"] = agents
-        STATE_FILE.write_text(json.dumps(state, indent=2))
+        from connect.state import update_agent_state
+        update_agent_state("stt_agent", status, task,
+                           model=f"whisper-{MODEL_SIZE}", platform="faster-whisper",
+                           tools=["transcribe"])
     except Exception:
         pass
 
