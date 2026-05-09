@@ -473,10 +473,10 @@ async def _try_peer_relay(target_node_id: str, target_name: str, payload: dict,
     if not all_bridges:
         return None
 
-    log.info(f"[{target_name}] Trying peer relay via {len(all_bridges)} potential bridges...")
+    max_bridges = 3 if len(all_bridges) > 5 else len(all_bridges)
+    log.info(f"[{target_name}] Trying peer relay via {max_bridges}/{len(all_bridges)} bridges...")
 
-    # Try ALL bridges — no limit
-    for bridge in all_bridges:
+    for bridge in all_bridges[:max_bridges]:
         bridge_addr = bridge["address"]
         bridge_name = bridge.get("hostname", bridge_addr)[:14]
         forward_url = f"http://{bridge_addr}:{orch_port}/relay/forward"
@@ -528,7 +528,20 @@ async def execute_plan_async(plan: Dict, catalog: List[Dict], is_broadcast: bool
 
     if strategy == "parallel":
         _t = BROADCAST_NODE_TIMEOUT if is_broadcast else None
-        tasks = [_send_to_node_async(s, catalog, timeout_override=_t) for s in subtasks]
+        # Wrap each task with a hard timeout so broadcast always returns
+        global_timeout = 30 if is_broadcast else 60
+
+        async def _with_timeout(s):
+            try:
+                return await asyncio.wait_for(
+                    _send_to_node_async(s, catalog, timeout_override=_t),
+                    timeout=global_timeout
+                )
+            except asyncio.TimeoutError:
+                return {"subtask_id": s["id"], "node_name": s.get("node_name", "?"),
+                        "error": f"timeout ({global_timeout}s)", "method": "timeout", "elapsed": global_timeout}
+
+        tasks = [_with_timeout(s) for s in subtasks]
         results = await asyncio.gather(*tasks, return_exceptions=True)
         out = []
         for i, r in enumerate(results):
