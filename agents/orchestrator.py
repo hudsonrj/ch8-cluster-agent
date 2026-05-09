@@ -1942,6 +1942,102 @@ async def nginx_sites():
     }
 
 
+@app.get("/agents/all")
+async def list_all_agents():
+    """List ALL agent files on this node (installed + running status + MCPs)."""
+    import json as _j3
+    agents_dir = Path(__file__).parent
+    pid_dir = Path.home() / ".config" / "ch8"
+    state_file = pid_dir / "state.json"
+
+    # Read state for active agents
+    active_agents = {}
+    try:
+        state = _j3.loads(state_file.read_text()) if state_file.exists() else {}
+        for a in state.get("agents", []):
+            active_agents[a.get("name", "")] = a
+    except Exception:
+        pass
+
+    # Scan all agent files
+    all_agents = []
+    for f in sorted(agents_dir.glob("*.py")):
+        if f.name.startswith("_") or f.name == "orchestrator.py":
+            continue
+        name = f.stem
+        pid_file = pid_dir / f"{name}.pid"
+        is_running = False
+        pid = None
+        if pid_file.exists():
+            try:
+                pid = int(pid_file.read_text().strip())
+                os.kill(pid, 0)  # Check if alive
+                is_running = True
+            except (OSError, ValueError):
+                is_running = False
+
+        # Get info from state if available
+        state_info = active_agents.get(name, {})
+
+        # Read first docstring/comment from file for description
+        desc = ""
+        try:
+            content = f.read_text()
+            if content.startswith('"""'):
+                desc = content.split('"""')[1].strip().split('\n')[0][:100]
+            elif content.startswith('#'):
+                desc = content.split('\n')[0][1:].strip()[:100]
+        except Exception:
+            pass
+
+        all_agents.append({
+            "name": name,
+            "file": str(f),
+            "status": state_info.get("status", "running" if is_running else "stopped"),
+            "running": is_running,
+            "pid": pid if is_running else None,
+            "model": state_info.get("model", ""),
+            "platform": state_info.get("platform", ""),
+            "task": state_info.get("task", ""),
+            "tools": state_info.get("tools", []),
+            "description": desc or state_info.get("details", {}).get("description", ""),
+            "updated_at": state_info.get("updated_at", 0),
+            "autonomous": state_info.get("autonomous", False),
+        })
+
+    # Also include orchestrator
+    all_agents.insert(0, {
+        "name": "orchestrator",
+        "file": str(agents_dir / "orchestrator.py"),
+        "status": "running",
+        "running": True,
+        "pid": os.getpid(),
+        "model": active_agents.get("orchestrator", {}).get("model", ""),
+        "platform": active_agents.get("orchestrator", {}).get("platform", ""),
+        "task": active_agents.get("orchestrator", {}).get("task", ""),
+        "tools": active_agents.get("orchestrator", {}).get("tools", []),
+        "description": "Main orchestrator — chat, tools, cluster tasks",
+        "updated_at": active_agents.get("orchestrator", {}).get("updated_at", 0),
+        "autonomous": False,
+    })
+
+    # MCPs / configured tools
+    mcps = []
+    try:
+        from connect.tools_config import get_all_tools
+        mcps = [{"name": t, "type": "tool"} for t in get_all_tools()]
+    except Exception:
+        pass
+
+    return {
+        "agents": all_agents,
+        "total": len(all_agents),
+        "running": sum(1 for a in all_agents if a["running"]),
+        "stopped": sum(1 for a in all_agents if not a["running"]),
+        "mcps": mcps,
+    }
+
+
 @app.get("/tools")
 async def list_tools():
     """List all available tools."""
