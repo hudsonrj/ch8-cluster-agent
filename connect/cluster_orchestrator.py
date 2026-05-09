@@ -51,9 +51,9 @@ def _run_async(coro):
         return asyncio.run(coro)
 
 # Timeout para esperar resposta de cada nó (segundos)
-NODE_TIMEOUT = 15  # seconds per node attempt (direct/relay)
-PEER_RELAY_TIMEOUT = 12  # seconds per peer relay attempt
-BROADCAST_NODE_TIMEOUT = 10  # faster timeout for broadcast mode
+NODE_TIMEOUT = 45  # seconds per node attempt (LLM can take 30s+)
+PEER_RELAY_TIMEOUT = 15  # seconds per peer relay attempt
+BROADCAST_NODE_TIMEOUT = 40  # LLMs need time to generate response
 
 # Máximo de tentativas por subtarefa
 MAX_RETRIES = 1
@@ -529,7 +529,7 @@ async def execute_plan_async(plan: Dict, catalog: List[Dict], is_broadcast: bool
     if strategy == "parallel":
         _t = BROADCAST_NODE_TIMEOUT if is_broadcast else None
         # Wrap each task with a hard timeout so broadcast always returns
-        global_timeout = 30 if is_broadcast else 60
+        global_timeout = 60 if is_broadcast else 90
 
         async def _with_timeout(s):
             try:
