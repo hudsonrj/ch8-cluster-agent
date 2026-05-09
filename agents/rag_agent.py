@@ -47,25 +47,12 @@ CHUNK_SIZE = 500  # chars per chunk
 
 def _update_state(status, task):
     try:
-        state = json.loads(STATE_FILE.read_text()) if STATE_FILE.exists() else {}
-        agents = state.get("agents", [])
-        entry = {
-            "name": "rag_agent", "status": status, "task": task,
-            "model": "sentence-transformers", "platform": "chromadb",
-            "autonomous": True, "updated_at": int(time.time()),
-            "tools": ["search", "ask", "index"], "details": {"index_path": INDEX_PATH},
-            "alerts": 0, "security_findings": 0, "predictions": 0, "heavy_procs": 0,
-        }
-        agents = [a for a in agents if a.get("name") != "rag_agent"]
-        agents.append(entry)
-        state["agents"] = agents
-        STATE_FILE.write_text(json.dumps(state, indent=2))
+        from connect.state import update_agent_state
+        update_agent_state("rag_agent", status, task,
+                           model="sentence-transformers", platform="chromadb",
+                           autonomous=True)
     except Exception:
         pass
-
-
-_collection = None
-_embedder = None
 
 
 def get_embedder():

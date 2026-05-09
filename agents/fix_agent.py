@@ -74,52 +74,14 @@ def _record_action(action: str, result: str):
 
 
 def _update_agent_state(status: str, task: str):
-    """Register this agent in state.json."""
-    global _last_status_msg
-    _last_status_msg = task
     try:
-        state = json.loads(STATE_FILE.read_text()) if STATE_FILE.exists() else {}
-        agents = state.get("agents", [])
+        from connect.state import update_agent_state
+        update_agent_state("fix_agent", status, task,
+                           model="auto-debugger", platform="sandbox",
+                           autonomous=True)
+    except Exception:
+        pass
 
-        # Count backlog stats
-        open_count = sum(1 for f in BACKLOG_DIR.glob("*.json")
-                         if json.loads(f.read_text()).get("status") == "open")
-        resolved = sum(1 for f in BACKLOG_DIR.glob("*.json")
-                       if json.loads(f.read_text()).get("status") == "resolved")
-
-        details = {
-            "history": _action_history[-MAX_HISTORY:],
-            "stats": {
-                "backlog_open": open_count,
-                "backlog_resolved": resolved,
-                "max_attempts": MAX_ATTEMPTS,
-            },
-        }
-
-        entry = {
-            "name": "fix_agent",
-            "status": status,
-            "task": task,
-            "model": "auto-debugger",
-            "platform": "sandbox",
-            "autonomous": True,
-            "alerts": 0,
-            "security_findings": 0,
-            "predictions": 0,
-            "heavy_procs": 0,
-            "tools": ["file_read", "file_write", "shell_exec"],
-            "details": details,
-            "updated_at": int(time.time()),
-        }
-        agents = [a for a in agents if a.get("name") != "fix_agent"]
-        agents.append(entry)
-        state["agents"] = agents
-        STATE_FILE.write_text(json.dumps(state, indent=2))
-    except Exception as e:
-        log.warning(f"State update failed: {e}")
-
-
-# ── Cluster Communication ─────────────────────────────────────────────────────
 
 def ask_cluster(question: str) -> str:
     """Ask the cluster for help with a debugging problem."""

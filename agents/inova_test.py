@@ -167,53 +167,13 @@ def _record_action(action: str, result: str):
 
 
 def _update_agent_state(status: str, task: str):
-    """Register this agent in the shared state.json."""
-    global _last_status_msg
-    _last_status_msg = task
     try:
-        state = json.loads(STATE_FILE.read_text()) if STATE_FILE.exists() else {}
-        agents = state.get("agents", [])
-
-        # Build details with history
-        counter = _get_daily_counter()
-        projects = sum(1 for d in SANDBOX_DIR.iterdir() if d.is_dir())
-        details = {
-            "history": _action_history[-MAX_HISTORY:],
-            "stats": {
-                "projects_total": projects,
-                "cycles_today": counter.get("cycles", 0),
-                "max_cycles_day": MAX_CYCLES_PER_DAY,
-                "max_projects": MAX_PROJECTS,
-                "interval_min": CYCLE_INTERVAL // 60,
-            },
-        }
-
-        entry = {
-            "name": "inova_test",
-            "status": status,
-            "task": task,
-            "model": "cluster-delegator",
-            "platform": "sandbox",
-            "autonomous": True,
-            "alerts": 0,
-            "security_findings": 0,
-            "predictions": 0,
-            "heavy_procs": 0,
-            "tools": ["cluster_task", "file_write"],
-            "details": details,
-            "updated_at": int(time.time()),
-        }
-        agents = [a for a in agents if a.get("name") != "inova_test"]
-        agents.append(entry)
-        state["agents"] = agents
-        STATE_FILE.write_text(json.dumps(state, indent=2))
-    except Exception as e:
-        log.warning(f"State update failed: {e}")
-
-
-# ── Cluster Communication ─────────────────────────────────────────────────────
-
-_cluster_tasks_this_cycle = 0
+        from connect.state import update_agent_state
+        update_agent_state("inova_test", status, task,
+                           model="cluster-delegator", platform="sandbox",
+                           autonomous=True)
+    except Exception:
+        pass
 
 
 def send_cluster_task(task: str, strategy: str = "auto") -> dict:

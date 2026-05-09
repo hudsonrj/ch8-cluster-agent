@@ -168,30 +168,10 @@ def record_recovery(hostname: str, method: str, success: bool, error: str = ""):
 
 def _update_state(status: str, task: str):
     try:
-        state = json.loads(STATE_FILE.read_text()) if STATE_FILE.exists() else {}
-        agents = state.get("agents", [])
-        entry = {
-            "name": "recovery",
-            "status": status,
-            "task": task,
-            "model": "auto-healer",
-            "platform": "ssh",
-            "autonomous": True,
-            "alerts": 0, "security_findings": 0, "predictions": 0, "heavy_procs": 0,
-            "tools": ["ssh", "ch8_up"],
-            "details": {
-                "history": [{"ts": datetime.now().strftime("%H:%M"), "action": e.get("node",""), "result": "OK" if e.get("success") else "FAIL"} for e in _recovery_log[-10:]],
-                "stats": {
-                    "total_recoveries": len([e for e in _recovery_log if e.get("success")]),
-                    "total_failures": len([e for e in _recovery_log if not e.get("success")]),
-                },
-            },
-            "updated_at": int(time.time()),
-        }
-        agents = [a for a in agents if a.get("name") != "recovery"]
-        agents.append(entry)
-        state["agents"] = agents
-        STATE_FILE.write_text(json.dumps(state, indent=2))
+        from connect.state import update_agent_state
+        update_agent_state("recovery", status, task,
+                           model="auto-healer", platform="ssh",
+                           autonomous=True)
     except Exception:
         pass
 

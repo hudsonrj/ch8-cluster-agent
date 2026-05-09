@@ -45,32 +45,13 @@ _reachable = {}  # {node_id: {address, hostname, latency_ms}}
 
 
 def _update_agent_state(status: str, task: str):
-    global _last_status
-    _last_status = task
     try:
-        state = json.loads(STATE_FILE.read_text()) if STATE_FILE.exists() else {}
-        agents = state.get("agents", [])
-        entry = {
-            "name": "mesh_relay",
-            "status": status,
-            "task": task,
-            "model": "network-bridge",
-            "platform": "mesh",
-            "autonomous": True,
-            "alerts": 0, "security_findings": 0, "predictions": 0, "heavy_procs": 0,
-            "tools": ["relay", "ping"],
-            "details": {
-                "reachable_nodes": len(_reachable),
-                "relay_table": {k: v.get("hostname", "?") for k, v in list(_reachable.items())[:10]},
-            },
-            "updated_at": int(time.time()),
-        }
-        agents = [a for a in agents if a.get("name") != "mesh_relay"]
-        agents.append(entry)
-        state["agents"] = agents
-        STATE_FILE.write_text(json.dumps(state, indent=2))
-    except Exception as e:
-        log.warning(f"State update: {e}")
+        from connect.state import update_agent_state
+        update_agent_state("mesh_relay", status, task,
+                           model="network-bridge", platform="mesh",
+                           autonomous=True)
+    except Exception:
+        pass
 
 
 def get_peers() -> list:
