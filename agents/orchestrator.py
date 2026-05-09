@@ -1383,6 +1383,61 @@ log.close()
     return {"ok": True, "ref": ref, "current_commit": git_hash, "message": "Update started"}
 
 
+@app.post("/relay/forward")
+async def relay_forward(request: Request):
+    """Forward a request to another node (peer relay). Used when master can't reach target directly."""
+    import httpx as _hx
+    body = await request.json()
+    target_node_id = body.get("target_node_id")
+    payload = body.get("payload", {})
+    if not target_node_id:
+        return {"error": "target_node_id required"}
+
+    # Find target address from our local knowledge (control server nodes list)
+    orch_port = int(os.environ.get("CH8_AGENT_PORT", "7879"))
+    try:
+        async with _hx.AsyncClient(timeout=8) as c:
+            # Get nodes from control
+            from connect.auth import get_access_token, CONTROL_URL
+            token = get_access_token()
+            hdrs = {"Authorization": f"Bearer {token}"} if token else {}
+            r = await c.get(f"{CONTROL_URL}/nodes?network_id=net_default", headers=hdrs)
+            nodes = r.json() if r.status_code == 200 else []
+    except Exception:
+        nodes = []
+
+    target = next((n for n in nodes if n.get("node_id") == target_node_id), None)
+    if not target:
+        return {"error": f"Target {target_node_id} not found in catalog"}
+
+    target_addr = target.get("address", "")
+    if not target_addr:
+        return {"error": "Target has no address"}
+
+    # Try reaching the target directly from this node
+    errors = []
+    # Try Tailscale IP first if we know it, then registered address
+    urls_to_try = [f"http://{target_addr}:{orch_port}/chat"]
+    # Also try common LAN patterns
+    for node_info in nodes:
+        if node_info.get("node_id") == target_node_id:
+            # If address is LAN and we're on same LAN, use it
+            urls_to_try.append(f"http://{target_addr}:{orch_port}/chat")
+            break
+
+    for url in urls_to_try:
+        try:
+            async with _hx.AsyncClient(timeout=25) as c:
+                r = await c.post(url, json=payload, headers=hdrs)
+                if r.status_code == 200:
+                    data = r.json()
+                    return {"result": data.get("response", data.get("result", str(data))), "via": os.uname().nodename}
+        except Exception as e:
+            errors.append(f"{url}: {e}")
+
+    return {"error": f"Cannot reach target from this node: {'; '.join(errors)}"}
+
+
 @app.get("/version")
 async def node_version():
     """Return current version and git commit of this node."""

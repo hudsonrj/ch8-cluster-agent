@@ -398,7 +398,7 @@ async def _send_to_node_async(
             except Exception as e:
                 last_error = str(e)
 
-        # Fallback para relay
+        # Fallback 1: Control server relay
         if token:
             relay_url = f"{CONTROL_URL}/api/relay/{node_id}"
             try:
@@ -412,12 +412,73 @@ async def _send_to_node_async(
             except Exception as e:
                 last_error = f"Relay: {e}"
 
+        # Fallback 2: Peer relay — find any node that can reach the target
+        peer_result = await _try_peer_relay(node_id, node_name, payload, headers, catalog, orch_port)
+        if peer_result:
+            elapsed = time.time() - t0
+            log.info(f"[{node_name}] Peer relay OK via {peer_result['via']} ({elapsed:.1f}s)")
+            return {"subtask_id": subtask_id, "node_name": node_name,
+                    "result": peer_result["result"], "method": f"peer-relay:{peer_result['via']}", "elapsed": elapsed}
+
         log.warning(f"[{node_name}] Attempt {attempt+1} failed: {last_error}")
 
     elapsed = time.time() - t0
     log.error(f"[{node_name}] All {retries+1} attempts failed for subtask {subtask_id}")
     return {"subtask_id": subtask_id, "node_name": node_name,
             "error": last_error, "method": "failed", "elapsed": elapsed}
+
+
+async def _try_peer_relay(target_node_id: str, target_name: str, payload: dict,
+                          headers: dict, catalog: list, orch_port: int) -> Optional[Dict]:
+    """
+    Try to reach a target node via any peer that has it in their relay table.
+    Asks the peer's orchestrator to forward the request.
+    """
+    my_id = get_node_id()
+
+    # Find peers that can reach the target (from their relay tables in heartbeat data)
+    # Also try all Tailscale nodes (100.x.x.x) as potential bridges
+    potential_bridges = []
+    for node in catalog:
+        if node["node_id"] == my_id or node["node_id"] == target_node_id:
+            continue
+        if node.get("status") != "online":
+            continue
+        addr = node.get("address", "")
+        # Nodes on Tailscale (100.x) are good bridge candidates
+        if addr.startswith("100."):
+            potential_bridges.append(node)
+        # Nodes that share the same subnet as target
+        target_node = next((n for n in catalog if n["node_id"] == target_node_id), None)
+        if target_node:
+            target_addr = target_node.get("address", "")
+            # Same /24 subnet
+            if addr.rsplit(".", 1)[0] == target_addr.rsplit(".", 1)[0]:
+                if node not in potential_bridges:
+                    potential_bridges.append(node)
+
+    if not potential_bridges:
+        return None
+
+    # Try each bridge (up to 3)
+    for bridge in potential_bridges[:3]:
+        bridge_addr = bridge["address"]
+        bridge_name = bridge.get("hostname", bridge_addr)[:12]
+        forward_url = f"http://{bridge_addr}:{orch_port}/relay/forward"
+        try:
+            async with httpx.AsyncClient(timeout=30) as c:
+                r = await c.post(forward_url, json={
+                    "target_node_id": target_node_id,
+                    "payload": payload,
+                }, headers=headers)
+                if r.status_code == 200:
+                    data = r.json()
+                    if data.get("result"):
+                        return {"result": data["result"], "via": bridge_name}
+        except Exception:
+            continue
+
+    return None
 
 
 async def _run_locally(message: str) -> str:
