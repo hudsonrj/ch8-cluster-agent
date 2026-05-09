@@ -943,8 +943,18 @@ Return ONLY Python code."""
                     stdout=open(log_f, "w"), stderr=subprocess.STDOUT, start_new_session=True)
                 pid_f.write_text(str(proc.pid))
 
+                # Wait and verify agent is still alive
+                _t2.sleep(2)
+                if proc.poll() is not None:
+                    # Agent died — read log for error
+                    err_log = log_f.read_text()[-300:] if log_f.exists() else "no log"
+                    async def _stream_error():
+                        yield f'data: {{"message": {{"content": "\\n\\n❌ Agent `{safe_name}` crashed on start:\\n```\\n{err_log}\\n```"}}}}\n\n'
+                        yield "data: [DONE]\n\n"
+                    return StreamingResponse(_stream_error(), media_type="text/event-stream")
+
                 # Register in state
-                _t2.sleep(1)
+                _t2.sleep(0)
                 state_file = Path.home() / ".config" / "ch8" / "state.json"
                 try:
                     state = _j.loads(state_file.read_text()) if state_file.exists() else {}
@@ -1272,6 +1282,22 @@ async def ha_new_master_endpoint(request: Request):
         return {"ok": True, "role": state["role"]}
     except Exception as e:
         return {"ok": False, "error": str(e)}
+
+
+@app.post("/cluster/update")
+async def cluster_update_endpoint(request: Request):
+    """Push update to all nodes in the cluster. Body: {"ref":"main","nodes":[]} (optional)"""
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    ref = body.get("ref", "main")
+    target = body.get("nodes", None)
+
+    from connect.cluster_orchestrator import update_cluster
+    import asyncio as _aio2
+    result = await _aio2.get_event_loop().run_in_executor(None, lambda: update_cluster(ref=ref, target_nodes=target))
+    return result
 
 
 @app.post("/update")
