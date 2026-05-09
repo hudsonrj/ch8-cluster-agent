@@ -463,9 +463,22 @@ def _read_agents_from_state() -> list:
     """Read agents registered by external monitor processes via state.json."""
     try:
         agents = json.loads(STATE_FILE.read_text()).get("agents", [])
-        # Include agents updated in the last 35 minutes (covers 30min cycle intervals)
-        cutoff = time.time() - 2100
-        return [a for a in agents if a.get("updated_at", 0) > cutoff]
+        now = time.time()
+        result = []
+        for a in agents:
+            updated = a.get("updated_at", 0)
+            # Custom/created agents: keep for 24h (they may not have heartbeat)
+            # System agents (with heartbeat): 35 min cutoff
+            if a.get("platform") == "custom" or a.get("autonomous"):
+                if now - updated < 86400:  # 24 hours
+                    # But mark as idle if stale >35min
+                    if now - updated > 2100 and a.get("status") == "running":
+                        a = {**a, "status": "idle", "task": a.get("task", "") + " (no heartbeat)"}
+                    result.append(a)
+            else:
+                if now - updated < 2100:  # 35 minutes
+                    result.append(a)
+        return result
     except Exception:
         return []
 
