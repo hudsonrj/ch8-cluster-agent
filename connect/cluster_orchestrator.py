@@ -431,42 +431,53 @@ async def _send_to_node_async(
 async def _try_peer_relay(target_node_id: str, target_name: str, payload: dict,
                           headers: dict, catalog: list, orch_port: int) -> Optional[Dict]:
     """
-    Try to reach a target node via any peer that has it in their relay table.
-    Asks the peer's orchestrator to forward the request.
+    Exhaustive multi-hop relay: try ALL available peers as bridges to reach target.
+    Priority order:
+      1. Peers on same subnet as target (direct LAN access)
+      2. Peers on Tailscale VPN (100.x — can bridge networks)
+      3. All other online peers (may have relay table entry for target)
+    Tries every combination until one succeeds.
     """
     my_id = get_node_id()
+    target_node = next((n for n in catalog if n["node_id"] == target_node_id), None)
+    target_addr = target_node.get("address", "") if target_node else ""
 
-    # Find peers that can reach the target (from their relay tables in heartbeat data)
-    # Also try all Tailscale nodes (100.x.x.x) as potential bridges
-    potential_bridges = []
+    # Build prioritized bridge list
+    same_subnet = []
+    tailscale_peers = []
+    other_peers = []
+
     for node in catalog:
         if node["node_id"] == my_id or node["node_id"] == target_node_id:
             continue
         if node.get("status") != "online":
             continue
         addr = node.get("address", "")
-        # Nodes on Tailscale (100.x) are good bridge candidates
-        if addr.startswith("100."):
-            potential_bridges.append(node)
-        # Nodes that share the same subnet as target
-        target_node = next((n for n in catalog if n["node_id"] == target_node_id), None)
-        if target_node:
-            target_addr = target_node.get("address", "")
-            # Same /24 subnet
-            if addr.rsplit(".", 1)[0] == target_addr.rsplit(".", 1)[0]:
-                if node not in potential_bridges:
-                    potential_bridges.append(node)
+        if not addr:
+            continue
 
-    if not potential_bridges:
+        # Check if peer is on same subnet as target
+        if target_addr and addr.rsplit(".", 1)[0] == target_addr.rsplit(".", 1)[0]:
+            same_subnet.append(node)
+        elif addr.startswith("100."):
+            tailscale_peers.append(node)
+        else:
+            other_peers.append(node)
+
+    # Priority: same subnet first (most likely to reach target), then Tailscale, then others
+    all_bridges = same_subnet + tailscale_peers + other_peers
+    if not all_bridges:
         return None
 
-    # Try each bridge (up to 3)
-    for bridge in potential_bridges[:3]:
+    log.info(f"[{target_name}] Trying peer relay via {len(all_bridges)} potential bridges...")
+
+    # Try ALL bridges — no limit
+    for bridge in all_bridges:
         bridge_addr = bridge["address"]
-        bridge_name = bridge.get("hostname", bridge_addr)[:12]
+        bridge_name = bridge.get("hostname", bridge_addr)[:14]
         forward_url = f"http://{bridge_addr}:{orch_port}/relay/forward"
         try:
-            async with httpx.AsyncClient(timeout=30) as c:
+            async with httpx.AsyncClient(timeout=45) as c:
                 r = await c.post(forward_url, json={
                     "target_node_id": target_node_id,
                     "payload": payload,
@@ -475,8 +486,13 @@ async def _try_peer_relay(target_node_id: str, target_name: str, payload: dict,
                     data = r.json()
                     if data.get("result"):
                         return {"result": data["result"], "via": bridge_name}
-        except Exception:
-            continue
+                    # If bridge returned error, log and try next
+                    log.debug(f"[{target_name}] Bridge {bridge_name} returned: {data.get('error','no result')}")
+        except httpx.TimeoutException:
+            log.debug(f"[{target_name}] Bridge {bridge_name} timeout")
+        except Exception as e:
+            log.debug(f"[{target_name}] Bridge {bridge_name} error: {e}")
+        continue
 
     return None
 

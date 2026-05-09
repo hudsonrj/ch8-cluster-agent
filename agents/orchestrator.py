@@ -1385,7 +1385,7 @@ log.close()
 
 @app.post("/relay/forward")
 async def relay_forward(request: Request):
-    """Forward a request to another node (peer relay). Used when master can't reach target directly."""
+    """Forward a request to another node (peer relay). Tries all known addresses for target."""
     import httpx as _hx
     body = await request.json()
     target_node_id = body.get("target_node_id")
@@ -1393,49 +1393,68 @@ async def relay_forward(request: Request):
     if not target_node_id:
         return {"error": "target_node_id required"}
 
-    # Find target address from our local knowledge (control server nodes list)
     orch_port = int(os.environ.get("CH8_AGENT_PORT", "7879"))
+
+    # Get all known nodes from control server
     try:
+        from connect.auth import get_access_token, CONTROL_URL
+        token = get_access_token()
+        hdrs = {"Authorization": f"Bearer {token}"} if token else {}
         async with _hx.AsyncClient(timeout=8) as c:
-            # Get nodes from control
-            from connect.auth import get_access_token, CONTROL_URL
-            token = get_access_token()
-            hdrs = {"Authorization": f"Bearer {token}"} if token else {}
             r = await c.get(f"{CONTROL_URL}/nodes?network_id=net_default", headers=hdrs)
             nodes = r.json() if r.status_code == 200 else []
     except Exception:
         nodes = []
+        hdrs = {}
 
     target = next((n for n in nodes if n.get("node_id") == target_node_id), None)
     if not target:
-        return {"error": f"Target {target_node_id} not found in catalog"}
+        return {"error": f"Target {target_node_id} not found"}
 
+    # Build list of ALL possible addresses for the target
+    addresses_to_try = set()
     target_addr = target.get("address", "")
-    if not target_addr:
-        return {"error": "Target has no address"}
+    if target_addr:
+        addresses_to_try.add(target_addr)
 
-    # Try reaching the target directly from this node
+    # Check if target has Tailscale IP (100.x) we might know
+    # Also try local subnet variations
+    import subprocess as _sp2
+    try:
+        # Get our local IPs to understand what subnets we're on
+        local_ips = _sp2.check_output(["hostname", "-I"], timeout=3, text=True).strip().split()
+        for lip in local_ips:
+            # If target is on same /24 as one of our IPs, we can probably reach it
+            if lip.rsplit(".", 1)[0] == target_addr.rsplit(".", 1)[0]:
+                addresses_to_try.add(target_addr)
+    except Exception:
+        pass
+
+    # Also try pinging via tailscale to discover DERP relay path
+    try:
+        ts_ip = _sp2.check_output(["tailscale", "ip", "-4", target.get("hostname", "")],
+                                   timeout=5, text=True, stderr=_sp2.DEVNULL).strip()
+        if ts_ip:
+            addresses_to_try.add(ts_ip)
+    except Exception:
+        pass
+
+    # Try each address
     errors = []
-    # Try Tailscale IP first if we know it, then registered address
-    urls_to_try = [f"http://{target_addr}:{orch_port}/chat"]
-    # Also try common LAN patterns
-    for node_info in nodes:
-        if node_info.get("node_id") == target_node_id:
-            # If address is LAN and we're on same LAN, use it
-            urls_to_try.append(f"http://{target_addr}:{orch_port}/chat")
-            break
-
-    for url in urls_to_try:
+    for addr in addresses_to_try:
+        url = f"http://{addr}:{orch_port}/chat"
         try:
-            async with _hx.AsyncClient(timeout=25) as c:
+            async with _hx.AsyncClient(timeout=30) as c:
                 r = await c.post(url, json=payload, headers=hdrs)
                 if r.status_code == 200:
                     data = r.json()
-                    return {"result": data.get("response", data.get("result", str(data))), "via": os.uname().nodename}
+                    result = data.get("response", data.get("result", ""))
+                    if result:
+                        return {"result": result, "via": os.uname().nodename, "addr_used": addr}
         except Exception as e:
-            errors.append(f"{url}: {e}")
+            errors.append(f"{addr}: {type(e).__name__}")
 
-    return {"error": f"Cannot reach target from this node: {'; '.join(errors)}"}
+    return {"error": f"Cannot reach {target.get('hostname',target_node_id)} from {os.uname().nodename}: tried {list(addresses_to_try)}"}
 
 
 @app.get("/version")
