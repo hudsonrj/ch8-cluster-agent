@@ -890,7 +890,8 @@ async def chat(request: Request):
     if not messages and body.get("message"):
         messages = [{"role": "user", "content": body["message"]}]
     stream   = body.get("stream", True)
-    model    = body.get("model") or _best_model()
+    _m = body.get("model", "")
+    model = _m if _m and _m != "auto" else _best_model()
 
     # Intercept: if user asks to create an agent, handle it directly
     user_msg = (messages[-1].get("content", "") if messages else "").lower()
