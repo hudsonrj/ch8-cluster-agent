@@ -2106,11 +2106,11 @@ async def _keepalive():
                                       ctx.get('disk_pct', 0), 0,
                                       len(ctx.get('containers', [])),
                                       len(ctx.get('agents', [])), _ver)
-                    # SLA checks for all known peers
+                    # SLA checks for all known peers (use local control server)
                     try:
                         r = await loop.run_in_executor(None, lambda: _hx2.get(
-                            f"{_CU}/nodes?network_id=net_default", timeout=5).json())
-                        peers = r if isinstance(r, list) else r.get('nodes', [])
+                            "http://127.0.0.1:8081/api/admin/nodes", timeout=5).json())
+                        peers = r if isinstance(r, list) else []
                         for peer in peers:
                             if peer.get('node_id') == my_id:
                                 continue
