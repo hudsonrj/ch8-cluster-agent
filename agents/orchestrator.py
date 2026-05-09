@@ -1294,10 +1294,23 @@ async def cluster_update_endpoint(request: Request):
     ref = body.get("ref", "main")
     target = body.get("nodes", None)
 
-    from connect.cluster_orchestrator import update_cluster
+    from connect.cluster_orchestrator import get_catalog, _push_update_to_node_async
     import asyncio as _aio2
-    result = await _aio2.get_event_loop().run_in_executor(None, lambda: update_cluster(ref=ref, target_nodes=target))
-    return result
+    catalog = get_catalog()
+    if target:
+        catalog = [n for n in catalog if n.get("node_id") in target or n.get("hostname") in target]
+    nodes = [n for n in catalog if n.get("status") == "online"]
+    repo = "https://github.com/hudsonrj/ch8-cluster-agent.git"
+    tasks = [_push_update_to_node_async(n, ref, repo) for n in nodes]
+    results = await _aio2.gather(*tasks, return_exceptions=True)
+    out = []
+    for i, r in enumerate(results):
+        if isinstance(r, Exception):
+            out.append({"hostname": nodes[i].get("hostname", "?"), "ok": False, "error": str(r)})
+        else:
+            out.append(r)
+    ok = [r for r in out if r.get("ok")]
+    return {"results": out, "updated": len(ok), "failed": len(out) - len(ok), "total": len(out)}
 
 
 @app.post("/update")
