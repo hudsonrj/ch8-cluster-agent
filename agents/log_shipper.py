@@ -125,7 +125,7 @@ def collect_syslog(checkpoint):
 
 
 def collect_docker_logs(checkpoint):
-    """Collect recent logs from Docker containers."""
+    """Collect recent logs from ALL Docker containers (errors + warnings)."""
     entries = []
     try:
         result = subprocess.run(
@@ -135,12 +135,10 @@ def collect_docker_logs(checkpoint):
     except Exception:
         return entries
 
-    last_ts = checkpoint.get('docker_ts', '60s')
-
-    for container in containers[:15]:  # limit to 15 containers
+    for container in containers[:20]:  # all containers (up to 20)
         try:
             result = subprocess.run(
-                ['docker', 'logs', '--since', last_ts, '--tail', '50', container],
+                ['docker', 'logs', '--since', '60s', '--tail', '30', container],
                 capture_output=True, text=True, timeout=10)
             output = (result.stdout + result.stderr).strip()
             for line in output.split('\n')[-MAX_LINES_PER_SOURCE:]:
@@ -148,7 +146,7 @@ def collect_docker_logs(checkpoint):
                 if not line:
                     continue
                 level = _parse_level(line)
-                if level in ('error', 'warning'):  # only ship errors/warnings from docker
+                if level in ('error', 'warning'):
                     entries.append({
                         'source': f'docker:{container}',
                         'level': level,
@@ -158,7 +156,6 @@ def collect_docker_logs(checkpoint):
         except Exception:
             pass
 
-    checkpoint['docker_ts'] = '60s'
     return entries
 
 
@@ -238,6 +235,104 @@ def collect_agent_logs(checkpoint):
     return entries
 
 
+def collect_database_logs(checkpoint):
+    """Collect logs from Oracle, PostgreSQL, and Redis."""
+    entries = []
+
+    # Oracle alert log (via docker exec)
+    try:
+        oracle_log = "/opt/oracle/diag/rdbms/free/FREE/trace/alert_FREE.log"
+        result = subprocess.run(
+            ['docker', 'exec', 'oracle-free', 'tail', '-n', '50', oracle_log],
+            capture_output=True, text=True, timeout=10)
+        if result.returncode == 0:
+            last_lines = checkpoint.get('oracle_last_count', 0)
+            lines = result.stdout.strip().split('\n')
+            new_lines = lines[last_lines:] if last_lines < len(lines) else lines[-20:]
+            checkpoint['oracle_last_count'] = len(lines)
+            for line in new_lines[-MAX_LINES_PER_SOURCE:]:
+                line = line.strip()
+                if not line:
+                    continue
+                level = 'error' if any(k in line.lower() for k in ['ora-', 'error', 'fatal', 'crash']) else \
+                         'warning' if any(k in line.lower() for k in ['warning', 'warn']) else 'info'
+                if level in ('error', 'warning'):
+                    entries.append({
+                        'source': 'oracle:alert_log',
+                        'level': level,
+                        'message': line[:2000],
+                        'logged_at': datetime.now(timezone.utc).isoformat(),
+                    })
+    except Exception:
+        pass
+
+    # PostgreSQL log
+    pg_logs = ['/var/log/postgresql/postgresql-16-main.log',
+               '/var/log/postgresql/postgresql-15-main.log']
+    for pg_log in pg_logs:
+        if not os.path.exists(pg_log):
+            continue
+        try:
+            last_pos = checkpoint.get(f'pg_{pg_log}', 0)
+            with open(pg_log, 'r', errors='ignore') as f:
+                f.seek(0, 2)
+                size = f.tell()
+                if last_pos > size:
+                    last_pos = 0
+                f.seek(last_pos)
+                lines = f.readlines()[-MAX_LINES_PER_SOURCE:]
+                new_pos = f.tell()
+            checkpoint[f'pg_{pg_log}'] = new_pos
+            for line in lines:
+                line = line.strip()
+                if not line:
+                    continue
+                level = _parse_level(line)
+                if level in ('error', 'warning'):
+                    entries.append({
+                        'source': 'postgresql:main',
+                        'level': level,
+                        'message': line[:2000],
+                        'logged_at': datetime.now(timezone.utc).isoformat(),
+                    })
+        except Exception:
+            pass
+
+    # Redis logs (via docker or systemd)
+    try:
+        result = subprocess.run(
+            ['docker', 'logs', '--since', '60s', '--tail', '30'],
+            capture_output=True, text=True, timeout=5)
+        # Try finding redis containers
+        ps_result = subprocess.run(
+            ['docker', 'ps', '--format', '{{.Names}}', '--filter', 'ancestor=redis'],
+            capture_output=True, text=True, timeout=5)
+        redis_containers = [c.strip() for c in ps_result.stdout.strip().split('\n') if c.strip()]
+        for container in redis_containers[:3]:
+            try:
+                result = subprocess.run(
+                    ['docker', 'logs', '--since', '60s', '--tail', '20', container],
+                    capture_output=True, text=True, timeout=5)
+                for line in (result.stdout + result.stderr).split('\n'):
+                    line = line.strip()
+                    if not line:
+                        continue
+                    level = _parse_level(line)
+                    if level in ('error', 'warning'):
+                        entries.append({
+                            'source': f'redis:{container}',
+                            'level': level,
+                            'message': line[:2000],
+                            'logged_at': datetime.now(timezone.utc).isoformat(),
+                        })
+            except Exception:
+                pass
+    except Exception:
+        pass
+
+    return entries
+
+
 def ship_logs(entries, node_id, hostname):
     """Send log entries to PostgreSQL."""
     if not entries:
@@ -311,6 +406,7 @@ def main():
             entries.extend(collect_syslog(checkpoint))
             entries.extend(collect_docker_logs(checkpoint))
             entries.extend(collect_nginx_errors(checkpoint))
+            entries.extend(collect_database_logs(checkpoint))
             entries.extend(collect_agent_logs(checkpoint))
 
             # Ship to PostgreSQL
