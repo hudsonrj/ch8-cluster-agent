@@ -317,7 +317,7 @@ def _exec_shell(args: dict) -> dict:
     timeout = args.get("timeout", 30)
     try:
         r = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=timeout)
-        return {"stdout": r.stdout[:4000], "stderr": r.stderr[:2000], "exit_code": r.returncode}
+        return {"stdout": r.stdout[:16000], "stderr": r.stderr[:4000], "exit_code": r.returncode}
     except subprocess.TimeoutExpired:
         return {"error": f"Command timed out after {timeout}s"}
 
