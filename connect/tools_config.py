@@ -21,6 +21,7 @@ Custom tools can be added via ~/.config/ch8/tools.json
 """
 
 import json
+import logging
 import os
 import subprocess
 from pathlib import Path
@@ -315,6 +316,14 @@ def execute_tool(name: str, args: dict) -> dict:
 def _exec_shell(args: dict) -> dict:
     cmd = args["command"]
     timeout = args.get("timeout", 30)
+
+    # Security: validate command against policy
+    from .security_policy import check_command_policy
+    violation = check_command_policy(cmd)
+    if violation:
+        logging.getLogger("ch8.security").warning(f"BLOCKED shell_exec: {cmd[:80]} — {violation}")
+        return {"error": violation, "blocked": True}
+
     try:
         r = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=timeout)
         return {"stdout": r.stdout[:16000], "stderr": r.stderr[:4000], "exit_code": r.returncode}
@@ -325,12 +334,28 @@ def _exec_shell(args: dict) -> dict:
 def _exec_docker(args: dict) -> dict:
     container = args["container"]
     command = args["command"]
+
+    # Security: validate docker exec parameters
+    from .security_policy import check_docker_policy
+    violation = check_docker_policy(container, command)
+    if violation:
+        logging.getLogger("ch8.security").warning(f"BLOCKED docker_exec: {container} {command[:60]} — {violation}")
+        return {"error": violation, "blocked": True}
+
     return _exec_shell({"command": f"docker exec {container} {command}", "timeout": 30})
 
 
 def _exec_file_read(args: dict) -> dict:
     path = args["path"]
     lines = args.get("lines", 100)
+
+    # Security: validate path
+    from .security_policy import check_path_policy
+    violation = check_path_policy(path, mode="read")
+    if violation:
+        logging.getLogger("ch8.security").warning(f"BLOCKED file_read: {path} — {violation}")
+        return {"error": violation, "blocked": True}
+
     try:
         content = Path(path).read_text()
         content_lines = content.splitlines()
@@ -348,6 +373,14 @@ def _exec_file_write(args: dict) -> dict:
         return {"error": "Missing 'path' argument"}
     if not content:
         return {"error": "Missing 'content' argument"}
+
+    # Security: validate path
+    from .security_policy import check_path_policy
+    violation = check_path_policy(path, mode="write")
+    if violation:
+        logging.getLogger("ch8.security").warning(f"BLOCKED file_write: {path} — {violation}")
+        return {"error": violation, "blocked": True}
+
     append = args.get("append", False)
     try:
         p = Path(path)
