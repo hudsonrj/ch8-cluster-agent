@@ -1422,9 +1422,11 @@ if old_orch_pid:
 
 time.sleep(1)
 
-# Start fresh with updated code
-log.write(f"[UPDATE] Starting ch8 up with new code\\n")
+# Full restart: ch8 down (kills daemon + all agents) then ch8 up (fresh start)
+log.write(f"[UPDATE] Running ch8 down + ch8 up\\n")
 log.flush()
+subprocess.run([python, ch8, "down"], cwd=cwd, stdout=log, stderr=log)
+time.sleep(2)
 subprocess.run([python, ch8, "up"], cwd=cwd, stdout=log, stderr=log)
 
 # Verify health
