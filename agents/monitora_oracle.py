@@ -122,7 +122,10 @@ def main():
             logger.info(f"Metrics: {json.dumps(metrics)}")
             
             if time.time() - last_state_update >= 30:
-                update_agent_state("monitora_oracle", status, metrics)
+                task_str = f"{status} | {metrics.get('active_connections',0)} sessions | SYSTEM {metrics.get('tablespace_usage','').split(chr(10))[0] if metrics.get('tablespace_usage') else 'N/A'}"
+                update_agent_state("monitora_oracle", status, task_str,
+                                   model="oracle-monitor", platform="custom",
+                                   autonomous=True, details=metrics)
                 last_state_update = time.time()
             
             time.sleep(60)

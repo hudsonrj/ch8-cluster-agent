@@ -425,7 +425,18 @@ def _collect_metrics() -> dict:
         _last_slow_check = now
     metrics["models"]   = _model_cache
     metrics["services"] = _service_cache
-    metrics["agents"]   = _read_agents_from_state()
+    # Read agents and sanitize (ensure all fields are correct type to prevent 422)
+    raw_agents = _read_agents_from_state()
+    metrics["agents"] = []
+    for a in raw_agents:
+        # Ensure task is always a string (some agents pass dict by mistake)
+        if not isinstance(a.get("task", ""), str):
+            a["task"] = str(a["task"])[:200]
+        # Ensure all required string fields
+        for k in ("name", "status", "task", "model", "platform"):
+            if not isinstance(a.get(k, ""), str):
+                a[k] = str(a.get(k, ""))
+        metrics["agents"].append(a)
     metrics["tools"]    = _read_tools_config()
     metrics["channels"] = _read_channels_config()
     # Include AI model so peers know what LLM this node is running
