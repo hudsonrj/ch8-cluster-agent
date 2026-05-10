@@ -65,7 +65,17 @@ def get_catalog() -> List[Dict]:
     """
     Retorna todos os nós online do cluster com suas capacidades completas.
     Inclui: modelos, CPU, RAM, serviços, ferramentas, provedor AI.
+    Usa Redis cache (30s) para evitar consultas repetidas ao control server.
     """
+    # Try Redis cache first
+    try:
+        from .redis_bus import get_cached_catalog, cache_catalog
+        cached = get_cached_catalog()
+        if cached:
+            return cached
+    except Exception:
+        pass
+
     token = get_access_token()
     nid   = get_network_id()
     if not token or not nid:
@@ -79,8 +89,13 @@ def get_catalog() -> List[Dict]:
         )
         if r.status_code == 200:
             nodes = r.json().get("nodes", [])
-            # Filtra nós online com AI configurado
-            return [n for n in nodes if n.get("status") == "online"]
+            online = [n for n in nodes if n.get("status") == "online"]
+            # Cache in Redis
+            try:
+                cache_catalog(online)
+            except Exception:
+                pass
+            return online
     except Exception as e:
         log.warning(f"Failed to fetch catalog: {e}")
     return []
