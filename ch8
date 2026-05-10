@@ -375,19 +375,23 @@ def cmd_up(token=None):
     # Start Mesh Relay Agent (LAN bridge for unreachable nodes)
     _start_agent("mesh_relay", "mesh_relay.py")
 
-    # Start Voice + RAG agents
-    _start_agent("tts_agent", "tts_agent.py")
-    _start_agent("stt_agent", "stt_agent.py")
-    _start_agent("rag_agent", "rag_agent.py")
+    # Check available RAM to decide which agents to start
+    import psutil as _ps
+    _ram_gb = _ps.virtual_memory().total / 1e9
+    _is_low_ram = _ram_gb < 4  # RPi, phones, small VPS
 
-    # Start Log Shipper (sends logs to PostgreSQL)
-    _start_agent("log_shipper", "log_shipper.py")
-
-    # Start DB Failover Monitor (promotes replica if master dies)
-    _start_agent("db_failover", "db_failover.py")
-
-    # Start Log Analyzer (generates backlog from recurring errors)
-    _start_agent("log_analyzer", "log_analyzer.py")
+    if not _is_low_ram:
+        # Heavy agents — only on nodes with 4GB+ RAM
+        _start_agent("tts_agent", "tts_agent.py")
+        _start_agent("stt_agent", "stt_agent.py")
+        _start_agent("rag_agent", "rag_agent.py")
+        _start_agent("log_shipper", "log_shipper.py")
+        _start_agent("db_failover", "db_failover.py")
+        _start_agent("log_analyzer", "log_analyzer.py")
+    else:
+        print(f"{Colors.YELLOW}⚠ Low RAM ({_ram_gb:.1f}GB) — skipping heavy agents (TTS/STT/RAG/LogShipper){Colors.NC}")
+        # Only start lightweight log shipper on low-RAM nodes
+        _start_agent("log_shipper", "log_shipper.py")
 
     # Wait for daemon to write its PID (up to 8s)
     import time
