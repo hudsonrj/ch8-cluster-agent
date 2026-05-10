@@ -427,6 +427,7 @@ def _collect_metrics() -> dict:
     metrics["services"] = _service_cache
     # Read agents and sanitize (ensure all fields are correct type to prevent 422)
     raw_agents = _read_agents_from_state()
+    log.info(f"Heartbeat: sending {len(raw_agents)} agents")
     metrics["agents"] = []
     for a in raw_agents:
         # Ensure task is always a string (some agents pass dict by mistake)
