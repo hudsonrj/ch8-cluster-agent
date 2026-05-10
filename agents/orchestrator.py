@@ -900,7 +900,7 @@ async def chat(request: Request):
         # Extract name and description from the message
         from connect.ai_config import get_ai_client
         ai = get_ai_client()
-        extract = ai.chat([{"role": "user", "content": f'Extract from this request the agent name and description. Return ONLY JSON: {{"name":"agent-name","description":"what it does"}}\n\nRequest: {messages[-1]["content"]}'}], max_tokens=200, temperature=0.1)
+        extract = ai.chat([{"role": "user", "content": f'Extraia o nome e descrição do agente. Retorne SOMENTE JSON: {{"name":"nome-do-agente","description":"o que ele faz"}}\n\nSolicitação: {messages[-1]["content"]}'}], max_tokens=200, temperature=0.1)
         try:
             import json as _j
             if "```" in extract: extract = extract.split("```")[1].split("```")[0]
@@ -914,17 +914,19 @@ async def chat(request: Request):
             desc = info.get("description", messages[-1]["content"])
 
             # Generate and create
-            prompt = f"""Create a Python agent script for CH8 cluster.
-Agent name: {safe_name}
-Description: {desc}
-Requirements:
-- main() loop with signal handling (SIGTERM)
-- PID to ~/.config/ch8/{safe_name}.pid
-- Register in ~/.config/ch8/state.json every 30s
-- Logging to ~/.config/ch8/{safe_name}.log
+            prompt = f"""Crie um script Python de agente para o cluster CH8.
+Nome do agente: {safe_name}
+Descrição: {desc}
+Requisitos:
+- Loop main() com signal handling (SIGTERM para parar graciosamente)
+- PID salvo em ~/.config/ch8/{safe_name}.pid
+- Registrar estado via: from connect.state import update_agent_state
+  Chamar update_agent_state("{safe_name}", status, task_description) a cada 30s
+- Logging em ~/.config/ch8/{safe_name}.log
 - sys.path.insert(0, str(Path(__file__).parent.parent))
-- Under 120 lines, functional
-Return ONLY Python code."""
+- Máximo 120 linhas, funcional, sem placeholders
+- Todos os textos/logs em português do Brasil
+Retorne SOMENTE código Python, sem markdown, sem explicação."""
 
             code = ai.chat([{"role": "user", "content": prompt}], max_tokens=2000, temperature=0.2)
             if "```python" in code: code = code.split("```python")[1].split("```")[0]
@@ -1613,24 +1615,25 @@ async def create_agent_endpoint(request: Request):
         from connect.ai_config import get_ai_client
         ai = get_ai_client()
 
-        prompt = f"""Create a Python agent script for CH8 cluster.
+        prompt = f"""Crie um script Python de agente para o cluster CH8.
 
-Agent name: {safe_name}
-Description: {description}
+Nome: {safe_name}
+Descrição: {description}
 
-Requirements:
-- Must have a main() function that loops with signal handling (SIGTERM to stop)
-- Must write PID to ~/.config/ch8/<name>.pid on start
-- Must register in ~/.config/ch8/state.json agents array every 30s with:
-  {{"name": "{safe_name}", "status": "running"|"idle"|"error", "task": "current task",
-   "model": "what it uses", "platform": "custom", "autonomous": True,
-   "updated_at": unix_timestamp, "tools": [], "details": {{}}}}
-- Use logging to ~/.config/ch8/<name>.log
-- Import sys; sys.path.insert(0, str(Path(__file__).parent.parent))
-- Keep it under 150 lines, functional, no placeholders
-- Include proper error handling
+Requisitos obrigatórios:
+- Função main() com loop e signal handling (SIGTERM para parar)
+- Salvar PID em ~/.config/ch8/{safe_name}.pid ao iniciar
+- Registrar estado a cada 30s usando:
+  from connect.state import update_agent_state
+  update_agent_state("{safe_name}", "running", "descrição da tarefa atual",
+                     model="custom", platform="custom", autonomous=True)
+- Logging em ~/.config/ch8/{safe_name}.log
+- Import: sys.path.insert(0, str(Path(__file__).parent.parent))
+- Máximo 150 linhas, funcional, sem placeholders
+- Tratamento de erros adequado
+- Textos e logs em português do Brasil
 
-Return ONLY Python code, no markdown, no explanation."""
+Retorne SOMENTE código Python, sem markdown, sem explicação."""
 
         code = ai.chat([{"role": "user", "content": prompt}], max_tokens=2000, temperature=0.2)
 
