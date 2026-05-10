@@ -459,10 +459,25 @@ def _read_channels_config() -> list:
         return []
 
 
+_last_valid_agents = []  # cache last valid read to handle transient empty states
+
 def _read_agents_from_state() -> list:
     """Read agents registered by external monitor processes via state.json."""
+    global _last_valid_agents
     try:
-        agents = json.loads(STATE_FILE.read_text()).get("agents", [])
+        import fcntl
+        lock_file = STATE_FILE.parent / "state.lock"
+        with open(lock_file, "w") as lf:
+            fcntl.flock(lf, fcntl.LOCK_SH)  # shared lock (read)
+            try:
+                raw = STATE_FILE.read_text() if STATE_FILE.exists() else "{}"
+            finally:
+                fcntl.flock(lf, fcntl.LOCK_UN)
+        agents = json.loads(raw).get("agents", [])
+        if agents:
+            _last_valid_agents = agents  # cache valid state
+        elif _last_valid_agents:
+            agents = _last_valid_agents  # use cache if current read is empty
         now = time.time()
         result = []
         for a in agents:
