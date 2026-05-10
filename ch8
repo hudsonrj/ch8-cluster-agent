@@ -386,6 +386,9 @@ def cmd_up(token=None):
     # Start DB Failover Monitor (promotes replica if master dies)
     _start_agent("db_failover", "db_failover.py")
 
+    # Start Log Analyzer (generates backlog from recurring errors)
+    _start_agent("log_analyzer", "log_analyzer.py")
+
     # Wait for daemon to write its PID (up to 8s)
     import time
     from connect.daemon import is_daemon_running, read_state
