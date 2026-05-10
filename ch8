@@ -68,7 +68,7 @@ def cmd_login():
 
     # Check deps first
     missing = []
-    for mod in ['httpx', 'psutil', 'fastapi', 'uvicorn']:
+    for mod in ['httpx', 'psutil', 'fastapi', 'uvicorn', 'psycopg2']:
         try:
             __import__(mod)
         except ImportError:
@@ -205,7 +205,7 @@ def cmd_up(token=None):
 
     # Check core dependencies
     missing = []
-    for mod in ['httpx', 'psutil', 'fastapi', 'uvicorn']:
+    for mod in ['httpx', 'psutil', 'fastapi', 'uvicorn', 'psycopg2']:
         try:
             __import__(mod)
         except ImportError:
