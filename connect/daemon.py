@@ -465,19 +465,18 @@ def _read_agents_from_state() -> list:
     """Read agents registered by external monitor processes via state.json."""
     global _last_valid_agents
     try:
-        import fcntl
-        lock_file = STATE_FILE.parent / "state.lock"
-        with open(lock_file, "w") as lf:
-            fcntl.flock(lf, fcntl.LOCK_SH)  # shared lock (read)
-            try:
-                raw = STATE_FILE.read_text() if STATE_FILE.exists() else "{}"
-            finally:
-                fcntl.flock(lf, fcntl.LOCK_UN)
-        agents = json.loads(raw).get("agents", [])
+        # Read state.json — use non-blocking approach to avoid deadlock
+        raw = "{}"
+        try:
+            if STATE_FILE.exists():
+                raw = STATE_FILE.read_text()
+        except Exception:
+            pass
+        agents = json.loads(raw).get("agents", []) if raw.strip() else []
         if agents:
-            _last_valid_agents = agents  # cache valid state
+            _last_valid_agents = agents
         elif _last_valid_agents:
-            agents = _last_valid_agents  # use cache if current read is empty
+            agents = _last_valid_agents
         now = time.time()
         result = []
         for a in agents:
