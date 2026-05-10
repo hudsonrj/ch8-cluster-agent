@@ -55,26 +55,69 @@ app = FastAPI(title="CH8 Orchestrator", docs_url=None)
 # ── Security Middleware ────────────────────────────────────────────────────────
 
 @app.middleware("http")
-async def auth_middleware(request, call_next):
-    """Protect all endpoints except /health and /version with Bearer token auth."""
+async def security_middleware(request, call_next):
+    """Auth + Rate Limiting + Audit for all endpoints."""
+    import time as _mw_time
+    from fastapi.responses import JSONResponse
     from connect.security import is_public_endpoint, require_node_auth
+
     path = request.url.path.rstrip("/")
+    source_ip = request.client.host if request.client else "unknown"
+    t0 = _mw_time.time()
 
     # Public endpoints — no auth needed
     if is_public_endpoint(path):
         return await call_next(request)
 
-    # Validate Authorization header
+    # 1. Rate Limiting
+    from connect.rate_limit import check_rate_limit
+    allowed, rate_error = check_rate_limit(path, source_ip)
+    if not allowed:
+        # Audit blocked request
+        try:
+            from connect.audit import log_audit
+            from connect.auth import get_node_id
+            log_audit(node_id=get_node_id(), source_ip=source_ip,
+                      endpoint=path, result_status="rate_limited",
+                      blocked_reason=rate_error)
+        except Exception:
+            pass
+        return JSONResponse(status_code=429, content={"detail": rate_error})
+
+    # 2. Authentication
     auth_header = request.headers.get("Authorization", "")
     try:
         require_node_auth(auth_header if auth_header else None)
     except Exception as exc:
-        from fastapi.responses import JSONResponse
         status = getattr(exc, "status_code", 401)
         detail = getattr(exc, "detail", "Unauthorized")
+        # Audit failed auth
+        try:
+            from connect.audit import log_audit
+            from connect.auth import get_node_id
+            log_audit(node_id=get_node_id(), source_ip=source_ip,
+                      endpoint=path, result_status="auth_failed",
+                      blocked_reason=detail)
+        except Exception:
+            pass
         return JSONResponse(status_code=status, content={"detail": detail})
 
-    return await call_next(request)
+    # 3. Execute request
+    response = await call_next(request)
+
+    # 4. Audit successful requests to sensitive endpoints
+    if path in ("/execute", "/cluster/task", "/update", "/create-agent", "/cluster/update"):
+        try:
+            from connect.audit import log_audit
+            from connect.auth import get_node_id
+            duration = int((_mw_time.time() - t0) * 1000)
+            log_audit(node_id=get_node_id(), source_ip=source_ip,
+                      endpoint=path, result_status="ok",
+                      duration_ms=duration)
+        except Exception:
+            pass
+
+    return response
 
 
 # ── Load env vars from ~/.config/ch8/env ─────────────────────────────────────

@@ -307,8 +307,24 @@ def execute_tool(name: str, args: dict) -> dict:
     handler = handlers.get(name)
     if not handler:
         return {"error": f"Unknown tool: {name}"}
+
+    import time as _t
+    t0 = _t.time()
     try:
-        return handler(args)
+        result = handler(args)
+        # Audit log tool execution
+        try:
+            from .audit import log_audit
+            from .auth import get_node_id
+            status = "blocked" if result.get("blocked") else "ok"
+            blocked = result.get("error", "") if result.get("blocked") else ""
+            log_audit(node_id=get_node_id(), endpoint="/execute",
+                      tool_name=name, tool_args=args,
+                      result_status=status, blocked_reason=blocked,
+                      duration_ms=int((_t.time() - t0) * 1000))
+        except Exception:
+            pass
+        return result
     except Exception as e:
         return {"error": str(e)}
 
