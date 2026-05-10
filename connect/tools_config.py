@@ -449,12 +449,19 @@ def _exec_node_chat(args: dict) -> dict:
     payload = {"message": message, "stream": False}
 
     # --- Attempt 1: Direct connection ---
+    # Include auth token for peer-to-peer communication
+    try:
+        from .auth import get_access_token
+        _auth_headers = {"Authorization": f"Bearer {get_access_token()}"}
+    except Exception:
+        _auth_headers = {}
+
     direct_error = None
     if address:
         orch_port = int(os.environ.get("CH8_AGENT_PORT", "7879"))
         url = f"http://{address}:{orch_port}/chat"
         try:
-            r = httpx.post(url, json=payload, timeout=120)
+            r = httpx.post(url, json=payload, headers=_auth_headers, timeout=120)
             if r.status_code == 200:
                 data = r.json()
                 logger.info("node_chat to '%s' succeeded via direct connection", node)

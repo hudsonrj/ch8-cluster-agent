@@ -51,6 +51,32 @@ STATE_FILE    = CONFIG_DIR / "state.json"
 
 app = FastAPI(title="CH8 Orchestrator", docs_url=None)
 
+
+# ── Security Middleware ────────────────────────────────────────────────────────
+
+@app.middleware("http")
+async def auth_middleware(request, call_next):
+    """Protect all endpoints except /health and /version with Bearer token auth."""
+    from connect.security import is_public_endpoint, require_node_auth
+    path = request.url.path.rstrip("/")
+
+    # Public endpoints — no auth needed
+    if is_public_endpoint(path):
+        return await call_next(request)
+
+    # Validate Authorization header
+    auth_header = request.headers.get("Authorization", "")
+    try:
+        require_node_auth(auth_header if auth_header else None)
+    except Exception as exc:
+        from fastapi.responses import JSONResponse
+        status = getattr(exc, "status_code", 401)
+        detail = getattr(exc, "detail", "Unauthorized")
+        return JSONResponse(status_code=status, content={"detail": detail})
+
+    return await call_next(request)
+
+
 # ── Load env vars from ~/.config/ch8/env ─────────────────────────────────────
 
 def _load_env_file():
