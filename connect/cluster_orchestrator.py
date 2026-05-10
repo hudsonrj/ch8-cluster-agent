@@ -126,10 +126,15 @@ def catalog_summary(nodes: List[Dict]) -> str:
     return "\n".join(lines)
 
 
-def rank_nodes(nodes: List[Dict]) -> List[Dict]:
+def rank_nodes(nodes: List[Dict], exclude_overloaded: bool = False) -> List[Dict]:
     """
-    Ordena nós por poder de processamento (mais forte primeiro).
-    Critérios: modelo forte > RAM > CPU cores.
+    Ordena nós por capacidade + disponibilidade (mais capaz e livre primeiro).
+
+    Intelligence:
+    - Penalizes heavily loaded nodes (CPU > 80% or MEM > 85%)
+    - Excludes completely overloaded nodes when exclude_overloaded=True
+    - Considers: AI model strength, RAM, CPU cores, current load, manual priority
+    - Low-resource nodes (< 2GB RAM, like RPi) get reduced score for heavy tasks
     """
     MODEL_RANK = {
         "claude-opus": 100, "claude-sonnet": 90, "claude-haiku": 70,
@@ -141,8 +146,13 @@ def rank_nodes(nodes: List[Dict]) -> List[Dict]:
         "deepseek": 60, "phi4": 55, "phi3": 45,
     }
 
-    # Load manual priorities from ~/.config/ch8/ha_priority.json
-    # Format: {"node_id": bonus_score}  e.g. {"node_23b8a646e03f3e74": 99999}
+    # Overload thresholds
+    CPU_OVERLOAD = 80
+    MEM_OVERLOAD = 85
+    DISK_CRITICAL = 95
+    LOW_MEM_GB = 2.0  # RPi, smartphones
+
+    # Load manual priorities
     import json as _json
     _prio_file = CONFIG_DIR / "ha_priority.json"
     _priorities: dict = {}
@@ -151,23 +161,65 @@ def rank_nodes(nodes: List[Dict]) -> List[Dict]:
     except Exception:
         pass
 
+    def is_overloaded(n):
+        cpu = n.get("cpu_pct", 0)
+        mem = n.get("mem_pct", 0)
+        disk = n.get("disk_pct", 0)
+        return cpu > CPU_OVERLOAD or mem > MEM_OVERLOAD or disk > DISK_CRITICAL
+
     def score(n):
         model = n.get("ai_model", "").lower()
         rank  = max((v for k, v in MODEL_RANK.items() if k in model), default=30)
-        # local ollama models add bonus if capable
         if n.get("models"):
             best_local = max(
                 (v for m in n["models"] for k, v in MODEL_RANK.items() if k in m.lower()),
                 default=0
             )
             rank = max(rank, best_local)
-        mem   = n.get("mem_total_gb", 0)
-        cores = n.get("cpu_cores", 1)
-        load  = n.get("cpu_pct", 0) + n.get("mem_pct", 0)
-        prio  = _priorities.get(n.get("node_id", ""), 0)
-        return rank * 100 + mem * 10 + cores * 2 - load + prio
 
-    return sorted(nodes, key=score, reverse=True)
+        mem_gb = n.get("mem_total_gb", 0)
+        cores  = n.get("cpu_cores", 1)
+        cpu    = n.get("cpu_pct", 0)
+        mem    = n.get("mem_pct", 0)
+        prio   = _priorities.get(n.get("node_id", ""), 0)
+
+        # Base score: model strength + hardware
+        base = rank * 100 + mem_gb * 10 + cores * 2
+
+        # Load penalty (exponential — high load is very bad)
+        load_penalty = (cpu + mem) * 1.5
+        if cpu > CPU_OVERLOAD:
+            load_penalty += (cpu - CPU_OVERLOAD) * 10  # Extra penalty above threshold
+        if mem > MEM_OVERLOAD:
+            load_penalty += (mem - MEM_OVERLOAD) * 10
+
+        # Low-resource penalty (RPi, phones — can't handle heavy AI tasks)
+        resource_penalty = 0
+        if mem_gb < LOW_MEM_GB:
+            resource_penalty = 200  # Significant downrank
+        elif mem_gb < 4:
+            resource_penalty = 50
+
+        return base - load_penalty - resource_penalty + prio
+
+    # Filter out completely overloaded nodes if requested
+    available = nodes
+    if exclude_overloaded:
+        available = [n for n in nodes if not is_overloaded(n)]
+        if not available:
+            # If ALL nodes are overloaded, use them anyway (best effort)
+            available = nodes
+            log.warning("All nodes overloaded — using least-loaded")
+
+    return sorted(available, key=score, reverse=True)
+
+
+def get_healthy_nodes(catalog: List[Dict]) -> List[Dict]:
+    """Return only nodes that are online AND not overloaded."""
+    return [n for n in catalog
+            if n.get("status") == "online"
+            and n.get("cpu_pct", 0) < 85
+            and n.get("mem_pct", 0) < 90]
 
 
 # ── Planejamento ─────────────────────────────────────────────────────────────
@@ -773,12 +825,21 @@ async def run_cluster_task_async(
     catalog = get_catalog()
     if target_nodes:
         catalog = [n for n in catalog if n.get("node_id") in target_nodes or n.get("hostname") in target_nodes]
+
+    # Smart filtering: exclude overloaded nodes from non-broadcast tasks
+    is_broadcast = (strategy == "broadcast")
+    if not is_broadcast:
+        healthy = get_healthy_nodes(catalog)
+        overloaded = [n for n in catalog if n not in healthy]
+        if overloaded:
+            _progress("catalog", f"Excluding {len(overloaded)} overloaded node(s): {', '.join(n.get('hostname','?')[:12] for n in overloaded)}")
+            catalog = healthy if healthy else catalog  # fallback to all if none healthy
+
     _progress("catalog", f"{len(catalog)} nó(s) disponível(is)")
 
     # Plan
     _progress("plan", "Planejando distribuição...")
     ai = get_ai_client()
-    is_broadcast = (strategy == "broadcast")
 
     if is_broadcast:
         plan = {
