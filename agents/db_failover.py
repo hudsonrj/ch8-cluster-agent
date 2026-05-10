@@ -33,12 +33,22 @@ LOG_FILE = CONFIG_DIR / "db_failover.log"
 STATE_FILE = CONFIG_DIR / "db_failover_state.json"
 CONFIG_DIR.mkdir(parents=True, exist_ok=True)
 
-# Database endpoints
+# Database endpoints (credentials from env)
 MASTER_HOST = "127.0.0.1"
 MASTER_PORT = 5432
-MASTER_CONN = f"postgresql://ch8app:ch8cluster2024@{MASTER_HOST}:{MASTER_PORT}/ch8_cluster"
+_db_pass = os.environ.get("CH8_DB_PASSWORD", "")
+if not _db_pass:
+    _ef = Path.home() / ".config" / "ch8" / "env"
+    if _ef.exists():
+        for _l in _ef.read_text().splitlines():
+            if _l.startswith("CH8_DB_PASSWORD="):
+                _db_pass = _l.split("=", 1)[1].strip()
+                break
+    if not _db_pass:
+        _db_pass = "ch8cluster2024"  # last resort fallback
+MASTER_CONN = f"postgresql://ch8app:{_db_pass}@{MASTER_HOST}:{MASTER_PORT}/ch8_cluster"
 
-REPLICA_HOST = "100.65.70.126"  # vmi3201672 Tailscale IP
+REPLICA_HOST = os.environ.get("CH8_REPLICA_HOST", "100.65.70.126")
 REPLICA_PORT = 5432
 REPLICA_CONN = f"postgresql://allied:allied_secure_2026@{REPLICA_HOST}:{REPLICA_PORT}/ch8_cluster"
 

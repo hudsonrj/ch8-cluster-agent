@@ -26,11 +26,21 @@ LOG_FILE = CONFIG_DIR / "log_shipper.log"
 CHECKPOINT_FILE = CONFIG_DIR / "log_shipper_checkpoint.json"
 CONFIG_DIR.mkdir(parents=True, exist_ok=True)
 
-# Database connection (tries master first, then local)
-DB_URLS = [
-    "postgresql://ch8app:ch8cluster2024@127.0.0.1:5432/ch8_cluster",
-    "postgresql://ch8app:ch8cluster2024@100.120.31.61:5432/ch8_cluster",
-]
+# Database connection (from env or fallback to master Tailscale IP)
+_db_url = os.environ.get("CH8_DB_URL", "")
+if not _db_url:
+    _env_file = Path.home() / ".config" / "ch8" / "env"
+    if _env_file.exists():
+        for _l in _env_file.read_text().splitlines():
+            if _l.startswith("CH8_DB_URL="):
+                _db_url = _l.split("=", 1)[1].strip().strip('"')
+                break
+DB_URLS = [u for u in [
+    _db_url,
+    _db_url.replace("127.0.0.1", "100.120.31.61") if _db_url else "",
+] if u]
+if not DB_URLS:
+    DB_URLS = ["postgresql://ch8app:ch8cluster2024@100.120.31.61:5432/ch8_cluster"]
 
 SHIP_INTERVAL = 60  # seconds
 MAX_LINES_PER_SOURCE = 200  # prevent flooding

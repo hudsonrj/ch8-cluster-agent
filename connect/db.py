@@ -4,19 +4,31 @@ CH8 Cluster — PostgreSQL persistence layer.
 Stores: chat messages, agent states, node metrics, cluster events,
 broadcast results, SLA checks.
 
-Connection: postgresql://ch8app:ch8cluster2024@127.0.0.1:5432/ch8_cluster
-Replica: configured via PostgreSQL streaming replication to vmi3201672.
+Connection: via CH8_DB_URL environment variable (loaded from ~/.config/ch8/env)
+Replica: configured via PostgreSQL streaming replication.
 """
 
 import os
 import logging
 import time
+from pathlib import Path
 from typing import Optional, Dict, List
 from contextlib import contextmanager
 
 log = logging.getLogger("ch8.db")
 
-DB_URL = os.environ.get("CH8_DB_URL", "postgresql://ch8app:ch8cluster2024@127.0.0.1:5432/ch8_cluster")
+# Load DB URL from environment (set in ~/.config/ch8/env, NOT hardcoded)
+DB_URL = os.environ.get("CH8_DB_URL", "")
+if not DB_URL:
+    # Fallback: try loading from env file directly
+    _env_file = Path.home() / ".config" / "ch8" / "env"
+    if _env_file.exists():
+        for _line in _env_file.read_text().splitlines():
+            if _line.startswith("CH8_DB_URL="):
+                DB_URL = _line.split("=", 1)[1].strip().strip('"').strip("'")
+                break
+    if not DB_URL:
+        log.warning("CH8_DB_URL not set — persistence disabled. Add to ~/.config/ch8/env")
 
 _pool = None
 
