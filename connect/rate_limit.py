@@ -13,7 +13,7 @@ log = logging.getLogger("ch8.rate_limit")
 
 # Limits: (max_requests, window_seconds)
 RATE_LIMITS = {
-    "/execute":       (10, 60),     # 10 per minute
+    "/execute":       (60, 60),     # 60 per minute (control server makes many internal calls)
     "/chat":          (30, 60),     # 30 per minute
     "/cluster/task":  (5, 60),      # 5 per minute
     "/cluster/update": (2, 300),    # 2 per 5 minutes
@@ -21,6 +21,9 @@ RATE_LIMITS = {
     "/create-agent":  (5, 300),     # 5 per 5 minutes
     "/relay/forward": (20, 60),     # 20 per minute
 }
+
+# Localhost (127.0.0.1) gets higher limits — internal service calls
+LOCALHOST_MULTIPLIER = 10  # 10x limits for internal calls
 
 
 def check_rate_limit(path: str, source_ip: str = "unknown") -> Tuple[bool, Optional[str]]:
@@ -39,6 +42,10 @@ def check_rate_limit(path: str, source_ip: str = "unknown") -> Tuple[bool, Optio
         return True, None  # No limit configured for this path
 
     max_requests, window_seconds = limit_config
+
+    # Localhost/internal calls get much higher limits
+    if source_ip in ("127.0.0.1", "::1", "localhost"):
+        max_requests *= LOCALHOST_MULTIPLIER
 
     try:
         from .redis_bus import _get_redis
