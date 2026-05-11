@@ -92,11 +92,6 @@ fi
 
 # ── Install Python dependencies ───────────────────────────────────────────
 echo -e "\n${BLUE}Installing dependencies...${NC}"
-PIP_ARGS="--quiet"
-if [ "$OS" = "linux" ]; then
-    PIP_ARGS="$PIP_ARGS --break-system-packages"
-fi
-
 # Ensure pip is available
 if ! python3 -m pip --version >/dev/null 2>&1; then
     echo -e "${YELLOW}pip not found, installing...${NC}"
@@ -109,13 +104,20 @@ if ! python3 -m pip --version >/dev/null 2>&1; then
     fi
 fi
 
-python3 -m pip install $PIP_ARGS --upgrade pip 2>/dev/null || true
+python3 -m pip install --quiet --upgrade pip 2>/dev/null || true
 
-DEPS="httpx psutil fastapi uvicorn pydantic python-dotenv pyyaml"
-if python3 -m pip install $PIP_ARGS $DEPS; then
+DEPS="httpx psutil fastapi uvicorn pydantic python-dotenv pyyaml psycopg2-binary"
+# Try multiple pip strategies (handles PEP 668, old pip, no sudo, etc)
+if python3 -m pip install --quiet --break-system-packages $DEPS 2>/dev/null; then
     echo -e "${GREEN}✓ Dependencies installed${NC}"
-elif python3 -m pip install --user $PIP_ARGS $DEPS; then
+elif python3 -m pip install --quiet --user $DEPS 2>/dev/null; then
     echo -e "${GREEN}✓ Dependencies installed (user)${NC}"
+elif python3 -m pip install --quiet $DEPS 2>/dev/null; then
+    echo -e "${GREEN}✓ Dependencies installed${NC}"
+elif sudo python3 -m pip install --quiet --break-system-packages $DEPS 2>/dev/null; then
+    echo -e "${GREEN}✓ Dependencies installed (sudo)${NC}"
+elif pip3 install --quiet --user $DEPS 2>/dev/null; then
+    echo -e "${GREEN}✓ Dependencies installed (pip3 user)${NC}"
 else
     echo -e "${RED}✗ Failed to install dependencies. Try manually:${NC}"
     echo -e "  pip3 install $DEPS"
