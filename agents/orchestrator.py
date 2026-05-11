@@ -1449,88 +1449,30 @@ async def node_update_endpoint(request: Request):
             #    - Start new daemon from updated code
             #    - Wait for new one to be healthy
             #    - Then kill the old one
-            restart_script = f'''
-import time, subprocess, sys, os, signal
+            # 4. Use the restart.sh script FROM DISK (already updated by git pull)
+            #    This solves the bootstrap problem: always uses latest code
+            restart_file = Path(repo_dir) / "scripts" / "restart.sh"
+            if not restart_file.exists():
+                # Fallback: write minimal restart inline
+                restart_file = Path(repo_dir) / "_restart.sh"
+                restart_file.write_text(f"#!/bin/bash\n{sys.executable} {ch8_bin} down; sleep 3; {sys.executable} {ch8_bin} up\n")
+                subprocess.run(["chmod", "+x", str(restart_file)])
 
-python = r"{sys.executable}"
-ch8 = r"{ch8_bin}"
-cwd = r"{repo_dir}"
-log = open(os.path.join(cwd, "update.log"), "a")
-
-log.write(f"[UPDATE] Starting zero-downtime restart at {{time.strftime('%H:%M:%S')}}\\n")
-log.flush()
-
-# Get current orchestrator PID (we'll kill it after new one starts)
-old_orch_pid = None
-pid_file = os.path.expanduser("~/.config/ch8/orchestrator.pid")
-if os.path.exists(pid_file):
-    try:
-        old_orch_pid = int(open(pid_file).read().strip())
-    except:
-        pass
-
-# Stop non-orchestrator agents (they'll restart with ch8 up)
-for pf in os.listdir(os.path.expanduser("~/.config/ch8/")):
-    if pf.endswith(".pid") and pf != "orchestrator.pid" and pf != "daemon.pid":
-        try:
-            pid = int(open(os.path.join(os.path.expanduser("~/.config/ch8"), pf)).read().strip())
-            os.kill(pid, signal.SIGTERM)
-        except:
-            pass
-
-time.sleep(1)
-
-# Kill old orchestrator
-if old_orch_pid:
-    try:
-        os.kill(old_orch_pid, signal.SIGTERM)
-        time.sleep(2)
-        os.kill(old_orch_pid, signal.SIGKILL)
-    except:
-        pass
-
-time.sleep(1)
-
-# Full restart: ch8 down (kills daemon + all agents) then ch8 up (fresh start)
-log.write(f"[UPDATE] Running ch8 down + ch8 up\\n")
-log.flush()
-subprocess.run([python, ch8, "down"], cwd=cwd, stdout=log, stderr=log)
-time.sleep(2)
-subprocess.run([python, ch8, "up"], cwd=cwd, stdout=log, stderr=log)
-
-# Verify health
-time.sleep(5)
-try:
-    import urllib.request
-    r = urllib.request.urlopen("http://127.0.0.1:7879/health", timeout=5)
-    log.write(f"[UPDATE] New orchestrator healthy: {{r.read().decode()[:80]}}\\n")
-except Exception as e:
-    log.write(f"[UPDATE] Health check failed: {{e}}\\n")
-
-log.write(f"[UPDATE] Done at {{time.strftime('%H:%M:%S')}}\\n")
-log.close()
-'''
-            # Write restart script to temp file and execute detached
-            restart_file = Path(repo_dir) / "_restart.py"
-            restart_file.write_text(restart_script)
-
+            _env = {**os.environ, "PYTHON": sys.executable}
             if sys.platform == "win32":
-                # Windows: use CREATE_NEW_PROCESS_GROUP + DETACHED_PROCESS
                 CREATE_NEW_PROCESS_GROUP = 0x00000200
                 DETACHED_PROCESS = 0x00000008
                 subprocess.Popen(
-                    [sys.executable, str(restart_file)],
-                    cwd=repo_dir,
-                    creationflags=CREATE_NEW_PROCESS_GROUP | DETACHED_PROCESS,
-                    close_fds=True,
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL,
+                    [sys.executable, ch8_bin, "down"],
+                    cwd=repo_dir, creationflags=CREATE_NEW_PROCESS_GROUP | DETACHED_PROCESS,
+                    close_fds=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                 )
+                # Windows: just run ch8 down, user must ch8 up manually
             else:
-                # Unix: start_new_session + double fork via nohup
+                # Unix: execute restart.sh from disk (already pulled with new code)
                 subprocess.Popen(
-                    [sys.executable, str(restart_file)],
-                    cwd=repo_dir,
+                    ["bash", str(restart_file)],
+                    cwd=repo_dir, env=_env,
                     start_new_session=True,
                     stdout=subprocess.DEVNULL,
                     stderr=subprocess.DEVNULL,
