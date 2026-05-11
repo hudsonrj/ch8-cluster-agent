@@ -388,6 +388,7 @@ def cmd_up(token=None):
         _start_agent("log_shipper", "log_shipper.py")
         _start_agent("db_failover", "db_failover.py")
         _start_agent("log_analyzer", "log_analyzer.py")
+        _start_agent("ticket_resolver", "ticket_resolver.py")
     else:
         print(f"{Colors.YELLOW}⚠ Low RAM ({_ram_gb:.1f}GB) — skipping heavy agents (TTS/STT/RAG/LogShipper){Colors.NC}")
         # Only start lightweight log shipper on low-RAM nodes
