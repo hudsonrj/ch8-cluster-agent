@@ -216,6 +216,78 @@ def get_sla_stats(days: int = 7) -> Dict[str, Dict]:
 # Cleanup (retention)
 # ═══════════════════════════════════════════════════════════════
 
+# ═══════════════════════════════════════════════════════════════
+# ITSM Tickets
+# ═══════════════════════════════════════════════════════════════
+
+def create_ticket(title: str, description: str, severity: str, category: str,
+                  node: str, service: str, root_cause: str, impact: str,
+                  action_plan: str, fix_command: str, source_type: str,
+                  source_ref: str, assigned_to: str = "auto") -> Optional[str]:
+    """Create an ITSM ticket and return the ticket_id. Dedup by source_ref+node."""
+    with get_db() as conn:
+        if not conn:
+            return None
+        cur = conn.cursor()
+        import json
+
+        # Dedup: skip if open ticket exists for same source_ref + node
+        if source_ref and node:
+            cur.execute("""
+                SELECT ticket_id FROM tickets
+                WHERE source_ref = %s AND node = %s AND status NOT IN ('resolved', 'closed')
+                LIMIT 1
+            """, (source_ref, node))
+            existing = cur.fetchone()
+            if existing:
+                # Increment occurrences instead
+                cur.execute("""
+                    UPDATE tickets SET occurrences = occurrences + 1, updated_at = NOW()
+                    WHERE ticket_id = %s
+                """, (existing[0],))
+                log.info(f"Ticket {existing[0]} — incremented occurrences (dedup)")
+                return existing[0]
+
+        # Generate ticket_id: TKT-YYYYMMDD-NNNN
+        from datetime import datetime
+        today = datetime.now().strftime("%Y%m%d")
+        cur.execute("""
+            SELECT count(*) FROM tickets WHERE created_at::date = CURRENT_DATE
+        """)
+        count = cur.fetchone()[0] + 1
+        ticket_id = f"TKT-{today}-{count:04d}"
+
+        # SLA deadline based on severity
+        sla_map = {"critical": "1 hour", "high": "4 hours", "medium": "24 hours", "low": "72 hours"}
+        sla_interval = sla_map.get(severity, "24 hours")
+
+        history = json.dumps([{
+            "ts": str(int(time.time())),
+            "action": "created",
+            "by": source_type,
+            "note": f"Ticket criado automaticamente — {category}"
+        }])
+
+        cur.execute("""
+            INSERT INTO tickets (ticket_id, title, description, severity, category,
+                node, service, root_cause, impact, action_plan, fix_command,
+                source_type, source_ref, assigned_to, auto_generated,
+                sla_deadline, history)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, true,
+                NOW() + INTERVAL %s, %s::jsonb)
+            ON CONFLICT (ticket_id) DO NOTHING
+            RETURNING ticket_id
+        """, (ticket_id, title, description, severity, category,
+              node, service, root_cause, impact, action_plan, fix_command,
+              source_type, source_ref, assigned_to, sla_interval, history))
+
+        result = cur.fetchone()
+        if result:
+            log.info(f"Created ITSM ticket: {result[0]} — {title[:60]}")
+            return result[0]
+        return None
+
+
 def cleanup_old_data(metrics_days: int = 30, events_days: int = 90,
                      chat_days: int = 365, sla_days: int = 90):
     """Remove old data to keep DB size manageable."""

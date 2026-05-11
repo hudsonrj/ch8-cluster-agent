@@ -197,8 +197,46 @@ def match_pattern(message):
     return None
 
 
+def _create_itsm_ticket(issue, pattern, fix_cmd, phash):
+    """Create an ITSM ticket in PostgreSQL for the detected issue."""
+    try:
+        from connect.db import create_ticket
+
+        severity = pattern["severity"]
+        title = f"[{issue['hostname']}] {pattern['description']}"
+        description = (
+            f"Padrao detectado: {pattern['match']}\n"
+            f"Mensagem original: {issue['message'][:300]}\n"
+            f"Fonte: {issue['source']}\n"
+            f"Ocorrencias: {issue['count']} nos ultimos 10 min"
+        )
+        impact = f"Servico afetado no node {issue['hostname']} — {issue['count']} ocorrencias recentes"
+        action_plan = f"1. Verificar status do servico\n2. Executar fix: {fix_cmd}\n3. Validar resolucao"
+
+        ticket_id = create_ticket(
+            title=title,
+            description=description,
+            severity=severity,
+            category=pattern["category"],
+            node=issue["hostname"],
+            service=_extract_service(issue["message"], issue["source"]),
+            root_cause=pattern["description"],
+            impact=impact,
+            action_plan=action_plan,
+            fix_command=fix_cmd,
+            source_type="log_pattern",
+            source_ref=phash,
+        )
+        if ticket_id:
+            log.info(f"Created ITSM ticket: {ticket_id} ({pattern['category']} on {issue['hostname']})")
+        return ticket_id
+    except Exception as e:
+        log.warning(f"Failed to create ITSM ticket: {e}")
+        return None
+
+
 def create_backlog_item(issue, pattern, known):
-    """Create a backlog item for the fix_agent."""
+    """Create a backlog item for the fix_agent AND an ITSM ticket."""
     phash = _pattern_hash(issue["source"], issue["message"])
 
     # Skip if already known and recent (< 1 hour)
@@ -213,7 +251,10 @@ def create_backlog_item(issue, pattern, known):
         path=issue.get("path", "/unknown"),
     )
 
-    # Create backlog item
+    # Create ITSM ticket in database
+    _create_itsm_ticket(issue, pattern, fix_cmd, phash)
+
+    # Create backlog item (legacy)
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
     item_name = f"{ts}_auto-fix-{pattern['category']}-{issue['hostname']}"
     item = {
