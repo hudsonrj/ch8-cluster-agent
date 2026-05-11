@@ -334,11 +334,18 @@ def _exec_shell(args: dict) -> dict:
     timeout = args.get("timeout", 30)
 
     # Security: validate command against policy
-    from .security_policy import check_command_policy
+    from .security_policy import check_command_policy, check_sql_injection
     violation = check_command_policy(cmd)
     if violation:
         logging.getLogger("ch8.security").warning(f"BLOCKED shell_exec: {cmd[:80]} — {violation}")
         return {"error": violation, "blocked": True}
+
+    # Security: check for SQL injection in commands that interact with databases
+    if any(k in cmd.lower() for k in ['psql', 'mysql', 'sqlite', 'sql']):
+        sql_violation = check_sql_injection(cmd)
+        if sql_violation:
+            logging.getLogger("ch8.security").warning(f"BLOCKED SQL injection: {cmd[:80]}")
+            return {"error": sql_violation, "blocked": True}
 
     try:
         r = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=timeout)

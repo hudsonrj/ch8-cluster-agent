@@ -204,3 +204,181 @@ def check_docker_policy(container: str, command: str = "") -> Optional[str]:
                 return f"Comando bloqueado no container: '{denied}'"
 
     return None
+
+
+# ═══════════════════════════════════════════════════════════════
+# SQL Injection Protection
+# ═══════════════════════════════════════════════════════════════
+
+_SQL_INJECTION_PATTERNS = [
+    r"'\s*OR\s+['\d]",              # ' OR '1'='1
+    r"'\s*OR\s+\d\s*=\s*\d",       # ' OR 1=1
+    r";\s*DROP\s+",                 # ; DROP TABLE
+    r";\s*DELETE\s+FROM\s+",        # ; DELETE FROM
+    r";\s*INSERT\s+INTO\s+",       # ; INSERT INTO (unauthorized)
+    r";\s*UPDATE\s+.*SET\s+",      # ; UPDATE x SET
+    r";\s*ALTER\s+",               # ; ALTER TABLE/ROLE
+    r";\s*CREATE\s+",             # ; CREATE (unauthorized)
+    r"UNION\s+SELECT",            # UNION SELECT
+    r"UNION\s+ALL\s+SELECT",      # UNION ALL SELECT
+    r"INTO\s+OUTFILE",            # INTO OUTFILE
+    r"INTO\s+DUMPFILE",           # INTO DUMPFILE
+    r"LOAD_FILE\s*\(",            # LOAD_FILE()
+    r"BENCHMARK\s*\(",            # BENCHMARK() DoS
+    r"SLEEP\s*\(\s*\d+\s*\)",    # SLEEP() DoS
+    r"pg_sleep\s*\(",             # pg_sleep() DoS
+    r"--\s*$",                    # SQL comment at end
+    r"/\*.*\*/",                  # Block comments
+    r"\\x27",                     # Hex-encoded quote
+    r"%27",                       # URL-encoded quote
+    r"EXEC\s*\(",                 # EXEC() SQL Server
+    r"xp_cmdshell",              # SQL Server RCE
+    r"COPY\s+.*TO\s+",          # COPY TO (data exfiltration)
+    r"COPY\s+.*FROM\s+",        # COPY FROM (data injection)
+]
+
+
+def check_sql_injection(input_str: str) -> Optional[str]:
+    """
+    Detect SQL injection attempts in user input.
+    Returns None if safe, or description of the violation.
+    """
+    if not input_str:
+        return None
+
+    for pattern in _SQL_INJECTION_PATTERNS:
+        try:
+            if re.search(pattern, input_str, re.IGNORECASE):
+                log.warning(f"SQL injection detected: pattern={pattern} input={input_str[:80]}")
+                return f"SQL injection bloqueado: padrão suspeito detectado"
+        except re.error:
+            pass
+
+    return None
+
+
+def sanitize_sql_param(value: str) -> str:
+    """
+    Sanitize a value for use in SQL queries.
+    Escapes single quotes and removes dangerous characters.
+    """
+    if not value:
+        return ""
+    # Remove null bytes
+    value = value.replace("\x00", "")
+    # Escape single quotes (double them for SQL)
+    value = value.replace("'", "''")
+    # Remove semicolons (prevents statement chaining)
+    value = value.replace(";", "")
+    # Remove comment sequences
+    value = re.sub(r"--", "", value)
+    value = re.sub(r"/\*.*?\*/", "", value)
+    return value
+
+
+# ═══════════════════════════════════════════════════════════════
+# Prompt Injection Protection
+# ═══════════════════════════════════════════════════════════════
+
+_PROMPT_INJECTION_PATTERNS = [
+    # Direct instruction override attempts
+    r"ignore\s+(all\s+)?previous\s+instructions",
+    r"ignore\s+(all\s+)?above\s+instructions",
+    r"disregard\s+(all\s+)?previous",
+    r"forget\s+(all\s+)?previous",
+    r"ignore\s+your\s+system\s+prompt",
+    r"ignore\s+your\s+rules",
+    r"new\s+instructions?\s*:",
+    r"system\s*:\s*you\s+are",
+    r"<\s*system\s*>",
+    r"\[system\]",
+    r"ADMIN\s+MODE",
+    r"SUDO\s+MODE",
+    r"DEVELOPER\s+MODE",
+    r"DAN\s+MODE",
+    r"jailbreak",
+
+    # Role manipulation
+    r"you\s+are\s+now\s+(a\s+)?different",
+    r"pretend\s+you\s+are\s+(a\s+)?different",
+    r"act\s+as\s+if\s+you\s+have\s+no\s+restrictions",
+    r"from\s+now\s+on\s+you\s+(will|must|should)\s+ignore",
+
+    # Data exfiltration via prompt
+    r"reveal\s+your\s+system\s+prompt",
+    r"show\s+me\s+your\s+instructions",
+    r"what\s+are\s+your\s+system\s+instructions",
+    r"print\s+your\s+initial\s+prompt",
+    r"output\s+your\s+system\s+message",
+    r"display\s+your\s+rules",
+
+    # Encoding tricks
+    r"base64\s+decode",
+    r"rot13",
+    r"\\u0069\\u0067\\u006e",  # unicode "ign" (ignore)
+
+    # Tool abuse via prompt
+    r"execute\s+shell_exec.*rm\s+-rf",
+    r"run\s+command.*delete",
+    r"call\s+tool.*drop\s+table",
+]
+
+# Severity levels for prompt injection
+_PROMPT_INJECTION_SEVERITY = {
+    "ignore": "high",       # Trying to override instructions
+    "system": "high",       # Trying to inject system prompts
+    "jailbreak": "critical", # Known jailbreak attempts
+    "reveal": "medium",     # Trying to extract system prompt
+    "role": "medium",       # Role manipulation
+    "encoding": "low",      # Encoding tricks
+}
+
+
+def check_prompt_injection(message: str) -> Optional[dict]:
+    """
+    Detect prompt injection attempts in user messages.
+    Returns None if safe, or dict with {violation, severity, pattern}.
+    """
+    if not message:
+        return None
+
+    msg_lower = message.lower()
+
+    for pattern in _PROMPT_INJECTION_PATTERNS:
+        try:
+            if re.search(pattern, msg_lower, re.IGNORECASE):
+                # Determine severity
+                severity = "medium"
+                for key, sev in _PROMPT_INJECTION_SEVERITY.items():
+                    if key in pattern.lower():
+                        severity = sev
+                        break
+
+                log.warning(f"Prompt injection detected [{severity}]: pattern={pattern} msg={message[:80]}")
+                return {
+                    "violation": "Prompt injection detectado: tentativa de manipulação bloqueada",
+                    "severity": severity,
+                    "pattern": pattern,
+                }
+        except re.error:
+            pass
+
+    return None
+
+
+def sanitize_prompt(message: str) -> str:
+    """
+    Sanitize a user message to reduce prompt injection risk.
+    Removes control characters and known injection markers.
+    """
+    if not message:
+        return ""
+    # Remove null bytes and control characters (except newline/tab)
+    sanitized = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]', '', message)
+    # Remove HTML/XML-like tags that could be interpreted as system markers
+    sanitized = re.sub(r'<\s*/?system\s*>', '[filtered]', sanitized, flags=re.IGNORECASE)
+    sanitized = re.sub(r'\[system\]', '[filtered]', sanitized, flags=re.IGNORECASE)
+    # Limit length (extremely long prompts are suspicious)
+    if len(sanitized) > 10000:
+        sanitized = sanitized[:10000] + "\n[...mensagem truncada por segurança]"
+    return sanitized

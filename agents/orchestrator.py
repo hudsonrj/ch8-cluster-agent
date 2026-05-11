@@ -962,6 +962,30 @@ async def chat(request: Request):
     _m = body.get("model", "")
     model = _m if _m and _m != "auto" else _best_model()
 
+    # Security: check for prompt injection in user messages
+    if messages:
+        last_content = messages[-1].get("content", "")
+        from connect.security_policy import check_prompt_injection, sanitize_prompt
+        injection = check_prompt_injection(last_content)
+        if injection and injection.get("severity") in ("high", "critical"):
+            # Block and audit
+            try:
+                from connect.audit import log_audit
+                from connect.auth import get_node_id
+                log_audit(node_id=get_node_id(), source_ip=request.client.host if request.client else "",
+                          endpoint="/chat", tool_name="prompt_injection_blocked",
+                          tool_args={"message": last_content[:200]},
+                          result_status="blocked", blocked_reason=injection["violation"])
+            except Exception:
+                pass
+            from fastapi.responses import JSONResponse
+            return JSONResponse(status_code=400, content={
+                "error": injection["violation"],
+                "severity": injection["severity"],
+            })
+        # Sanitize the message (remove control chars, limit length)
+        messages[-1]["content"] = sanitize_prompt(last_content)
+
     # Intercept: if user asks to create an agent, handle it directly
     user_msg = (messages[-1].get("content", "") if messages else "").lower()
     create_keywords = ["crie um agente", "criar agente", "create agent", "cria um agente", "novo agente", "new agent"]
