@@ -35,7 +35,7 @@ DEFAULT_POLICY = {
             r"curl\s+.*\|\s*(ba)?sh",
             r"wget\s+.*\|\s*(ba)?sh",
             r"curl\s+.*\|\s*python",
-            r":()\{\s*:\|:&\s*\};:",  # fork bomb
+            r":\(\)\s*\{",  # fork bomb :(){ :|:& };:
             r"echo\s+.*>\s*/dev/sd[a-z]",
             r"shred\s+/dev/",
             r"wipefs",
