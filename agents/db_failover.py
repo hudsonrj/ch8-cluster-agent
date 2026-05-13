@@ -80,7 +80,7 @@ def _check_postgres(host, port, user="ch8app", password="ch8cluster2024", dbname
         conn.close()
         return {"ok": True, "latency_ms": 0}
     except ImportError:
-        # Fallback: use pg_isready
+        # Fallback: use pg_isready (checks TCP connectivity, not auth)
         try:
             result = subprocess.run(
                 ["pg_isready", "-h", host, "-p", str(port), "-t", "5"],
@@ -90,6 +90,17 @@ def _check_postgres(host, port, user="ch8app", password="ch8cluster2024", dbname
         except Exception as e:
             return {"ok": False, "error": str(e)}
     except Exception as e:
+        error_msg = str(e).lower()
+        # Auth error = server is UP but credentials wrong (not really "down")
+        if "password authentication failed" in error_msg or "role" in error_msg:
+            return {"ok": True, "latency_ms": 0, "auth_error": True,
+                    "warning": "Server reachable but auth failed — check credentials"}
+        # Connection refused = server truly down
+        if "connection refused" in error_msg or "could not connect" in error_msg:
+            return {"ok": False, "error": f"Connection refused: {host}:{port}"}
+        # Timeout = network issue
+        if "timeout" in error_msg:
+            return {"ok": False, "error": f"Timeout connecting to {host}:{port}"}
         return {"ok": False, "error": str(e)}
 
 
