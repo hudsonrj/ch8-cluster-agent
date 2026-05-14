@@ -372,27 +372,43 @@ def cmd_up(token=None):
     if (Path.home() / ".config" / "ch8" / "node_access.json").exists():
         _start_agent("recovery_agent", "recovery_agent.py")
 
-    # Start Mesh Relay Agent (LAN bridge for unreachable nodes)
+    # ═══════════════════════════════════════════════════════════
+    # AGENTS OBRIGATÓRIOS (rodam em TODOS os nós)
+    # ═══════════════════════════════════════════════════════════
     _start_agent("mesh_relay", "mesh_relay.py")
+    _start_agent("log_shipper", "log_shipper.py")
 
-    # Check available RAM to decide which agents to start
+    # ═══════════════════════════════════════════════════════════
+    # AGENTS OPCIONAIS (dependem de contexto do nó)
+    # ═══════════════════════════════════════════════════════════
     import psutil as _ps
     _ram_gb = _ps.virtual_memory().total / 1e9
     _is_low_ram = _ram_gb < 4  # RPi, phones, small VPS
 
-    if not _is_low_ram:
-        # Heavy agents — only on nodes with 4GB+ RAM
-        _start_agent("tts_agent", "tts_agent.py")
-        _start_agent("stt_agent", "stt_agent.py")
-        _start_agent("rag_agent", "rag_agent.py")
-        _start_agent("log_shipper", "log_shipper.py")
+    # Master-only agents (precisa PostgreSQL local + recursos)
+    _is_master = Path("/var/lib/postgresql").exists() or Path("/data/ch8-control").exists()
+    if _is_master and not _is_low_ram:
         _start_agent("db_failover", "db_failover.py")
         _start_agent("log_analyzer", "log_analyzer.py")
         _start_agent("ticket_resolver", "ticket_resolver.py")
+
+    # Oracle monitor (só onde Oracle container roda)
+    import subprocess as _sp_check
+    try:
+        _has_oracle = "oracle" in _sp_check.check_output(
+            ["docker", "ps", "--format", "{{.Names}}"], text=True, timeout=5).lower()
+    except Exception:
+        _has_oracle = False
+    if _has_oracle:
+        _start_agent("monitora_oracle", "monitora_oracle.py")
+
+    # Voice + RAG (precisa RAM >= 4GB)
+    if not _is_low_ram:
+        _start_agent("tts_agent", "tts_agent.py")
+        _start_agent("stt_agent", "stt_agent.py")
+        _start_agent("rag_agent", "rag_agent.py")
     else:
-        print(f"{Colors.YELLOW}⚠ Low RAM ({_ram_gb:.1f}GB) — skipping heavy agents (TTS/STT/RAG/LogShipper){Colors.NC}")
-        # Only start lightweight log shipper on low-RAM nodes
-        _start_agent("log_shipper", "log_shipper.py")
+        print(f"{Colors.YELLOW}⚠ Low RAM ({_ram_gb:.1f}GB) — skipping TTS/STT/RAG{Colors.NC}")
 
     # Wait for daemon to write its PID (up to 8s)
     import time
