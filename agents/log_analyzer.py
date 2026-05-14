@@ -317,6 +317,18 @@ def main():
 
     while running:
         try:
+            # Only execute if this node is the elected master
+            try:
+                from connect.cluster_ha import is_master
+                if not is_master():
+                    _update_state("idle", "Standby — não sou o master")
+                    for _ in range(CHECK_INTERVAL):
+                        if not running: break
+                        time.sleep(1)
+                    continue
+            except Exception:
+                pass  # If HA check fails, proceed anyway (single-node mode)
+
             known = _load_known()
             issues = analyze_logs()
             created = 0

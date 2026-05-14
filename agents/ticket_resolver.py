@@ -321,6 +321,18 @@ def main():
     _update_state("running", "Gerenciando tickets ITSM automaticamente")
 
     while running:
+        # Only execute if this node is the elected master
+        try:
+            from connect.cluster_ha import is_master
+            if not is_master():
+                _update_state("idle", "Standby — não sou o master")
+                for _ in range(CHECK_INTERVAL):
+                    if not running: break
+                    time.sleep(1)
+                continue
+        except Exception:
+            pass  # If HA check fails, proceed (single-node mode)
+
         conn = _get_db()
         if not conn:
             _update_state("warning", "Sem conexão com banco de dados")

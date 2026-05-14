@@ -385,9 +385,9 @@ def cmd_up(token=None):
     _ram_gb = _ps.virtual_memory().total / 1e9
     _is_low_ram = _ram_gb < 4  # RPi, phones, small VPS
 
-    # Master-only agents (precisa PostgreSQL local + recursos)
-    _is_master = Path("/var/lib/postgresql").exists() or Path("/data/ch8-control").exists()
-    if _is_master and not _is_low_ram:
+    # Central agents (rodam em TODOS os nós mas só executam se forem master)
+    # Cada agent verifica internamente se é o master eleito antes de agir
+    if not _is_low_ram:
         _start_agent("db_failover", "db_failover.py")
         _start_agent("log_analyzer", "log_analyzer.py")
         _start_agent("ticket_resolver", "ticket_resolver.py")

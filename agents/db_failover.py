@@ -241,6 +241,18 @@ def main():
 
     while running:
         try:
+            # Only execute if this node is the elected master
+            try:
+                from connect.cluster_ha import is_master as _am_master
+                if not _am_master():
+                    _update_state("idle", "Standby — não sou o master", details={"role": "standby"})
+                    for _ in range(CHECK_INTERVAL):
+                        if not running: break
+                        time.sleep(1)
+                    continue
+            except Exception:
+                pass  # HA check failed — proceed (single-node mode)
+
             # Check master
             master_check = _check_postgres(MASTER_HOST, MASTER_PORT)
             # Check replica
