@@ -391,6 +391,7 @@ def cmd_up(token=None):
         _start_agent("db_failover", "db_failover.py")
         _start_agent("log_analyzer", "log_analyzer.py")
         _start_agent("ticket_resolver", "ticket_resolver.py")
+        _start_agent("security_scanner", "security_scanner.py")
 
     # Oracle monitor (só onde Oracle container roda)
     import subprocess as _sp_check

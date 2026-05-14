@@ -41,7 +41,7 @@ LOG_FILE = CONFIG_DIR / "inova_test.log"
 COUNTER_FILE = CONFIG_DIR / "inova_test_counter.json"
 
 # Safety limits
-MAX_PROJECTS = 20
+MAX_PROJECTS = 50
 MAX_CYCLES_PER_DAY = 8
 MAX_CLUSTER_TASKS_PER_CYCLE = 3
 CYCLE_INTERVAL = 1800          # 30 minutes

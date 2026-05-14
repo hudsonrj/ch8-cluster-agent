@@ -1,389 +1,239 @@
-# CH8 Agent - Descrição Técnica da Solução
+# CH8 Agent — Complete AI Operations Platform
 
-## Resumo Executivo
+## Overview
 
-CH8 Agent é uma plataforma de orquestração de IA autônoma que revoluciona a forma como sistemas de inteligência artificial são implementados e escalados. A solução combina agentes autônomos, aprendizado recorrente, memória infinita e integração universal com qualquer sistema, rodando em qualquer hardware - desde um Raspberry Pi até servidores GPU de alta performance.
+CH8 Agent is a distributed AI operations platform that turns any machine — from Raspberry Pi to cloud VPS — into a node of an intelligent, self-healing cluster. It replaces 10+ traditional tools (Zabbix, Grafana, Jira, PagerDuty, Elastic, Terraform, Ansible, etc.) with a single platform powered by AI agents.
 
----
-
-## Inovações Principais
-
-### 1. **Três Modos de Operação Flexíveis**
-
-#### Standalone Mode
-- Execução em dispositivo único com modelos pequenos (0.5-1B) ou grandes (7B+)
-- Decomposição inteligente de tarefas
-- Ideal para projetos pessoais e desenvolvimento
-- Funciona 100% offline
-
-#### Cluster Mode
-- Múltiplos modelos especializados trabalhando em paralelo no mesmo dispositivo
-- Execução 2-3x mais rápida através de paralelização
-- Agregação inteligente de resultados
-- Perfeito para integrações empresariais complexas
-
-#### Distributed Mode (Inovação Principal)
-- **Primeira solução democrática de IA distribuída**
-- Distribui trabalho entre dispositivos heterogêneos (Raspberry Pi, laptops antigos, Android)
-- Aproveitamento de hardware existente (zero custo de infraestrutura)
-- Coordenação automática entre nós
-- Suporta dispositivos de diferentes gerações (desde PCs dos anos 2000)
-
-### 2. **Recurrent Learning - Economia de Tokens**
-
-Inovação que reduz custos operacionais em 40-60%:
-
-- **Memória infinita entre sessões**: Agentes aprendem com interações anteriores
-- **Reconhecimento de padrões**: Identifica tarefas similares e reutiliza conhecimento
-- **Otimização adaptativa**: Melhora performance ao longo do tempo
-- **Cache inteligente**: Evita reprocessamento de informações já conhecidas
-
-**Impacto**: Redução de 40-60% no uso de tokens, diminuindo drasticamente custos operacionais.
-
-### 3. **Autonomous AI Agents - Zero Configuration**
-
-Sistema de agentes especializados que se auto-organizam:
-
-#### **10+ Agentes de Extração de Dados**
-- XML, JSON, CSV, Excel, Parquet
-- PDF, YAML, TOML, SQL
-- XPath queries, column projection
-- Auto-detecção de formato
-
-#### **Database Agents**
-- PostgreSQL, MySQL, MongoDB, Redis
-- MinIO, S3, GCS, Azure Blob
-- Operações CRUD completas
-- Suporte assíncrono nativo
-
-#### **MCP Integration Agents**
-- Model Context Protocol para integração universal
-- Auto-discovery de serviços
-- Zero configuração necessária
-- Extensível via decorators Python
-
-#### **Storage Agents**
-- Interface unificada multi-cloud
-- Suporte a object storage (S3, MinIO, GCS, Azure)
-- Operações de upload/download otimizadas
-
-#### **LLM Orchestrator Agent**
-- Coordenação de múltiplos modelos
-- Seleção automática do modelo adequado
-- Balanceamento de carga inteligente
-
-#### **Custom Agents**
-- Criação de agentes personalizados via decorators Python
-- Plug & play architecture
-- Reutilizável entre projetos
-
-### 4. **Universal Platform Support**
-
-Suporte genuinamente universal a qualquer hardware:
-
-**Desktop/Server:**
-- Linux x64 e 32-bit (PCs desde 2000)
-- macOS (Intel e Apple Silicon)
-- Windows (32-bit e 64-bit)
-
-**Embedded:**
-- Raspberry Pi (todos os modelos, inclusive Zero)
-- ARM 32-bit e 64-bit
-- Dispositivos IoT
-
-**Mobile:**
-- Android via Termux (flexível)
-- Android nativo APK (performance)
-- Gerenciamento inteligente de bateria
-
-**Capacidade única**: Roda em hardware com apenas 512MB RAM.
-
-### 5. **Integração MCP (Model Context Protocol)**
-
-Primeira plataforma com suporte nativo completo ao MCP:
-
-- **Auto-discovery**: Detecta automaticamente serviços disponíveis
-- **Zero-config**: Sem necessidade de configuração manual
-- **Extensível**: Novos protocolos via plugins
-- **RAG Integration**: Retrieval-Augmented Generation automático
-- **API Universal**: Interface única para qualquer sistema
+**One command to install. One conversation to operate.**
 
 ---
 
-## Métodos e Tecnologias Utilizadas
+## Core Capabilities
 
-### Arquitetura
+### 1. Security Operations Center (SOC)
 
-**Coordenador Central:**
-- Gerencia decomposição de tarefas
-- Seleciona modelos apropriados
-- Distribui trabalho entre nós
-- Agrega resultados finais
+CH8 implements enterprise-grade security with 7 active protection layers:
 
-**Workers Especializados:**
-- Execução paralela de subtarefas
-- Modelos otimizados por tipo de tarefa
-- Comunicação assíncrona via message passing
+| Layer | Protection | Details |
+|-------|-----------|---------|
+| 1 | Authentication | Bearer token on ALL endpoints. Node-to-node encrypted auth |
+| 2 | Sanitization | Blocks rm -rf, fork bombs, docker injection, path traversal |
+| 3 | Credentials | Zero hardcoded. All in env files (chmod 600). Never in code |
+| 4 | Rate Limiting | Redis sliding window. 60/min execute, 30/min chat |
+| 5 | Headers + Relay | nginx security headers. Relay auth for proxied endpoints |
+| 6 | SQL Injection | 25+ patterns: UNION SELECT, DROP, COPY TO, pg_sleep, etc |
+| 7 | Prompt Injection | 20+ patterns: jailbreak, role manipulation, system extraction |
 
-**Persistent Memory:**
-- Vector database para memória de longo prazo
-- Knowledge graph para relações entre conceitos
-- Cache distribuído para performance
+**Active Scanners:**
+- Port security scanning (every 10 minutes)
+- File integrity monitoring (SHA-256 on critical files)
+- TCP connection anomaly detection
+- User session monitoring (failed logins, unusual hours)
+- Automated ITSM ticket creation for security findings
 
-### Stack Tecnológico
+**Audit Trail:** 11,500+ events recorded. Full compliance logging.
 
-**LLM Backends:**
-- Ollama (local inference)
-- vLLM (high-performance serving)
-- llama.cpp (embedded devices)
-- Compatível com APIs externas (Groq, OpenAI, Anthropic)
-
-**Data Processing:**
-- Pandas para manipulação de dados
-- PyArrow para formatos colunares
-- lxml para XML/XPath
-- pypdf para extração de PDF
-
-**Networking:**
-- ZeroMQ para comunicação distribuída
-- gRPC para APIs de alto desempenho
-- WebSocket para streaming em tempo real
-
-**Storage:**
-- SQLite para state local
-- Redis para cache distribuído
-- S3-compatible para object storage
+**Pentest Results:** 12/12 vectors tested and PASSED.
 
 ---
 
-## Pontos Favoráveis
+### 2. ITSM / Helpdesk (Autonomous)
 
-### 1. **Custo Zero**
-- Usa hardware existente
-- Sem necessidade de GPU cara
-- Modelos pequenos são gratuitos
-- Sem custos de API cloud
+Fully automated incident management with zero human intervention for L1/L2:
 
-### 2. **Privacidade Total**
-- 100% processamento local
-- Sem dependências cloud obrigatórias
-- Dados nunca saem dos dispositivos
-- Funciona completamente offline
+```
+DETECT -> OPEN TICKET -> INVESTIGATE -> FIX -> VALIDATE -> CLOSE
+```
 
-### 3. **Escalabilidade Real**
-- Adicione dispositivos conforme necessário
-- Escala horizontal naturalmente
-- Performance aumenta linearmente com novos nós
-- Sem lock-in de vendor
+**Ticket Categories:**
+- `service_down` — Service outage (auto-restart)
+- `performance` — Degradation / slow response
+- `disk_full` — Storage critical (auto-cleanup)
+- `config` — Configuration drift detected
+- `security` — Threat or vulnerability found
 
-### 4. **Democratização da IA**
-- Qualquer pessoa pode executar
-- Não requer conhecimento técnico avançado
-- Hardware barato é suficiente
-- Código aberto (MIT License)
+**SLA Enforcement:**
+- Critical: 1 hour (auto-escalate)
+- High: 4 hours
+- Medium: 24 hours
+- Low: 72 hours
 
-### 5. **Performance Superior**
-- 2-3x mais rápido que execução sequencial
-- Paralelização inteligente de tarefas
-- 40-60% economia em tokens
-- Otimização contínua via recurrent learning
-
-### 6. **Sustentabilidade**
-- Reutiliza hardware antigo
-- Menor consumo energético (modelos menores)
-- Reduz desperdício eletrônico
-- Eficiência energética otimizada
-
-### 7. **Integração Universal**
-- Conecta com qualquer banco de dados
-- APIs REST/GraphQL automáticas
-- File systems (local e cloud)
-- Protocolos personalizados via MCP
-
-### 8. **Developer Experience**
-- Instalação one-line
-- Configuração automática
-- APIs Python simples
-- Documentação completa
+**Real Example:**
+```
+03:17 Oracle container crashed
+03:17 Ticket #47 opened (severity: critical)
+03:18 Investigating... ORA-00600 internal error
+03:18 Fix: docker restart oracle-free
+03:19 Validation: Oracle OK, port 1521 responding
+03:19 Ticket resolved. MTTR: 2 minutes.
+```
 
 ---
 
-## Casos de Uso
+### 3. Self-Healing Infrastructure
 
-### Empresarial
+The cluster monitors itself and fixes problems autonomously:
 
-**Data Integration:**
-- ETL de múltiplas fontes
-- Sincronização de bancos de dados
-- Migração de dados legacy
-- Consolidação de APIs
+| Event | Auto-Response |
+|-------|--------------|
+| Service crashes | Detect -> ticket -> restart -> validate -> close |
+| Disk at 95% | Alert -> identify large files -> cleanup suggestion |
+| DB replica lag | Detect -> reconnect subscription -> refresh |
+| Node unreachable | Recovery agent -> SSH -> restart daemon |
+| Rate limit spike | Log -> identify source -> block if malicious |
+| Agent disappears | Daemon sanitizes state -> auto-restart |
 
-**Automação:**
-- Processamento de documentos
-- Análise de logs
-- Monitoramento de sistemas
-- Geração de relatórios
-
-**RAG (Retrieval-Augmented Generation):**
-- Knowledge bases corporativas
-- Chatbots internos
-- Assistentes de documentação
-- Q&A systems
-
-### Pessoal
-
-**Home Automation:**
-- Orquestração de IoT
-- Análise de consumo energético
-- Automação residencial
-- Assistente pessoal
-
-**Desenvolvimento:**
-- Code analysis
-- Documentation generation
-- Test automation
-- Code review assistants
-
-### Educacional
-
-**Pesquisa:**
-- Análise de datasets
-- Paper summarization
-- Literature review
-- Experiment tracking
-
-**Learning:**
-- Tutores personalizados
-- Quiz generation
-- Adaptive learning paths
-- Homework assistance
+**High Availability:**
+- Master/standby election via priority ranking
+- Central agents check `is_master()` before acting
+- Automatic failover if master goes down
+- Zero-downtime rolling updates via `scripts/restart.sh`
 
 ---
 
-## Diferenciais Competitivos
+### 4. Build Applications via Conversation
 
-### vs. LangChain/LlamaIndex
-- **CH8**: Orquestração distribuída nativa, multi-device
-- **Outros**: Focados em single-device orchestration
+Tell the cluster what you need — it codes, tests, and deploys:
 
-### vs. Ray/Dask
-- **CH8**: Específico para LLMs, agentes autônomos
-- **Outros**: General-purpose distributed computing
+```
+You: "Create a monitoring agent for DNS resolution times"
+AI: Creating project... writing dns_optimizer.py... testing... PASSED!
+    -> Deployed as agent on manager1
+```
 
-### vs. Cloud APIs (OpenAI, Anthropic)
-- **CH8**: 100% local, zero custo recorrente, privacidade total
-- **Cloud**: Custos por token, dependência externa, dados saem do controle
+**Innovation Lab:**
+- 50 project limit (auto-manages)
+- Autonomous ideation + code generation
+- Auto-test in sandbox (isolated)
+- Auto-fix with AI (up to 3 attempts)
+- Score ranking (0-100) by relevance
+- Kanban pipeline: Fixing -> Testing -> Completed -> Deployed
+- Top-scoring projects auto-deployed as cluster agents
 
-### vs. Kubernetes AI Platforms
-- **CH8**: Zero DevOps, funciona em Raspberry Pi
-- **K8s**: Complexidade alta, requer infraestrutura robusta
-
----
-
-## Roadmap e Evolução
-
-### Já Implementado
-✅ 3 modos de operação (Standalone, Cluster, Distributed)
-✅ Recurrent learning (40-60% token savings)
-✅ 10+ agentes especializados
-✅ MCP integration
-✅ Universal platform support (15+ platforms)
-✅ Instalação one-line
-
-### Próximas Features
-🔄 Web UI para gerenciamento visual
-🔄 Marketplace de agentes customizados
-🔄 Fine-tuning automático de modelos
-🔄 Multi-language support (além de Python)
-🔄 Cloud sync opcional (para quem quiser)
-🔄 Advanced monitoring e observability
+**HubBuildAI:**
+- Full application builder from prompts
+- Generates complete web apps (frontend + backend + database)
 
 ---
 
-## Métricas de Performance
+### 5. Observability & Log Analytics
 
-**Benchmarks Reais:**
+Grafana-style log analytics powered by AI — without the complexity:
 
-| Métrica | Single Large Model | CH8 Cluster | Improvement |
-|---------|-------------------|-------------|-------------|
-| Latência | 45s | 14s | **3.2x faster** |
-| Tokens usados | 12,000 | 5,500 | **54% savings** |
-| Custo/1M tokens | $60 | $0 (local) | **100% savings** |
-| RAM necessária | 16GB | 4GB total | **4x more efficient** |
-| Consumo energia | 250W (GPU) | 30W total | **8.3x more efficient** |
-
-**Hardware Real Testado:**
-- ThinkPad 2011 (4GB RAM, Core i3)
-- Raspberry Pi 3 (1GB RAM)
-- Mac Mini 2012 (8GB RAM)
-- Android Phone (2GB RAM)
-
-**Resultado**: Cluster de $0 superando modelos caros em performance.
+- **250,000+ logs** ingested from all sources
+- **Sources:** syslog, Docker containers, nginx, Oracle alert_log, PostgreSQL
+- **AI Classification:** critico, seguranca, acao, info, transitorio, atencao
+- **Time-series** visualization with trends
+- **Failure predictions:** "CPU will exhaust in 4h at current rate"
+- **Auto-ticket:** Recurring patterns (3+ in 10min) -> ITSM ticket
 
 ---
 
-## Segurança e Compliance
+### 6. Database Operations
 
-### Privacidade
-- Processamento 100% local (GDPR compliant)
-- Sem telemetria ou tracking
-- Dados nunca saem dos dispositivos
-- Auditável (código aberto)
+**PostgreSQL:**
+- Master + Replica monitoring (logical streaming)
+- Replication lag detection + auto-reconnect
+- Connection metrics, query performance
 
-### Segurança
-- Comunicação criptografada entre nós (TLS)
-- Autenticação opcional via tokens
-- Isolamento de processos
-- Sandboxing de agentes customizados
-
-### Compliance
-- GDPR ready (Europa)
-- LGPD compatible (Brasil)
-- HIPAA friendly (dados médicos podem ficar locais)
-- SOC 2 compatible architecture
+**Oracle:**
+- Container health monitoring
+- Tablespace usage, alert log
+- Auto-restart on crash
 
 ---
 
-## Comunidade e Suporte
+### 7. Natural Language Interface
 
-**Open Source:**
-- MIT License (máxima liberdade)
-- GitHub: github.com/hudsonrj/ch8-cluster-agent
-- Issues e discussions abertas
-- Pull requests bem-vindos
+Talk to your entire infrastructure from anywhere:
 
-**Documentação:**
-- README completo
-- API reference
-- Tutoriais step-by-step
-- Exemplos práticos
-
-**Suporte:**
-- GitHub Issues (bugs e features)
-- Discussions (Q&A e ideias)
-- Discord (comunidade - em breve)
+**Examples:**
+```
+"Restart the nginx service on vmi"
+"Show disk usage across all nodes"
+"What happened at 3am?"
+"Deploy latest code to all nodes"
+"Create a backup of database X"
+"Run a security scan on all nodes"
+"How much is this cluster costing?"
+```
 
 ---
 
-## Conclusão
+### 8. Dashboard (12 Specialized Pages)
 
-CH8 Agent representa um novo paradigma em orquestração de IA:
-
-1. **Democratiza** o acesso a IA de alta performance
-2. **Elimina** barreiras de custo e hardware
-3. **Preserva** privacidade e controle dos dados
-4. **Inova** com distributed AI em hardware heterogêneo
-5. **Reduz** custos operacionais em 40-60%
-6. **Escala** horizontalmente sem limites
-7. **Sustenta** através de reutilização de hardware
-
-É a primeira solução verdadeiramente democrática de IA distribuída, colocando poder computacional avançado nas mãos de qualquer pessoa, independente de recursos financeiros ou expertise técnica.
+| Page | Description |
+|------|-------------|
+| Nodes | Real-time CPU/RAM/disk per node, agents, chat |
+| Cluster | Aggregated view, topology graph, model catalog |
+| Observability | Security findings, errors, predictions |
+| Strategic Room | Agent graph, activity feed, command bar |
+| Ops Deck | Health score, SLA%, cost/hr, nginx sites |
+| Databases | All instances, replication, query metrics |
+| Architecture | C4-style topology, service inventory |
+| Logs | Classification donut, time series, predictions |
+| Lab | Innovation Kanban, scores, documentation |
+| Analytics | FinOps: cost/model, cost/agent, projections |
+| ITSM | Ticket Kanban, SLA tracker |
+| Security | 7 layers, threat map, audit feed |
 
 ---
 
-**Autor**: Hudson RJ
-**Repositório**: https://github.com/hudsonrj/ch8-cluster-agent
-**Website**: https://ch8agent.ch8ai.com.br
-**Licença**: MIT
-**Versão**: 1.0
-**Data**: Abril 2026
+### 9. Workflow Studio
+
+Visual drag-and-drop editor for AI workflows:
+- Connect nodes, agents, models as draggable blocks
+- AI Copilot suggests workflow designs
+- Execution distributed across cluster
+- React Flow canvas with real-time state
+
+---
+
+### 10. FinOps & Analytics
+
+- Cost per agent, per model, per node
+- Burn rate: $/hr, $/day, $/month, $/year
+- Resource distribution charts
+- Model catalog (Cloud + local Ollama)
+- Projections: semester, annual
+
+---
+
+## Agents (15+)
+
+### Always Running (All Nodes)
+- Orchestrator — AI command center with tool calls
+- Server Monitor — Metrics, predictions, threats
+- Mesh Relay — P2P communication bridge
+- Log Shipper — All logs -> PostgreSQL
+
+### Central (HA Master Only)
+- Log Analyzer — Pattern detection -> tickets
+- Ticket Resolver — Full ITSM lifecycle
+- DB Failover — PostgreSQL monitoring
+- Security Scanner — Port, integrity, connections
+
+### Optional (Context-Dependent)
+- Telegram Bot, Oracle Monitor, Innovation Lab, Recovery Agent
+- Knowledge Agent, TTS/STT, RAG Agent, PG Performance Tuner
+
+---
+
+## Comparisons
+
+| Feature | CH8 Agent | Traditional Stack |
+|---------|-----------|-------------------|
+| Monitoring | Built-in | Zabbix + Grafana |
+| Logs | Built-in (AI) | ELK / Loki |
+| ITSM | Autonomous | Jira + PagerDuty |
+| Security | 7 layers | CrowdStrike + SIEM |
+| Deployment | Chat | Terraform + Ansible |
+| App Building | Conversation | Months of dev |
+| Cost | $0 (your hardware) | $500+/month |
+| Setup | 60 seconds | Days/weeks |
+
+---
+
+## License
+
+MIT — Use it, modify it, deploy it. No restrictions.

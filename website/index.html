@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="CH8 Agent — Distributed AI node agent with real-time monitoring, multi-channel communication, and service integration. Runs on any hardware.">
-    <title>CH8 Agent — Distributed AI Node System</title>
+    <meta name="description" content="CH8 Agent — Complete AI Operations Platform. SOC, ITSM, Self-healing infrastructure, Innovation Lab, and distributed AI agents. Install on any hardware.">
+    <title>CH8 Agent — AI Operations Platform for Distributed Infrastructure</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -24,12 +24,12 @@
                 <span class="logo-sub">AGENT</span>
             </div>
             <div class="nav-links">
-                <a href="#how-it-works">How it works</a>
+                <a href="#capabilities">Capabilities</a>
+                <a href="#soc">SOC</a>
+                <a href="#itsm">ITSM</a>
                 <a href="#agents">Agents</a>
-                <a href="#features">Features</a>
                 <a href="#platform">Platform</a>
                 <a href="#install">Install</a>
-                <a href="#workflow-studio" style="color:#7c3aed;font-weight:600">⬡ Workflow Studio</a>
                 <a href="https://github.com/hudsonrj/ch8-cluster-agent" target="_blank" class="btn-github">
                     <i class="fab fa-github"></i> GitHub
                 </a>
@@ -49,48 +49,50 @@
                 <div class="hero-content" data-aos="fade-up">
                     <div class="hero-badge">
                         <span class="badge-dot"></span>
-                        Open Source · MIT License · Any Hardware
+                        SOC + ITSM + DevOps + Innovation Lab — One Platform
                     </div>
 
                     <h1 class="hero-title">
-                        AI Agents That<br>
-                        <span class="gradient-text">Run Everywhere</span>
+                        Your Entire IT Operations<br>
+                        <span class="gradient-text">Powered by AI Agents</span>
                     </h1>
 
                     <p class="hero-description">
-                        Turn any machine into a managed AI node. Orchestrate tasks, monitor services,
-                        chat via <strong>Telegram or Slack</strong>, and manage your entire infrastructure
-                        from a single <strong>real-time dashboard</strong>.
+                        From <strong>Security Operations Center</strong> to <strong>Helpdesk</strong>,
+                        from <strong>auto-remediation</strong> to <strong>building new applications</strong> —
+                        CH8 Agent turns any machine into a node of a self-healing,
+                        self-monitoring, self-evolving AI cluster.
+                        <strong>Just talk to it.</strong>
                     </p>
 
                     <div class="hero-actions">
                         <a href="#install" class="btn btn-primary">
                             <i class="fas fa-terminal"></i> Install in 60s
                         </a>
-                        <a href="https://github.com/hudsonrj/ch8-cluster-agent" target="_blank" class="btn btn-outline">
-                            <i class="fab fa-github"></i> View on GitHub
+                        <a href="https://app.ch8ai.com.br" target="_blank" class="btn btn-outline">
+                            <i class="fas fa-external-link-alt"></i> Live Demo
                         </a>
                     </div>
 
                     <div class="hero-stats">
                         <div class="stat-item">
-                            <span class="stat-value">Any AI</span>
-                            <span class="stat-desc">Bedrock, OpenAI, Ollama</span>
+                            <span class="stat-value">15+</span>
+                            <span class="stat-desc">Autonomous Agents</span>
                         </div>
                         <div class="stat-divider"></div>
                         <div class="stat-item">
-                            <span class="stat-value">Real-time</span>
-                            <span class="stat-desc">Dashboard + Telegram</span>
+                            <span class="stat-value">7 Layers</span>
+                            <span class="stat-desc">Security Protection</span>
                         </div>
                         <div class="stat-divider"></div>
                         <div class="stat-item">
-                            <span class="stat-value">MCP</span>
-                            <span class="stat-desc">Service integration</span>
+                            <span class="stat-value">12 Pages</span>
+                            <span class="stat-desc">Dashboard Views</span>
                         </div>
                         <div class="stat-divider"></div>
                         <div class="stat-item">
                             <span class="stat-value">$0</span>
-                            <span class="stat-desc">Infrastructure cost</span>
+                            <span class="stat-desc">Infrastructure Cost</span>
                         </div>
                     </div>
                 </div>
@@ -103,17 +105,16 @@
                         <span class="t-title">ch8-agent</span>
                     </div>
                     <div class="terminal-body">
-                        <div class="t-line"><span class="t-prompt">$</span> <span class="t-cmd">ch8 up --token ch8_abc123...</span></div>
-                        <div class="t-line t-out"><span class="t-ok">✓</span> Authenticated with control server</div>
-                        <div class="t-line t-out"><span class="t-ok">✓</span> Agent 'orchestrator' started · bedrock</div>
-                        <div class="t-line t-out"><span class="t-ok">✓</span> Agent 'server-monitor' started</div>
-                        <div class="t-line t-out"><span class="t-ok">✓</span> Agent 'telegram' started · @ch8bot</div>
-                        <div class="t-line t-out t-success">→ CH8 Connect is up! Peers online: 3</div>
+                        <div class="t-line"><span class="t-prompt">$</span> <span class="t-cmd">ch8 up</span></div>
+                        <div class="t-line t-out"><span class="t-ok">&#10003;</span> Orchestrator started (Claude Sonnet)</div>
+                        <div class="t-line t-out"><span class="t-ok">&#10003;</span> Security Scanner active (7 layers)</div>
+                        <div class="t-line t-out"><span class="t-ok">&#10003;</span> Log Analyzer + ITSM running</div>
+                        <div class="t-line t-out"><span class="t-ok">&#10003;</span> Innovation Lab ready (20 projects)</div>
+                        <div class="t-line t-out t-success">&#8594; Cluster online! 5 nodes, 15 agents</div>
                         <br>
-                        <div class="t-line"><span class="t-prompt">$</span> <span class="t-cmd">ch8 status</span></div>
-                        <div class="t-line t-out"><span class="t-dim">[manager1]</span>  online · CPU 12% · 4 agents</div>
-                        <div class="t-line t-out"><span class="t-dim">[rpi-node]</span>  online · CPU 45% · 2 agents</div>
-                        <div class="t-line t-out"><span class="t-dim">[laptop]</span>    online · CPU  8% · 3 agents</div>
+                        <div class="t-line"><span class="t-prompt">You:</span> <span class="t-cmd">"deploy a monitoring agent for my PostgreSQL"</span></div>
+                        <div class="t-line t-out"><span class="t-dim">[AI]</span> Creating agent... testing... deploying...</div>
+                        <div class="t-line t-out"><span class="t-ok">&#10003;</span> postgres-monitor deployed on manager1</div>
                         <div class="t-cursor"></div>
                     </div>
                 </div>
@@ -128,50 +129,251 @@
             <div class="platforms-list">
                 <div class="platform-item"><i class="fab fa-linux"></i> Linux</div>
                 <div class="platform-item"><i class="fab fa-apple"></i> macOS</div>
-                <div class="platform-item"><i class="fab fa-windows"></i> Windows (WSL)</div>
+                <div class="platform-item"><i class="fab fa-windows"></i> Windows</div>
                 <div class="platform-item"><i class="fas fa-raspberry-pi"></i> Raspberry Pi</div>
                 <div class="platform-item"><i class="fas fa-server"></i> VPS / Cloud</div>
-                <div class="platform-item"><i class="fas fa-microchip"></i> ARM 64</div>
+                <div class="platform-item"><i class="fab fa-android"></i> Android</div>
             </div>
         </div>
     </section>
 
-    <!-- How It Works -->
-    <section id="how-it-works" class="how-it-works">
+    <!-- What You Can Do -->
+    <section id="capabilities" class="how-it-works">
         <div class="container">
             <div class="section-header" data-aos="fade-up">
-                <p class="section-label">Process</p>
-                <h2>One command. Full control.</h2>
-                <p>Install on any machine, configure your AI provider, and connect to your network.</p>
+                <p class="section-label">What you can do</p>
+                <h2>Everything. Just by talking.</h2>
+                <p>No YAML, no Terraform, no complex configurations. Describe what you want — the cluster executes.</p>
             </div>
 
-            <div class="steps-flow" data-aos="fade-up" data-aos-delay="100">
-                <div class="step-card">
-                    <div class="step-num">01</div>
-                    <div class="step-icon"><i class="fas fa-download"></i></div>
-                    <h3>Install</h3>
-                    <p>One-line installer for Linux and macOS. Works on any machine with Python 3.10+.</p>
+            <div data-aos="fade-up" data-aos-delay="100" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px;margin-top:40px">
+
+                <div style="background:#1e293b;border:1px solid #334155;border-radius:12px;padding:24px">
+                    <div style="font-size:24px;margin-bottom:10px">&#128737;</div>
+                    <h3 style="color:#f8fafc;font-size:16px;margin-bottom:8px">Security Operations (SOC)</h3>
+                    <p style="color:#94a3b8;font-size:13px;line-height:1.6;margin-bottom:12px">7-layer security with real-time threat detection. SQL injection, prompt injection, RCE prevention, rate limiting, audit trail.</p>
+                    <div style="font-size:11px;color:#64748b;line-height:2">
+                        <div>&#8226; Port security scanning every 10 min</div>
+                        <div>&#8226; File integrity monitoring (SHA-256)</div>
+                        <div>&#8226; TCP connection anomaly detection</div>
+                        <div>&#8226; Failed login / brute force alerts</div>
+                        <div>&#8226; 12/12 pentest PASS (OWASP Top 10)</div>
+                    </div>
                 </div>
-                <div class="step-arrow"><i class="fas fa-arrow-right"></i></div>
-                <div class="step-card">
-                    <div class="step-num">02</div>
-                    <div class="step-icon"><i class="fas fa-sliders-h"></i></div>
-                    <h3>Configure</h3>
-                    <p>Pick your AI provider (Bedrock, OpenAI, Groq, Ollama) and communication channels.</p>
+
+                <div style="background:#1e293b;border:1px solid #334155;border-radius:12px;padding:24px">
+                    <div style="font-size:24px;margin-bottom:10px">&#127915;</div>
+                    <h3 style="color:#f8fafc;font-size:16px;margin-bottom:8px">Helpdesk / ITSM</h3>
+                    <p style="color:#94a3b8;font-size:13px;line-height:1.6;margin-bottom:12px">Fully autonomous ticket system. AI detects problems, creates tickets, investigates, applies fix, validates, and closes — zero human intervention.</p>
+                    <div style="font-size:11px;color:#64748b;line-height:2">
+                        <div>&#8226; Auto-create tickets from log patterns</div>
+                        <div>&#8226; SLA tracking (1h/4h/24h/72h)</div>
+                        <div>&#8226; Auto-escalation on SLA breach</div>
+                        <div>&#8226; Kanban board + detail modals</div>
+                        <div>&#8226; Full lifecycle: open &#8594; resolved &#8594; closed</div>
+                    </div>
                 </div>
-                <div class="step-arrow"><i class="fas fa-arrow-right"></i></div>
-                <div class="step-card">
-                    <div class="step-num">03</div>
-                    <div class="step-icon"><i class="fas fa-bolt"></i></div>
-                    <h3>Connect</h3>
-                    <p>Join your network with a pre-auth token. Node appears on dashboard immediately.</p>
+
+                <div style="background:#1e293b;border:1px solid #334155;border-radius:12px;padding:24px">
+                    <div style="font-size:24px;margin-bottom:10px">&#9889;</div>
+                    <h3 style="color:#f8fafc;font-size:16px;margin-bottom:8px">Self-Healing Infrastructure</h3>
+                    <p style="color:#94a3b8;font-size:13px;line-height:1.6;margin-bottom:12px">Detects failures and fixes them autonomously. DB down? Restarts. Service crashed? Recovers. Node unreachable? SSH auto-heal.</p>
+                    <div style="font-size:11px;color:#64748b;line-height:2">
+                        <div>&#8226; Recovery agent with SSH fallback</div>
+                        <div>&#8226; DB failover monitoring (master/replica)</div>
+                        <div>&#8226; Service restart on crash detection</div>
+                        <div>&#8226; HA election (master/standby)</div>
+                        <div>&#8226; Zero-downtime rolling updates</div>
+                    </div>
                 </div>
-                <div class="step-arrow"><i class="fas fa-arrow-right"></i></div>
-                <div class="step-card">
-                    <div class="step-num">04</div>
-                    <div class="step-icon"><i class="fas fa-comments"></i></div>
-                    <h3>Operate</h3>
-                    <p>Chat with any node via Dashboard or Telegram. Execute tasks, monitor services, create agents.</p>
+
+                <div style="background:#1e293b;border:1px solid #334155;border-radius:12px;padding:24px">
+                    <div style="font-size:24px;margin-bottom:10px">&#128640;</div>
+                    <h3 style="color:#f8fafc;font-size:16px;margin-bottom:8px">Build Apps via Conversation</h3>
+                    <p style="color:#94a3b8;font-size:13px;line-height:1.6;margin-bottom:12px">Tell the cluster what you need — it designs, codes, tests, and deploys. From a simple script to a full web app with database.</p>
+                    <div style="font-size:11px;color:#64748b;line-height:2">
+                        <div>&#8226; "Create a DNS monitor agent" &#8594; done</div>
+                        <div>&#8226; "Build a REST API for X" &#8594; done</div>
+                        <div>&#8226; Innovation Lab: 50 projects, auto-test</div>
+                        <div>&#8226; Kanban pipeline: idea &#8594; test &#8594; deploy</div>
+                        <div>&#8226; HubBuildAI: full app builder</div>
+                    </div>
+                </div>
+
+                <div style="background:#1e293b;border:1px solid #334155;border-radius:12px;padding:24px">
+                    <div style="font-size:24px;margin-bottom:10px">&#128202;</div>
+                    <h3 style="color:#f8fafc;font-size:16px;margin-bottom:8px">Observability & Logs</h3>
+                    <p style="color:#94a3b8;font-size:13px;line-height:1.6;margin-bottom:12px">Grafana-style log analytics with AI classification. Predictions, anomaly detection, and semantic categorization — no Elastic needed.</p>
+                    <div style="font-size:11px;color:#64748b;line-height:2">
+                        <div>&#8226; 250k+ logs ingested from all sources</div>
+                        <div>&#8226; Classification: critico/seguranca/info</div>
+                        <div>&#8226; Time-series visualization</div>
+                        <div>&#8226; Failure prediction (CPU/disk exhaust)</div>
+                        <div>&#8226; Auto-ticket on recurring patterns</div>
+                    </div>
+                </div>
+
+                <div style="background:#1e293b;border:1px solid #334155;border-radius:12px;padding:24px">
+                    <div style="font-size:24px;margin-bottom:10px">&#128483;</div>
+                    <h3 style="color:#f8fafc;font-size:16px;margin-bottom:8px">Talk to Your Infrastructure</h3>
+                    <p style="color:#94a3b8;font-size:13px;line-height:1.6;margin-bottom:12px">Natural language interface to everything. Ask questions, give orders, get reports — via Dashboard, Telegram, or Slack.</p>
+                    <div style="font-size:11px;color:#64748b;line-height:2">
+                        <div>&#8226; "How is Oracle doing?" &#8594; full report</div>
+                        <div>&#8226; "Restart nginx on all nodes" &#8594; done</div>
+                        <div>&#8226; "What happened at 3am?" &#8594; log analysis</div>
+                        <div>&#8226; "Create a backup of database X" &#8594; done</div>
+                        <div>&#8226; Broadcast commands to all nodes at once</div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- SOC Section -->
+    <section id="soc" style="padding:80px 0;background:linear-gradient(135deg,rgba(239,68,68,0.04) 0%,rgba(124,58,237,0.04) 100%)">
+        <div class="container">
+            <div class="section-header" data-aos="fade-up">
+                <p class="section-label" style="color:#ef4444">Security Operations Center</p>
+                <h2>7 Layers of Active Protection</h2>
+                <p>Enterprise-grade security that runs autonomously. Pentest-validated (12/12 PASS).</p>
+            </div>
+
+            <div data-aos="fade-up" data-aos-delay="100" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-top:36px">
+                <div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:18px;text-align:center">
+                    <div style="font-size:28px;color:#ef4444;font-weight:800;font-family:'JetBrains Mono',monospace">1</div>
+                    <div style="font-size:13px;font-weight:600;color:#f8fafc;margin:6px 0 4px">Authentication</div>
+                    <div style="font-size:11px;color:#64748b">Bearer token on all endpoints. Node-to-node encrypted auth.</div>
+                </div>
+                <div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:18px;text-align:center">
+                    <div style="font-size:28px;color:#f97316;font-weight:800;font-family:'JetBrains Mono',monospace">2</div>
+                    <div style="font-size:13px;font-weight:600;color:#f8fafc;margin:6px 0 4px">Sanitization</div>
+                    <div style="font-size:11px;color:#64748b">Blocks rm -rf, fork bombs, docker injection, path traversal.</div>
+                </div>
+                <div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:18px;text-align:center">
+                    <div style="font-size:28px;color:#eab308;font-weight:800;font-family:'JetBrains Mono',monospace">3</div>
+                    <div style="font-size:13px;font-weight:600;color:#f8fafc;margin:6px 0 4px">Credentials</div>
+                    <div style="font-size:11px;color:#64748b">Zero hardcoded. All in env files (chmod 600). Never in code.</div>
+                </div>
+                <div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:18px;text-align:center">
+                    <div style="font-size:28px;color:#22c55e;font-weight:800;font-family:'JetBrains Mono',monospace">4</div>
+                    <div style="font-size:13px;font-weight:600;color:#f8fafc;margin:6px 0 4px">Rate Limiting</div>
+                    <div style="font-size:11px;color:#64748b">Redis sliding window. 60/min execute, 30/min chat. DDoS protected.</div>
+                </div>
+                <div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:18px;text-align:center">
+                    <div style="font-size:28px;color:#06b6d4;font-weight:800;font-family:'JetBrains Mono',monospace">5</div>
+                    <div style="font-size:13px;font-weight:600;color:#f8fafc;margin:6px 0 4px">Headers + Relay</div>
+                    <div style="font-size:11px;color:#64748b">Security headers on nginx. Relay auth for proxied endpoints.</div>
+                </div>
+                <div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:18px;text-align:center">
+                    <div style="font-size:28px;color:#8b5cf6;font-weight:800;font-family:'JetBrains Mono',monospace">6</div>
+                    <div style="font-size:13px;font-weight:600;color:#f8fafc;margin:6px 0 4px">SQL Injection</div>
+                    <div style="font-size:11px;color:#64748b">25+ patterns: UNION SELECT, DROP, COPY TO, pg_sleep, etc.</div>
+                </div>
+                <div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:18px;text-align:center">
+                    <div style="font-size:28px;color:#ec4899;font-weight:800;font-family:'JetBrains Mono',monospace">7</div>
+                    <div style="font-size:13px;font-weight:600;color:#f8fafc;margin:6px 0 4px">Prompt Injection</div>
+                    <div style="font-size:11px;color:#64748b">20+ patterns: jailbreak, role manipulation, system extraction.</div>
+                </div>
+            </div>
+
+            <!-- Pentest results -->
+            <div data-aos="fade-up" data-aos-delay="200" style="margin-top:32px;background:#0f172a;border:1px solid #334155;border-radius:12px;padding:24px;font-family:'JetBrains Mono',monospace;font-size:12px">
+                <div style="color:#64748b;margin-bottom:12px">// Penetration Test Results — All 12 vectors tested</div>
+                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px">
+                    <div><span style="color:#22c55e">PASS</span> <span style="color:#94a3b8">Auth bypass attempt</span></div>
+                    <div><span style="color:#22c55e">PASS</span> <span style="color:#94a3b8">Remote Code Execution</span></div>
+                    <div><span style="color:#22c55e">PASS</span> <span style="color:#94a3b8">Path traversal</span></div>
+                    <div><span style="color:#22c55e">PASS</span> <span style="color:#94a3b8">Docker injection</span></div>
+                    <div><span style="color:#22c55e">PASS</span> <span style="color:#94a3b8">SQL injection (25 patterns)</span></div>
+                    <div><span style="color:#22c55e">PASS</span> <span style="color:#94a3b8">Prompt injection (20 patterns)</span></div>
+                    <div><span style="color:#22c55e">PASS</span> <span style="color:#94a3b8">Fork bomb (:(){ :|:& };:)</span></div>
+                    <div><span style="color:#22c55e">PASS</span> <span style="color:#94a3b8">Rate limit enforcement</span></div>
+                    <div><span style="color:#22c55e">PASS</span> <span style="color:#94a3b8">Relay auth bypass</span></div>
+                    <div><span style="color:#22c55e">PASS</span> <span style="color:#94a3b8">curl|bash injection</span></div>
+                    <div><span style="color:#22c55e">PASS</span> <span style="color:#94a3b8">Credential exposure</span></div>
+                    <div><span style="color:#22c55e">PASS</span> <span style="color:#94a3b8">Audit trail integrity</span></div>
+                </div>
+                <div style="margin-top:12px;color:#22c55e;font-weight:600">Security Score: 12/12 (100%)</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ITSM Section -->
+    <section id="itsm" style="padding:80px 0;background:rgba(59,130,246,0.03)">
+        <div class="container">
+            <div class="section-header" data-aos="fade-up">
+                <p class="section-label" style="color:#3b82f6">ITSM / Helpdesk</p>
+                <h2>Zero-Touch Incident Management</h2>
+                <p>AI detects the problem, opens a ticket, investigates root cause, applies the fix, validates it worked, and closes the ticket. All autonomously.</p>
+            </div>
+
+            <div data-aos="fade-up" data-aos-delay="100" style="margin-top:36px">
+                <!-- Flow diagram -->
+                <div style="display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;margin-bottom:36px">
+                    <div style="background:#1e293b;border:1px solid #f87171;border-radius:8px;padding:12px 18px;text-align:center">
+                        <div style="font-size:11px;color:#f87171;font-weight:600">DETECT</div>
+                        <div style="font-size:10px;color:#64748b">Log patterns</div>
+                    </div>
+                    <div style="color:#334155;font-size:18px">&#8594;</div>
+                    <div style="background:#1e293b;border:1px solid #f97316;border-radius:8px;padding:12px 18px;text-align:center">
+                        <div style="font-size:11px;color:#f97316;font-weight:600">OPEN TICKET</div>
+                        <div style="font-size:10px;color:#64748b">Auto-categorize</div>
+                    </div>
+                    <div style="color:#334155;font-size:18px">&#8594;</div>
+                    <div style="background:#1e293b;border:1px solid #eab308;border-radius:8px;padding:12px 18px;text-align:center">
+                        <div style="font-size:11px;color:#eab308;font-weight:600">INVESTIGATE</div>
+                        <div style="font-size:10px;color:#64748b">Root cause</div>
+                    </div>
+                    <div style="color:#334155;font-size:18px">&#8594;</div>
+                    <div style="background:#1e293b;border:1px solid #22c55e;border-radius:8px;padding:12px 18px;text-align:center">
+                        <div style="font-size:11px;color:#22c55e;font-weight:600">FIX</div>
+                        <div style="font-size:10px;color:#64748b">Auto-remediate</div>
+                    </div>
+                    <div style="color:#334155;font-size:18px">&#8594;</div>
+                    <div style="background:#1e293b;border:1px solid #06b6d4;border-radius:8px;padding:12px 18px;text-align:center">
+                        <div style="font-size:11px;color:#06b6d4;font-weight:600">VALIDATE</div>
+                        <div style="font-size:10px;color:#64748b">Confirm fix</div>
+                    </div>
+                    <div style="color:#334155;font-size:18px">&#8594;</div>
+                    <div style="background:#1e293b;border:1px solid #8b5cf6;border-radius:8px;padding:12px 18px;text-align:center">
+                        <div style="font-size:11px;color:#8b5cf6;font-weight:600">CLOSE</div>
+                        <div style="font-size:10px;color:#64748b">Document</div>
+                    </div>
+                </div>
+
+                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px">
+                    <div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:20px">
+                        <h4 style="color:#f8fafc;font-size:14px;margin-bottom:8px">Ticket Categories</h4>
+                        <div style="font-size:12px;color:#94a3b8;line-height:2">
+                            <div>&#128308; service_down — Service outage</div>
+                            <div>&#128992; performance — Degradation / slow</div>
+                            <div>&#128993; disk_full — Storage critical</div>
+                            <div>&#128309; config — Configuration drift</div>
+                            <div>&#128995; security — Threat / vulnerability</div>
+                        </div>
+                    </div>
+                    <div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:20px">
+                        <h4 style="color:#f8fafc;font-size:14px;margin-bottom:8px">SLA Enforcement</h4>
+                        <div style="font-size:12px;color:#94a3b8;line-height:2">
+                            <div><strong style="color:#ef4444">Critical:</strong> 1 hour response</div>
+                            <div><strong style="color:#f97316">High:</strong> 4 hours response</div>
+                            <div><strong style="color:#eab308">Medium:</strong> 24 hours response</div>
+                            <div><strong style="color:#22c55e">Low:</strong> 72 hours response</div>
+                            <div>&#8594; Auto-escalates on SLA breach</div>
+                        </div>
+                    </div>
+                    <div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:20px">
+                        <h4 style="color:#f8fafc;font-size:14px;margin-bottom:8px">Example: Real Auto-Fix</h4>
+                        <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#64748b;line-height:1.8;background:#0f172a;border-radius:6px;padding:10px">
+                            <div><span style="color:#f87171">03:17</span> Oracle container crashed</div>
+                            <div><span style="color:#f97316">03:17</span> Ticket #47 opened (critical)</div>
+                            <div><span style="color:#eab308">03:18</span> Investigating... ORA-00600</div>
+                            <div><span style="color:#22c55e">03:18</span> docker restart oracle-free</div>
+                            <div><span style="color:#06b6d4">03:19</span> Validation: ORA OK, port 1521 up</div>
+                            <div><span style="color:#8b5cf6">03:19</span> Ticket resolved. MTTR: 2 min</div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -182,8 +384,8 @@
         <div class="container">
             <div class="section-header" data-aos="fade-up">
                 <p class="section-label">Agents</p>
-                <h2>Built-in agents, zero config</h2>
-                <p>Every node runs these agents automatically. Add custom service agents via the dashboard wizard.</p>
+                <h2>15+ Autonomous Agents</h2>
+                <p>Each agent is a specialized AI microservice. They coordinate, failover, and self-heal. New agents can be created via conversation.</p>
             </div>
 
             <div class="agents-grid" data-aos="fade-up" data-aos-delay="100">
@@ -192,26 +394,82 @@
                         <div class="agent-icon-wrap" style="--accent: #0070f3;">
                             <i class="fas fa-brain"></i>
                         </div>
-                        <span class="agent-pill">Default</span>
+                        <span class="agent-pill">Core</span>
                     </div>
                     <h3>Orchestrator</h3>
-                    <p>AI-powered agent that answers questions and executes tasks on the node using tool calls (shell, files, Docker, HTTP).</p>
+                    <p>AI-powered command center. Executes tasks via tool calls — shell, files, Docker, HTTP, databases. Answers questions about your infrastructure.</p>
                     <div class="agent-tags">
-                        <span>shell_exec</span><span>file_write</span><span>docker_exec</span>
+                        <span>shell_exec</span><span>docker_exec</span><span>file_ops</span><span>http</span>
                     </div>
                 </div>
 
                 <div class="agent-card">
                     <div class="agent-card-top">
-                        <div class="agent-icon-wrap" style="--accent: #10b981;">
-                            <i class="fas fa-heartbeat"></i>
+                        <div class="agent-icon-wrap" style="--accent: #ef4444;">
+                            <i class="fas fa-shield-alt"></i>
                         </div>
-                        <span class="agent-pill">Default</span>
+                        <span class="agent-pill">Security</span>
                     </div>
-                    <h3>Server Monitor</h3>
-                    <p>Watches CPU, RAM, disk, and processes. Detects threats, generates alerts, and predicts resource exhaustion.</p>
+                    <h3>Security Scanner</h3>
+                    <p>Scans ports, file integrity, TCP connections, and user sessions every 10 minutes. Creates ITSM tickets for anomalies.</p>
                     <div class="agent-tags">
-                        <span>Alerts</span><span>Predictions</span><span>Security</span>
+                        <span>port_scan</span><span>integrity</span><span>sessions</span><span>alerts</span>
+                    </div>
+                </div>
+
+                <div class="agent-card">
+                    <div class="agent-card-top">
+                        <div class="agent-icon-wrap" style="--accent: #f97316;">
+                            <i class="fas fa-file-alt"></i>
+                        </div>
+                        <span class="agent-pill">Observability</span>
+                    </div>
+                    <h3>Log Analyzer</h3>
+                    <p>Collects logs from all sources (syslog, Docker, nginx, Oracle, PostgreSQL). Classifies, detects patterns, creates tickets.</p>
+                    <div class="agent-tags">
+                        <span>250k+ logs</span><span>classify</span><span>patterns</span><span>predict</span>
+                    </div>
+                </div>
+
+                <div class="agent-card">
+                    <div class="agent-card-top">
+                        <div class="agent-icon-wrap" style="--accent: #22c55e;">
+                            <i class="fas fa-ticket-alt"></i>
+                        </div>
+                        <span class="agent-pill">ITSM</span>
+                    </div>
+                    <h3>Ticket Resolver</h3>
+                    <p>Autonomous ITSM engine. Manages full ticket lifecycle — investigate, diagnose, fix, validate, close. 2-minute cycle.</p>
+                    <div class="agent-tags">
+                        <span>auto-fix</span><span>SLA</span><span>escalation</span><span>docs</span>
+                    </div>
+                </div>
+
+                <div class="agent-card">
+                    <div class="agent-card-top">
+                        <div class="agent-icon-wrap" style="--accent: #06b6d4;">
+                            <i class="fas fa-database"></i>
+                        </div>
+                        <span class="agent-pill">Database</span>
+                    </div>
+                    <h3>DB Failover</h3>
+                    <p>Monitors PostgreSQL master + replica. Detects replication lag, connection failures, auth errors. Auto-reconnects.</p>
+                    <div class="agent-tags">
+                        <span>pg_master</span><span>replica</span><span>streaming</span><span>failover</span>
+                    </div>
+                </div>
+
+                <div class="agent-card">
+                    <div class="agent-card-top">
+                        <div class="agent-icon-wrap" style="--accent: #8b5cf6;">
+                            <i class="fas fa-flask"></i>
+                        </div>
+                        <span class="agent-pill">Innovation</span>
+                    </div>
+                    <h3>Innovation Lab</h3>
+                    <p>Autonomous R&D. Generates ideas, codes projects, tests them, fixes with AI, deploys the best. 50 project limit.</p>
+                    <div class="agent-tags">
+                        <span>ideation</span><span>auto-code</span><span>test</span><span>deploy</span>
                     </div>
                 </div>
 
@@ -220,129 +478,267 @@
                         <div class="agent-icon-wrap" style="--accent: #0088cc;">
                             <i class="fab fa-telegram"></i>
                         </div>
-                        <span class="agent-pill">Optional</span>
+                        <span class="agent-pill">Channel</span>
                     </div>
-                    <h3>Telegram Listener</h3>
-                    <p>Bidirectional Telegram bot. Send commands and receive responses with typing indicator. Configurable per node.</p>
+                    <h3>Telegram Bot</h3>
+                    <p>Bidirectional Telegram interface. Send commands, receive reports, get alerts. Typing indicator while AI thinks.</p>
                     <div class="agent-tags">
-                        <span>Interactive</span><span>Typing status</span><span>Long-polling</span>
+                        <span>interactive</span><span>alerts</span><span>commands</span>
                     </div>
                 </div>
 
                 <div class="agent-card">
                     <div class="agent-card-top">
-                        <div class="agent-icon-wrap" style="--accent: #7928ca;">
-                            <i class="fas fa-plug"></i>
+                        <div class="agent-icon-wrap" style="--accent: #10b981;">
+                            <i class="fas fa-heartbeat"></i>
                         </div>
-                        <span class="agent-pill">Wizard</span>
+                        <span class="agent-pill">Core</span>
                     </div>
-                    <h3>Service Agents (MCP)</h3>
-                    <p>Create dedicated agents for any service — PostgreSQL, APIs, Docker containers. Exposes MCP-style tools to the orchestrator.</p>
+                    <h3>Server Monitor</h3>
+                    <p>Watches CPU, RAM, disk, network, processes. Predicts resource exhaustion. Detects threats and anomalies.</p>
                     <div class="agent-tags">
-                        <span>health_check</span><span>execute_query</span><span>get_metrics</span>
+                        <span>metrics</span><span>predict</span><span>alerts</span><span>threats</span>
                     </div>
                 </div>
             </div>
 
-            <!-- Code snippet -->
-            <div class="code-showcase" data-aos="fade-up" data-aos-delay="100">
-                <div class="code-showcase-header">
-                    <div class="t-dot t-red"></div>
-                    <div class="t-dot t-yellow"></div>
-                    <div class="t-dot t-green"></div>
-                    <span class="code-showcase-title">Telegram → Orchestrator</span>
-                    <span class="code-showcase-badge">Chat with your node</span>
+            <!-- Additional agents row -->
+            <div data-aos="fade-up" data-aos-delay="200" style="margin-top:24px;display:flex;flex-wrap:wrap;gap:8px;justify-content:center">
+                <span style="background:#1e293b;border:1px solid #334155;border-radius:6px;padding:8px 14px;font-size:11px;color:#94a3b8"><i class="fas fa-network-wired" style="color:#06b6d4;margin-right:6px"></i>Mesh Relay</span>
+                <span style="background:#1e293b;border:1px solid #334155;border-radius:6px;padding:8px 14px;font-size:11px;color:#94a3b8"><i class="fas fa-truck-loading" style="color:#22c55e;margin-right:6px"></i>Log Shipper</span>
+                <span style="background:#1e293b;border:1px solid #334155;border-radius:6px;padding:8px 14px;font-size:11px;color:#94a3b8"><i class="fas fa-band-aid" style="color:#ef4444;margin-right:6px"></i>Recovery Agent</span>
+                <span style="background:#1e293b;border:1px solid #334155;border-radius:6px;padding:8px 14px;font-size:11px;color:#94a3b8"><i class="fas fa-microphone" style="color:#8b5cf6;margin-right:6px"></i>TTS / STT</span>
+                <span style="background:#1e293b;border:1px solid #334155;border-radius:6px;padding:8px 14px;font-size:11px;color:#94a3b8"><i class="fas fa-book" style="color:#f97316;margin-right:6px"></i>Knowledge Agent</span>
+                <span style="background:#1e293b;border:1px solid #334155;border-radius:6px;padding:8px 14px;font-size:11px;color:#94a3b8"><i class="fas fa-search" style="color:#eab308;margin-right:6px"></i>RAG Agent</span>
+                <span style="background:#1e293b;border:1px solid #334155;border-radius:6px;padding:8px 14px;font-size:11px;color:#94a3b8"><i class="fas fa-database" style="color:#ec4899;margin-right:6px"></i>Oracle Monitor</span>
+                <span style="background:#1e293b;border:1px solid #334155;border-radius:6px;padding:8px 14px;font-size:11px;color:#94a3b8"><i class="fas fa-chart-bar" style="color:#3b82f6;margin-right:6px"></i>PG Performance Tuner</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Dashboard Section -->
+    <section id="platform" style="padding:80px 0;background:rgba(124,58,237,0.03)">
+        <div class="container">
+            <div class="section-header" data-aos="fade-up">
+                <p class="section-label" style="color:#8b5cf6">Control Dashboard</p>
+                <h2>12 Specialized Views</h2>
+                <p>Complete operational visibility. From node metrics to security posture, from database health to financial analytics.</p>
+            </div>
+
+            <!-- Tab bar -->
+            <div data-aos="fade-up" data-aos-delay="100" style="margin-top:36px">
+                <div style="display:flex;gap:4px;background:#1e293b;padding:8px 16px;border-radius:12px 12px 0 0;border:1px solid #334155;border-bottom:none;overflow-x:auto">
+                    <span style="padding:6px 12px;background:rgba(139,92,246,.1);border:1px solid rgba(139,92,246,.3);border-radius:6px;color:#a78bfa;font-size:11px;font-weight:600;white-space:nowrap">Nodes</span>
+                    <span style="padding:6px 12px;border-radius:6px;color:#94a3b8;font-size:11px;white-space:nowrap">Cluster</span>
+                    <span style="padding:6px 12px;border-radius:6px;color:#94a3b8;font-size:11px;white-space:nowrap">Observability</span>
+                    <span style="padding:6px 12px;border-radius:6px;color:#94a3b8;font-size:11px;white-space:nowrap">Strategic</span>
+                    <span style="padding:6px 12px;border-radius:6px;color:#94a3b8;font-size:11px;white-space:nowrap">Ops Deck</span>
+                    <span style="padding:6px 12px;border-radius:6px;color:#94a3b8;font-size:11px;white-space:nowrap">Databases</span>
+                    <span style="padding:6px 12px;border-radius:6px;color:#94a3b8;font-size:11px;white-space:nowrap">Architecture</span>
+                    <span style="padding:6px 12px;border-radius:6px;color:#94a3b8;font-size:11px;white-space:nowrap">Logs</span>
+                    <span style="padding:6px 12px;border-radius:6px;color:#94a3b8;font-size:11px;white-space:nowrap">Lab</span>
+                    <span style="padding:6px 12px;border-radius:6px;color:#94a3b8;font-size:11px;white-space:nowrap">Analytics</span>
+                    <span style="padding:6px 12px;border-radius:6px;color:#94a3b8;font-size:11px;white-space:nowrap">ITSM</span>
+                    <span style="padding:6px 12px;border-radius:6px;color:#94a3b8;font-size:11px;white-space:nowrap">Security</span>
                 </div>
-                <div class="code-block">
-                    <pre><code><span class="t-dim"># You send in Telegram:</span>
-<span class="str">"list all running docker containers"</span>
 
-<span class="t-dim"># Orchestrator executes tool_call:</span>
-<span class="kw">shell_exec</span>(<span class="str">"docker ps --format '{{.Names}} {{.Status}}'"</span>)
+                <div style="background:#0f172a;border:1px solid #334155;border-radius:0 0 12px 12px;padding:32px">
+                    <!-- Strategic Room Demo -->
+                    <div style="background:#1e293b;border:1px solid #334155;border-radius:12px;padding:24px;margin-bottom:24px">
+                        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+                            <span style="font-size:18px">&#9889;</span>
+                            <h4 style="color:#f8fafc;font-size:15px;margin:0">Strategic Room — Live Preview</h4>
+                            <span style="font-size:10px;color:#22c55e;background:rgba(34,197,94,.1);padding:3px 8px;border-radius:4px;margin-left:auto">LIVE</span>
+                        </div>
+                        <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px">
+                            <!-- Agent Graph Mock -->
+                            <div style="background:#0f172a;border:1px solid #1e293b;border-radius:8px;padding:16px;position:relative;min-height:200px;overflow:hidden">
+                                <div style="font-size:9px;color:#475569;position:absolute;top:8px;left:8px">AGENT TOPOLOGY</div>
+                                <!-- Nodes -->
+                                <div style="position:absolute;top:40px;left:50%;transform:translateX(-50%)">
+                                    <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#3b82f6);display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;font-weight:700;box-shadow:0 0 12px rgba(124,58,237,.4)">ORCH</div>
+                                </div>
+                                <div style="position:absolute;top:100px;left:20%">
+                                    <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#ef4444,#f97316);display:flex;align-items:center;justify-content:center;font-size:8px;color:#fff;font-weight:600">SEC</div>
+                                </div>
+                                <div style="position:absolute;top:100px;left:50%;transform:translateX(-50%)">
+                                    <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#22c55e,#06b6d4);display:flex;align-items:center;justify-content:center;font-size:8px;color:#fff;font-weight:600">LOG</div>
+                                </div>
+                                <div style="position:absolute;top:100px;right:20%">
+                                    <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#eab308,#f97316);display:flex;align-items:center;justify-content:center;font-size:8px;color:#fff;font-weight:600">ITSM</div>
+                                </div>
+                                <div style="position:absolute;top:155px;left:35%">
+                                    <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#06b6d4,#3b82f6);display:flex;align-items:center;justify-content:center;font-size:7px;color:#fff;font-weight:600">DB</div>
+                                </div>
+                                <div style="position:absolute;top:155px;right:35%">
+                                    <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#8b5cf6,#ec4899);display:flex;align-items:center;justify-content:center;font-size:7px;color:#fff;font-weight:600">LAB</div>
+                                </div>
+                                <!-- Connection lines (SVG-like) -->
+                                <svg style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none" xmlns="http://www.w3.org/2000/svg">
+                                    <line x1="50%" y1="70" x2="25%" y2="110" stroke="#334155" stroke-width="1" opacity="0.6"/>
+                                    <line x1="50%" y1="70" x2="50%" y2="110" stroke="#334155" stroke-width="1" opacity="0.6"/>
+                                    <line x1="50%" y1="70" x2="75%" y2="110" stroke="#334155" stroke-width="1" opacity="0.6"/>
+                                    <line x1="25%" y1="130" x2="38%" y2="165" stroke="#334155" stroke-width="1" opacity="0.4"/>
+                                    <line x1="75%" y1="130" x2="62%" y2="165" stroke="#334155" stroke-width="1" opacity="0.4"/>
+                                </svg>
+                            </div>
+                            <!-- Activity Feed -->
+                            <div style="background:#0f172a;border:1px solid #1e293b;border-radius:8px;padding:12px;font-size:10px;display:flex;flex-direction:column;gap:6px">
+                                <div style="font-size:9px;color:#475569;margin-bottom:4px">LIVE ACTIVITY</div>
+                                <div style="display:flex;align-items:center;gap:6px"><span style="width:6px;height:6px;border-radius:50%;background:#22c55e"></span><span style="color:#94a3b8">security_scanner completed scan</span></div>
+                                <div style="display:flex;align-items:center;gap:6px"><span style="width:6px;height:6px;border-radius:50%;background:#3b82f6"></span><span style="color:#94a3b8">log_analyzer found 0 patterns</span></div>
+                                <div style="display:flex;align-items:center;gap:6px"><span style="width:6px;height:6px;border-radius:50%;background:#8b5cf6"></span><span style="color:#94a3b8">ticket_resolver closed #42</span></div>
+                                <div style="display:flex;align-items:center;gap:6px"><span style="width:6px;height:6px;border-radius:50%;background:#f97316"></span><span style="color:#94a3b8">inova_test built new project</span></div>
+                                <div style="display:flex;align-items:center;gap:6px"><span style="width:6px;height:6px;border-radius:50%;background:#06b6d4"></span><span style="color:#94a3b8">db_failover: replication OK</span></div>
+                                <div style="display:flex;align-items:center;gap:6px"><span style="width:6px;height:6px;border-radius:50%;background:#22c55e"></span><span style="color:#94a3b8">manager1 heartbeat (15 agents)</span></div>
+                                <div style="margin-top:auto;padding-top:8px;border-top:1px solid #1e293b">
+                                    <div style="background:#1e293b;border-radius:4px;padding:6px 8px;color:#64748b;font-size:9px">&#9881; cluster: "restart nginx on vmi" &#8594;</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
-<span class="t-dim"># Returns to Telegram:</span>
-<span class="fn">ch8-control</span>    Up 2 days
-<span class="fn">investai-postgres</span>  Up 5 hours
-<span class="fn">nginx</span>          Up 3 days</code></pre>
-                    <button class="copy-btn"><i class="fas fa-copy"></i></button>
+                    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px">
+
+                        <div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:18px">
+                            <h4 style="color:#f8fafc;font-size:14px;margin-bottom:8px"><span style="margin-right:6px">&#128421;</span>Nodes</h4>
+                            <p style="color:#94a3b8;font-size:11px;line-height:1.6">Real-time metrics per node. CPU, RAM, Disk. Agents, services, HA badges. Chat with any node. Toggle autonomy.</p>
+                        </div>
+
+                        <div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:18px">
+                            <h4 style="color:#f8fafc;font-size:14px;margin-bottom:8px"><span style="margin-right:6px">&#127760;</span>Cluster</h4>
+                            <p style="color:#94a3b8;font-size:11px;line-height:1.6">Aggregated view: total CPU/RAM/Disk. Force-directed topology graph. Model catalog. Service inventory.</p>
+                        </div>
+
+                        <div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:18px">
+                            <h4 style="color:#f8fafc;font-size:14px;margin-bottom:8px"><span style="margin-right:6px">&#128065;</span>Observability</h4>
+                            <p style="color:#94a3b8;font-size:11px;line-height:1.6">Security findings, errors, predictions, disk alerts. Categorized by severity. AI Fix button with code execution.</p>
+                        </div>
+
+                        <div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:18px">
+                            <h4 style="color:#f8fafc;font-size:14px;margin-bottom:8px"><span style="margin-right:6px">&#9889;</span>Strategic Room</h4>
+                            <p style="color:#94a3b8;font-size:11px;line-height:1.6">Agent graph with data flow animation. Projects, tasks, activity feed. Command bar for cluster-wide operations.</p>
+                        </div>
+
+                        <div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:18px">
+                            <h4 style="color:#f8fafc;font-size:14px;margin-bottom:8px"><span style="margin-right:6px">&#128200;</span>Ops Deck</h4>
+                            <p style="color:#94a3b8;font-size:11px;line-height:1.6">GCP-style cockpit. Health score, SLA%, latency, cost/hr. Nginx sites + requests. AI insights panel.</p>
+                        </div>
+
+                        <div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:18px">
+                            <h4 style="color:#f8fafc;font-size:14px;margin-bottom:8px"><span style="margin-right:6px">&#128450;</span>Databases</h4>
+                            <p style="color:#94a3b8;font-size:11px;line-height:1.6">All DB instances (PostgreSQL, Oracle). Replication streaming monitor. Connection metrics. Query performance.</p>
+                        </div>
+
+                        <div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:18px">
+                            <h4 style="color:#f8fafc;font-size:14px;margin-bottom:8px"><span style="margin-right:6px">&#127959;</span>Architecture</h4>
+                            <p style="color:#94a3b8;font-size:11px;line-height:1.6">C4-style animated topology. Service inventory. Data flow visualization. Network mesh diagram.</p>
+                        </div>
+
+                        <div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:18px">
+                            <h4 style="color:#f8fafc;font-size:14px;margin-bottom:8px"><span style="margin-right:6px">&#128209;</span>Logs</h4>
+                            <p style="color:#94a3b8;font-size:11px;line-height:1.6">Grafana-style analytics. Classification donut, time series, failure predictions. Semantic categorization (AI).</p>
+                        </div>
+
+                        <div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:18px">
+                            <h4 style="color:#f8fafc;font-size:14px;margin-bottom:8px"><span style="margin-right:6px">&#129514;</span>Innovation Lab</h4>
+                            <p style="color:#94a3b8;font-size:11px;line-height:1.6">Kanban project board. Idea submission. AI auto-fix. Score ranking. Deploy to cluster. Documentation modal.</p>
+                        </div>
+
+                        <div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:18px">
+                            <h4 style="color:#f8fafc;font-size:14px;margin-bottom:8px"><span style="margin-right:6px">&#128176;</span>Analytics / FinOps</h4>
+                            <p style="color:#94a3b8;font-size:11px;line-height:1.6">Resource distribution charts. Cost per agent/model/node. Burn rate: $/hr, $/day, $/month. Projections.</p>
+                        </div>
+
+                        <div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:18px">
+                            <h4 style="color:#f8fafc;font-size:14px;margin-bottom:8px"><span style="margin-right:6px">&#127915;</span>ITSM</h4>
+                            <p style="color:#94a3b8;font-size:11px;line-height:1.6">Kanban board for tickets. Detail modals. SLA tracker. Auto-resolution timeline. Category filters.</p>
+                        </div>
+
+                        <div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:18px">
+                            <h4 style="color:#f8fafc;font-size:14px;margin-bottom:8px"><span style="margin-right:6px">&#128737;</span>Security</h4>
+                            <p style="color:#94a3b8;font-size:11px;line-height:1.6">Cyber-themed posture dashboard. 7 protection layers visual. Threat map. Audit feed. Policy management.</p>
+                        </div>
+
+                    </div>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- Features -->
-    <section id="features" class="features">
+    <!-- Use Cases -->
+    <section class="features" style="background:rgba(16,185,129,0.03)">
         <div class="container">
             <div class="section-header" data-aos="fade-up">
-                <p class="section-label">Capabilities</p>
-                <h2>Built for production</h2>
-                <p>Everything you need to manage distributed infrastructure with AI.</p>
+                <p class="section-label" style="color:#10b981">Use Cases</p>
+                <h2>What people build with CH8</h2>
+                <p>Real scenarios from production deployments.</p>
             </div>
 
             <div class="features-grid" data-aos="fade-up" data-aos-delay="100">
                 <div class="feature-card">
-                    <div class="feature-icon-wrap"><i class="fas fa-tachometer-alt"></i></div>
-                    <h3>Real-time Dashboard</h3>
-                    <p>Web dashboard shows all nodes, agents, metrics, and services live. Chat with any node directly from the browser.</p>
+                    <div class="feature-icon-wrap"><i class="fas fa-server"></i></div>
+                    <h3>DevOps Automation</h3>
+                    <p>Monitor 10+ servers, auto-remediate failures, get Telegram alerts. Zero manual intervention for 95% of incidents.</p>
                     <ul class="feature-list">
-                        <li>CPU, RAM, disk meters per node</li>
-                        <li>Agent status and task tracking</li>
-                        <li>In-browser chat with streaming</li>
+                        <li>"Restart the nginx service on vmi"</li>
+                        <li>"Show disk usage across all nodes"</li>
+                        <li>"Deploy latest code to all nodes"</li>
                     </ul>
                 </div>
 
                 <div class="feature-card">
-                    <div class="feature-icon-wrap"><i class="fas fa-plug"></i></div>
-                    <h3>MCP Service Agents</h3>
-                    <p>Point-and-click wizard in the dashboard to create agents for any service. AI identifies the service type and generates the integration.</p>
+                    <div class="feature-icon-wrap"><i class="fas fa-shield-alt"></i></div>
+                    <h3>Security Operations</h3>
+                    <p>24/7 automated SOC. Port scanning, file integrity, brute force detection, SQL/prompt injection blocking.</p>
                     <ul class="feature-list">
-                        <li>Databases, APIs, containers</li>
-                        <li>Auto-generated tool definitions</li>
-                        <li>Visible in dashboard with tools</li>
+                        <li>Continuous vulnerability scanning</li>
+                        <li>Automated incident response</li>
+                        <li>Compliance audit trail (11k+ events)</li>
                     </ul>
                 </div>
 
                 <div class="feature-card">
-                    <div class="feature-icon-wrap"><i class="fas fa-comments"></i></div>
-                    <h3>Multi-channel Chat</h3>
-                    <p>Interact with your nodes from wherever you are. Dashboard, Telegram, and Slack all connect to the same orchestrator.</p>
+                    <div class="feature-icon-wrap"><i class="fas fa-headset"></i></div>
+                    <h3>IT Service Desk</h3>
+                    <p>Replace Jira + PagerDuty + manual triage. AI handles L1/L2 entirely. Humans only for L3 edge cases.</p>
                     <ul class="feature-list">
-                        <li>Telegram bot per node</li>
-                        <li>Typing indicator while thinking</li>
-                        <li>Slack, Discord, Webhooks</li>
+                        <li>Auto-ticket from error patterns</li>
+                        <li>SLA enforcement with escalation</li>
+                        <li>Root cause analysis + fix</li>
                     </ul>
                 </div>
 
                 <div class="feature-card">
-                    <div class="feature-icon-wrap"><i class="fas fa-tools"></i></div>
-                    <h3>Tool Execution</h3>
-                    <p>The orchestrator doesn't just explain — it acts. Runs shell commands, manages files, restarts services, calls APIs.</p>
+                    <div class="feature-icon-wrap"><i class="fas fa-rocket"></i></div>
+                    <h3>Application Builder</h3>
+                    <p>Describe what you want. The cluster builds it, tests it, deploys it. From simple scripts to full-stack apps.</p>
                     <ul class="feature-list">
-                        <li>shell_exec, docker_exec</li>
-                        <li>file_read, file_write</li>
-                        <li>http_request, service_restart</li>
+                        <li>"Build a webhook receiver for X"</li>
+                        <li>"Create a dashboard for Y data"</li>
+                        <li>HubBuildAI: full app from prompt</li>
                     </ul>
                 </div>
 
                 <div class="feature-card">
-                    <div class="feature-icon-wrap"><i class="fas fa-lock"></i></div>
-                    <h3>Secure by Design</h3>
-                    <p>Pre-auth token system. Tailscale mesh for inter-node traffic. All credentials stored locally, never on cloud.</p>
+                    <div class="feature-icon-wrap"><i class="fas fa-database"></i></div>
+                    <h3>Database Management</h3>
+                    <p>PostgreSQL + Oracle monitoring. Replication health, query performance, auto-failover, backup management.</p>
                     <ul class="feature-list">
-                        <li>Token-based node registration</li>
-                        <li>Tailscale encrypted mesh</li>
-                        <li>Local config only</li>
+                        <li>Streaming replication monitor</li>
+                        <li>Auto-reconnect on failure</li>
+                        <li>"Run this query on production"</li>
                     </ul>
                 </div>
 
                 <div class="feature-card">
-                    <div class="feature-icon-wrap"><i class="fas fa-cubes"></i></div>
-                    <h3>Any AI Provider</h3>
-                    <p>Interactive wizard to configure your provider. Switch models without restarting the node.</p>
+                    <div class="feature-icon-wrap"><i class="fas fa-lightbulb"></i></div>
+                    <h3>Innovation Lab</h3>
+                    <p>AI that invents. Submit ideas, the lab codes them, tests them, fixes bugs, and deploys winners to your cluster.</p>
                     <ul class="feature-list">
-                        <li>AWS Bedrock (Claude, Titan)</li>
-                        <li>OpenAI, Anthropic, Groq</li>
-                        <li>Ollama (local, no API key)</li>
+                        <li>50 projects, scored and ranked</li>
+                        <li>Auto-deploy top-scoring agents</li>
+                        <li>Kanban: fixing &#8594; testing &#8594; deployed</li>
                     </ul>
                 </div>
             </div>
@@ -354,421 +750,104 @@
         <div class="container">
             <div class="numbers-grid" data-aos="fade-up">
                 <div class="number-item">
-                    <span class="number-val">8+</span>
-                    <span class="number-label">AI providers supported</span>
+                    <span class="number-val">15+</span>
+                    <span class="number-label">Autonomous agents</span>
                 </div>
                 <div class="number-item">
-                    <span class="number-val">13</span>
-                    <span class="number-label">Built-in agent tools</span>
+                    <span class="number-val">250k+</span>
+                    <span class="number-label">Logs processed</span>
+                </div>
+                <div class="number-item">
+                    <span class="number-val">11.5k+</span>
+                    <span class="number-label">Audit events</span>
+                </div>
+                <div class="number-item">
+                    <span class="number-val">12/12</span>
+                    <span class="number-label">Pentest PASS</span>
                 </div>
                 <div class="number-item">
                     <span class="number-val">7</span>
-                    <span class="number-label">Dashboard views</span>
+                    <span class="number-label">Security layers</span>
                 </div>
                 <div class="number-item">
                     <span class="number-val">60s</span>
-                    <span class="number-label">From install to first chat</span>
+                    <span class="number-label">Install to first chat</span>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- Workflow Studio Highlight -->
-    <section id="workflow-studio" style="padding: 80px 0; background: linear-gradient(135deg, rgba(124,58,237,0.06) 0%, rgba(37,99,235,0.04) 100%);">
+    <!-- Architecture Overview -->
+    <section style="padding:80px 0;background:rgba(6,182,212,0.03)">
         <div class="container">
-            <!-- Header -->
-            <div data-aos="fade-up" style="text-align:center;max-width:640px;margin:0 auto 48px">
-                <h2 style="font-size:32px;font-weight:800;color:#f8fafc;margin-bottom:12px">
-                    <span style="color:#7c3aed">⬡</span> Workflow Studio
-                </h2>
-                <p style="font-size:16px;color:#94a3b8;line-height:1.5">
-                    Orquestração visual de agentes de IA distribuídos.<br>
-                    <span style="color:#cbd5e1">Use máquinas que estavam paradas como nós produtivos de um cluster inteligente.</span>
-                </p>
+            <div class="section-header" data-aos="fade-up">
+                <p class="section-label" style="color:#06b6d4">Architecture</p>
+                <h2>How it all connects</h2>
+                <p>Any machine becomes a node. Nodes form a mesh. The mesh is intelligent.</p>
             </div>
 
-            <!-- 3 value props -->
-            <div data-aos="fade-up" data-aos-delay="50" style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:40px">
-                <div style="background:#1e293b;border:1px solid #334155;border-radius:12px;padding:24px;text-align:center">
-                    <div style="font-size:28px;margin-bottom:8px">🏠</div>
-                    <div style="font-size:14px;font-weight:700;color:#f8fafc;margin-bottom:6px">Modelos Locais</div>
-                    <div style="font-size:12px;color:#64748b;line-height:1.5">Qwen, Gemma, TinyLlama via Ollama. Rodam no seu hardware, custo zero de API.</div>
-                </div>
-                <div style="background:#1e293b;border:1px solid #334155;border-radius:12px;padding:24px;text-align:center">
-                    <div style="font-size:28px;margin-bottom:8px">☁️</div>
-                    <div style="font-size:14px;font-weight:700;color:#f8fafc;margin-bottom:6px">Cloud sob Demanda</div>
-                    <div style="font-size:12px;color:#64748b;line-height:1.5">Bedrock Claude, GPT-4o só quando precisa. Centavos por hora, distribuído entre nós.</div>
-                </div>
-                <div style="background:#1e293b;border:1px solid #334155;border-radius:12px;padding:24px;text-align:center">
-                    <div style="font-size:28px;margin-bottom:8px">💰</div>
-                    <div style="font-size:14px;font-weight:700;color:#f8fafc;margin-bottom:6px">FinOps Integrado</div>
-                    <div style="font-size:12px;color:#64748b;line-height:1.5">Custo real por agente e por nó. Projeção mensal. Zero surpresa na fatura.</div>
-                </div>
+            <div data-aos="fade-up" data-aos-delay="100" style="margin-top:36px;background:#0f172a;border:1px solid #334155;border-radius:12px;padding:32px;font-family:'JetBrains Mono',monospace;font-size:11px;color:#94a3b8;overflow-x:auto">
+<pre style="margin:0;line-height:1.8">
+<span style="color:#8b5cf6">&#9484;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9488;</span>
+<span style="color:#8b5cf6">&#9474;</span>  <span style="color:#f8fafc;font-weight:bold">CH8 Control + Auth Portal</span>  (app.ch8ai.com.br)     <span style="color:#8b5cf6">&#9474;</span>
+<span style="color:#8b5cf6">&#9474;</span>  Dashboard 12 pages | Clerk Auth | API Gateway       <span style="color:#8b5cf6">&#9474;</span>
+<span style="color:#8b5cf6">&#9492;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9516;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9496;</span>
+                             <span style="color:#8b5cf6">&#9474;</span> HTTPS + Tailscale Mesh
+         <span style="color:#334155">&#9484;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9532;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9488;</span>
+         <span style="color:#334155">&#9474;</span>                 <span style="color:#334155">&#9474;</span>                 <span style="color:#334155">&#9474;</span>
+<span style="color:#22c55e">&#9484;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9532;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9488;</span> <span style="color:#3b82f6">&#9484;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9532;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9488;</span> <span style="color:#f97316">&#9484;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9532;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9488;</span>
+<span style="color:#22c55e">&#9474;</span> <span style="color:#f8fafc">manager1</span>          <span style="color:#22c55e">&#9474;</span> <span style="color:#3b82f6">&#9474;</span> <span style="color:#f8fafc">vmi (VPS)</span>     <span style="color:#3b82f6">&#9474;</span> <span style="color:#f97316">&#9474;</span> <span style="color:#f8fafc">raspberry pi</span>  <span style="color:#f97316">&#9474;</span>
+<span style="color:#22c55e">&#9474;</span> 15 agents          <span style="color:#22c55e">&#9474;</span> <span style="color:#3b82f6">&#9474;</span> DB replica    <span style="color:#3b82f6">&#9474;</span> <span style="color:#f97316">&#9474;</span> 4 agents      <span style="color:#f97316">&#9474;</span>
+<span style="color:#22c55e">&#9474;</span> PG Master + Oracle <span style="color:#22c55e">&#9474;</span> <span style="color:#3b82f6">&#9474;</span> 6 agents      <span style="color:#3b82f6">&#9474;</span> <span style="color:#f97316">&#9474;</span> ARM64         <span style="color:#f97316">&#9474;</span>
+<span style="color:#22c55e">&#9474;</span> Redis + Sandbox    <span style="color:#22c55e">&#9474;</span> <span style="color:#3b82f6">&#9474;</span> Public IP     <span style="color:#3b82f6">&#9474;</span> <span style="color:#f97316">&#9474;</span> Low-RAM mode  <span style="color:#f97316">&#9474;</span>
+<span style="color:#22c55e">&#9492;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9496;</span> <span style="color:#3b82f6">&#9492;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9496;</span> <span style="color:#f97316">&#9492;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9496;</span>
+</pre>
+            </div>
+        </div>
+    </section>
+
+    <!-- Workflow Studio -->
+    <section id="workflow-studio" style="padding:80px 0;background:linear-gradient(135deg,rgba(124,58,237,0.06) 0%,rgba(37,99,235,0.04) 100%)">
+        <div class="container">
+            <div class="section-header" data-aos="fade-up">
+                <p class="section-label" style="color:#7c3aed">Workflow Studio</p>
+                <h2>Visual AI Orchestration</h2>
+                <p>Drag and drop nodes, agents, and models into workflows. The AI copilot helps you design them.</p>
             </div>
 
-            <!-- Main content: description + mock -->
-            <div data-aos="fade-up" data-aos-delay="100" style="display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:start">
+            <div data-aos="fade-up" data-aos-delay="100" style="margin-top:32px;display:grid;grid-template-columns:1fr 1fr;gap:32px;align-items:center">
                 <div>
-                    <h3 style="font-size:18px;margin-bottom:14px;color:#f8fafc">Como funciona</h3>
-                    <p style="color:#94a3b8;line-height:1.7;margin-bottom:20px;font-size:14px">
-                        O Workflow Studio se conecta ao seu cluster CH8 e mostra <strong style="color:#f8fafc">todos os nós, agentes, modelos Ollama e MCPs disponíveis</strong> como blocos arrastáveis. Você monta o fluxo visualmente — a execução é distribuída automaticamente entre as máquinas.
-                    </p>
-
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:24px">
-                        <div style="background:#0f172a;border:1px solid #334155;border-radius:8px;padding:12px;font-size:11px">
-                            <div style="color:#60a5fa;font-weight:600;margin-bottom:4px">🖥 Nós do Cluster</div>
-                            <div style="color:#64748b">PCs, notebooks, Raspberry Pi, VMs — cada um contribui</div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px">
+                        <div style="background:#1e293b;border:1px solid #334155;border-radius:8px;padding:14px;font-size:12px">
+                            <div style="color:#60a5fa;font-weight:600;margin-bottom:4px">Cluster Nodes</div>
+                            <div style="color:#64748b;font-size:11px">PCs, VMs, Raspberry Pi — each contributes compute to workflows</div>
                         </div>
-                        <div style="background:#0f172a;border:1px solid #334155;border-radius:8px;padding:12px;font-size:11px">
-                            <div style="color:#34d399;font-weight:600;margin-bottom:4px">🤖 Agentes</div>
-                            <div style="color:#64748b">Cada nó roda agentes com modelos locais ou cloud</div>
+                        <div style="background:#1e293b;border:1px solid #334155;border-radius:8px;padding:14px;font-size:12px">
+                            <div style="color:#34d399;font-weight:600;margin-bottom:4px">AI Models</div>
+                            <div style="color:#64748b;font-size:11px">Local (Ollama) or Cloud (Bedrock, GPT). Pick per-step.</div>
                         </div>
-                        <div style="background:#0f172a;border:1px solid #334155;border-radius:8px;padding:12px;font-size:11px">
-                            <div style="color:#fbbf24;font-weight:600;margin-bottom:4px">🔧 MCPs & Tools</div>
-                            <div style="color:#64748b">Docker, SQL, HTTP, arquivos — expostos por nó</div>
+                        <div style="background:#1e293b;border:1px solid #334155;border-radius:8px;padding:14px;font-size:12px">
+                            <div style="color:#fbbf24;font-weight:600;margin-bottom:4px">MCPs & Tools</div>
+                            <div style="color:#64748b;font-size:11px">Docker, SQL, HTTP, files — exposed as blocks per node</div>
                         </div>
-                        <div style="background:#0f172a;border:1px solid #334155;border-radius:8px;padding:12px;font-size:11px">
-                            <div style="color:#a78bfa;font-weight:600;margin-bottom:4px">🤝 Copiloto IA</div>
-                            <div style="color:#64748b">Descreva o que quer — a IA monta o workflow</div>
+                        <div style="background:#1e293b;border:1px solid #334155;border-radius:8px;padding:14px;font-size:12px">
+                            <div style="color:#a78bfa;font-weight:600;margin-bottom:4px">AI Copilot</div>
+                            <div style="color:#64748b;font-size:11px">Describe what you want — the AI builds the workflow</div>
                         </div>
                     </div>
-                    <div style="display:flex;gap:12px;margin-top:24px;flex-wrap:wrap">
-                        <a href="https://github.com/hudsonrj/ch8-cluster-agent" target="_blank" style="display:inline-block;padding:12px 28px;background:#7c3aed;color:#fff;border-radius:8px;font-weight:600;text-decoration:none;font-size:14px">
-                            Implemente o Seu →
-                        </a>
-                        <button onclick="document.getElementById('access-form').style.display='block'" style="padding:12px 28px;background:transparent;color:#7c3aed;border:2px solid #7c3aed;border-radius:8px;font-weight:600;font-size:14px;cursor:pointer">
-                            Peça Acesso
-                        </button>
+                    <p style="color:#94a3b8;font-size:13px;line-height:1.6">Connect to your CH8 cluster and see all nodes, agents, models, and MCPs as draggable blocks. Build automations visually — execution is distributed across your machines automatically.</p>
+                </div>
+                <div style="background:#0d1117;border:1px solid #30363d;border-radius:12px;padding:20px;font-family:'JetBrains Mono',monospace;font-size:11px;color:#8b949e">
+                    <div style="margin-bottom:12px;display:flex;align-items:center;gap:8px">
+                        <span style="width:8px;height:8px;border-radius:50%;background:#7c3aed;box-shadow:0 0 6px #7c3aed"></span>
+                        <span style="color:#f8fafc;font-weight:600;font-size:12px">Workflow Studio</span>
                     </div>
-                    <!-- Access form -->
-                    <div id="access-form" style="display:none;margin-top:24px;padding:20px;background:#161b22;border:1px solid #30363d;border-radius:12px">
-                        <form onsubmit="sendAccessRequest(event)" style="display:flex;flex-direction:column;gap:12px">
-                            <div style="font-size:14px;font-weight:600;color:#f8fafc;margin-bottom:4px">Solicitar Acesso ao Workflow Studio</div>
-                            <input id="access-name" type="text" placeholder="Seu nome" required style="padding:10px 14px;background:#0d1117;border:1px solid #30363d;border-radius:8px;color:#f8fafc;font-size:13px;font-family:inherit" />
-                            <input id="access-email" type="email" placeholder="Seu e-mail" required style="padding:10px 14px;background:#0d1117;border:1px solid #30363d;border-radius:8px;color:#f8fafc;font-size:13px;font-family:inherit" />
-                            <textarea id="access-msg" placeholder="Por que quer acesso? (opcional)" rows="3" style="padding:10px 14px;background:#0d1117;border:1px solid #30363d;border-radius:8px;color:#f8fafc;font-size:13px;font-family:inherit;resize:vertical"></textarea>
-                            <button type="submit" style="padding:12px;background:#7c3aed;color:#fff;border:none;border-radius:8px;font-weight:600;font-size:14px;cursor:pointer">
-                                Enviar Solicitação →
-                            </button>
-                            <div id="access-status" style="font-size:12px;color:#8b949e"></div>
-                        </form>
-                    </div>
-                    <script>
-                    function sendAccessRequest(e) {
-                        e.preventDefault();
-                        const name = document.getElementById('access-name').value;
-                        const email = document.getElementById('access-email').value;
-                        const msg = document.getElementById('access-msg').value;
-                        const subject = encodeURIComponent('Quero Acesso — CH8 Workflow Studio');
-                        const body = encodeURIComponent(`Nome: ${name}\nEmail: ${email}\nMensagem: ${msg || 'Gostaria de acesso ao Workflow Studio'}`);
-                        window.location.href = `mailto:hudsonrj@gmail.com?subject=${subject}&body=${body}`;
-                        document.getElementById('access-status').textContent = '✓ Abrindo seu cliente de e-mail...';
-                        document.getElementById('access-status').style.color = '#10b981';
-                    }
-                    </script>
-                    </div>
-                </div>
-                <div style="background:#0d1117;border:1px solid #30363d;border-radius:12px;padding:24px;font-family:'JetBrains Mono',monospace;font-size:12px;color:#8b949e">
-                    <div style="margin-bottom:16px;display:flex;align-items:center;gap:8px">
-                        <span style="width:10px;height:10px;border-radius:50%;background:#7c3aed;box-shadow:0 0 6px #7c3aed"></span>
-                        <span style="color:#f8fafc;font-weight:600;font-size:13px">CH8 ⬡ Workflow Studio</span>
-                    </div>
-                    <div style="color:#484f58;margin-bottom:12px">// Example: Telegram Bot → AI → Reply</div>
-                    <div style="padding:8px 12px;background:#161b22;border:1px solid #7c3aed;border-radius:8px;margin-bottom:8px;color:#c9d1d9">📨 Telegram Listener <span style="color:#484f58">→</span></div>
-                    <div style="padding:8px 12px;background:#161b22;border:1px solid #2563eb;border-radius:8px;margin-bottom:8px;color:#60a5fa">🤖 Claude Sonnet 4.5 <span style="color:#484f58;font-size:10px">@ manager1</span></div>
-                    <div style="padding:8px 12px;background:#161b22;border:1px solid #0891b2;border-radius:8px;margin-bottom:8px;color:#22d3ee">⚙️ Formatter</div>
-                    <div style="padding:8px 12px;background:#161b22;border:1px solid #6d28d9;border-radius:8px;color:#a78bfa">💬 Telegram Reply</div>
-                    <div style="margin-top:16px;padding:10px 12px;background:#7c3aed10;border:1px solid #7c3aed30;border-radius:8px">
-                        <span style="color:#7c3aed">🤖 Copiloto:</span> <span style="color:#8b949e">Workflow criado. 1 config pendente: Bot Token</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Control Dashboard -->
-    <section id="control" style="padding: 80px 0; background: rgba(59,130,246,0.03);">
-        <div class="container">
-            <div class="section-header" data-aos="fade-up">
-                <p class="section-label" style="color:#3b82f6">Control Dashboard</p>
-                <h2>Visibilidade total do cluster</h2>
-                <p>Um painel web unificado com 7 abas especializadas para operar, monitorar e otimizar seu cluster de IA.</p>
-            </div>
-
-            <!-- Tabs visual -->
-            <div data-aos="fade-up" data-aos-delay="100" style="margin-top:40px">
-                <!-- Tab bar mock -->
-                <div style="display:flex;gap:4px;background:#1e293b;padding:8px 16px;border-radius:12px 12px 0 0;border:1px solid #334155;border-bottom:none;overflow-x:auto">
-                    <span style="padding:8px 16px;background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.3);border-radius:6px;color:#60a5fa;font-size:12px;font-weight:600;white-space:nowrap">Nodes</span>
-                    <span style="padding:8px 16px;border-radius:6px;color:#94a3b8;font-size:12px;white-space:nowrap">Cluster</span>
-                    <span style="padding:8px 16px;border-radius:6px;color:#94a3b8;font-size:12px;white-space:nowrap">Observability</span>
-                    <span style="padding:8px 16px;border-radius:6px;color:#94a3b8;font-size:12px;white-space:nowrap">Strategic Room</span>
-                    <span style="padding:8px 16px;border-radius:6px;color:#94a3b8;font-size:12px;white-space:nowrap">Ops Deck</span>
-                    <span style="padding:8px 16px;border-radius:6px;color:#94a3b8;font-size:12px;white-space:nowrap">Lab</span>
-                    <span style="padding:8px 16px;border-radius:6px;color:#94a3b8;font-size:12px;white-space:nowrap">Analytics</span>
-                </div>
-
-                <!-- Tabs description grid -->
-                <div style="background:#0f172a;border:1px solid #334155;border-radius:0 0 12px 12px;padding:32px">
-                    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px">
-
-                        <div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:20px">
-                            <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
-                                <span style="font-size:20px">🖥</span>
-                                <h4 style="color:#f8fafc;font-size:15px;margin:0">Nodes</h4>
-                            </div>
-                            <p style="color:#94a3b8;font-size:12px;line-height:1.6;margin-bottom:12px">Visão de cada nó do cluster com métricas em tempo real, agentes rodando, serviços detectados e toggle de autonomia.</p>
-                            <ul style="list-style:none;padding:0;font-size:11px;color:#64748b;line-height:2">
-                                <li>● Cards com CPU, MEM, Disk por nó</li>
-                                <li>● Agents ativos com status e tasks</li>
-                                <li>● Services Docker e processos</li>
-                                <li>● HA badges (Master ★ / Standby ⊙)</li>
-                                <li>● Chat direto com cada nó</li>
-                                <li>● Toggle Auto (autonomia por nó)</li>
-                                <li>● Knowledge Vault 🧠</li>
-                                <li>● Networks (Tailscale + LAN)</li>
-                            </ul>
-                        </div>
-
-                        <div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:20px">
-                            <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
-                                <span style="font-size:20px">🌐</span>
-                                <h4 style="color:#f8fafc;font-size:15px;margin:0">Cluster</h4>
-                            </div>
-                            <p style="color:#94a3b8;font-size:12px;line-height:1.6;margin-bottom:12px">Visão agregada como um supercomputador. Topologia visual, KPIs globais, grafo de conexões entre nós.</p>
-                            <ul style="list-style:none;padding:0;font-size:11px;color:#64748b;line-height:2">
-                                <li>● CPU/RAM/Disk totais do cluster</li>
-                                <li>● Topologia visual (grafo de nós)</li>
-                                <li>● Catálogo de modelos e serviços</li>
-                                <li>● Status online/offline por nó</li>
-                            </ul>
-                        </div>
-
-                        <div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:20px">
-                            <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
-                                <span style="font-size:20px">🛡</span>
-                                <h4 style="color:#f8fafc;font-size:15px;margin:0">Observability</h4>
-                            </div>
-                            <p style="color:#94a3b8;font-size:12px;line-height:1.6;margin-bottom:12px">Security findings, alertas, predições, performance e discos — tudo categorizado por severidade com ações de fix.</p>
-                            <ul style="list-style:none;padding:0;font-size:11px;color:#64748b;line-height:2">
-                                <li>● Security findings (databases expostos, portas)</li>
-                                <li>● Errors & Alerts por nó e agente</li>
-                                <li>● Predictions (CPU/MEM vai atingir X em Y min)</li>
-                                <li>● Disks (uso por partição, por nó)</li>
-                                <li>● Botão Fix com execução em modal</li>
-                            </ul>
-                        </div>
-
-                        <div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:20px">
-                            <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
-                                <span style="font-size:20px">⚡</span>
-                                <h4 style="color:#f8fafc;font-size:15px;margin:0">Strategic Room</h4>
-                            </div>
-                            <p style="color:#94a3b8;font-size:12px;line-height:1.6;margin-bottom:12px">Grafo force-directed dos agentes, feed de atividades, command bar para executar tarefas no cluster.</p>
-                            <ul style="list-style:none;padding:0;font-size:11px;color:#64748b;line-height:2">
-                                <li>● Grafo visual (drag & drop dos agentes)</li>
-                                <li>● Data flow particles (animação)</li>
-                                <li>● Projects & Tasks com progresso</li>
-                                <li>● Live Activity feed</li>
-                                <li>● Command bar (IA + execução)</li>
-                            </ul>
-                        </div>
-
-                        <div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:20px">
-                            <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
-                                <span style="font-size:20px">📈</span>
-                                <h4 style="color:#f8fafc;font-size:15px;margin:0">Ops Deck</h4>
-                            </div>
-                            <p style="color:#94a3b8;font-size:12px;line-height:1.6;margin-bottom:12px">Cockpit operacional estilo GCP. Scoreboard, asset book, AI insights em tempo real, SLA e latência.</p>
-                            <ul style="list-style:none;padding:0;font-size:11px;color:#64748b;line-height:2">
-                                <li>● Health Score, SLA%, Latency, Cost</li>
-                                <li>● Server cards com sparklines</li>
-                                <li>● AI Insights panel (auto-análise)</li>
-                                <li>● Database security (EXPOSED/OK)</li>
-                                <li>● Logs por nó (categorias de erro)</li>
-                                <li>● Network scan (portas abertas)</li>
-                                <li>● AI Fix com ▶ RUN em code blocks</li>
-                                <li>● <span style="color:#60a5fa">Nginx Sites & Requests</span> (live)</li>
-                            </ul>
-                            <!-- Sites & Requests mini-demo -->
-                            <div style="margin-top:12px;padding:10px;background:#0f172a;border-radius:6px;border:1px solid #1e293b">
-                                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-                                    <span style="font-size:9px;color:#64748b;text-transform:uppercase;letter-spacing:1px">Sites Ativos</span>
-                                    <span style="font-size:9px;color:#8b949e">8 sites</span>
-                                </div>
-                                <div style="display:flex;flex-direction:column;gap:5px">
-                                    <div style="display:flex;align-items:center;justify-content:space-between">
-                                        <span style="font-size:10px;color:#e2e8f0">🔒 control.ch8ai.com.br</span>
-                                        <span style="font-size:9px;color:#34d399;background:#064e3b;padding:1px 6px;border-radius:3px">241.9k</span>
-                                    </div>
-                                    <div style="display:flex;align-items:center;justify-content:space-between">
-                                        <span style="font-size:10px;color:#e2e8f0">🔒 valenethub.ch8ai.com.br</span>
-                                        <span style="font-size:9px;color:#34d399;background:#064e3b;padding:1px 6px;border-radius:3px">823</span>
-                                    </div>
-                                    <div style="display:flex;align-items:center;justify-content:space-between">
-                                        <span style="font-size:10px;color:#e2e8f0">🔒 ch8agent.ch8ai.com.br</span>
-                                        <span style="font-size:9px;color:#34d399;background:#064e3b;padding:1px 6px;border-radius:3px">705</span>
-                                    </div>
-                                    <div style="display:flex;align-items:center;justify-content:space-between">
-                                        <span style="font-size:10px;color:#e2e8f0">🔒 escolavalor.com.br</span>
-                                        <span style="font-size:9px;color:#94a3b8;background:#1e293b;padding:1px 6px;border-radius:3px">157</span>
-                                    </div>
-                                    <div style="display:flex;align-items:center;justify-content:space-between">
-                                        <span style="font-size:10px;color:#e2e8f0">🔒 govgpt.com.br</span>
-                                        <span style="font-size:9px;color:#94a3b8;background:#1e293b;padding:1px 6px;border-radius:3px">29</span>
-                                    </div>
-                                    <div style="display:flex;align-items:center;justify-content:space-between">
-                                        <span style="font-size:10px;color:#64748b">investeai · hubbuildai · workflow</span>
-                                        <span style="font-size:9px;color:#64748b">+3</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:20px">
-                            <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
-                                <span style="font-size:20px">🧪</span>
-                                <h4 style="color:#f8fafc;font-size:15px;margin:0">Innovation Lab</h4>
-                            </div>
-                            <p style="color:#94a3b8;font-size:12px;line-height:1.6;margin-bottom:12px">Agente autônomo que cria micro-projetos, testa, corrige com IA e disponibiliza para deploy.</p>
-                            <ul style="list-style:none;padding:0;font-size:11px;color:#64748b;line-height:2">
-                                <li>● Submit ideas → IA cria o projeto</li>
-                                <li>● Auto-fix (3 tentativas antes do backlog)</li>
-                                <li>● Editor inline de código</li>
-                                <li>● Run Test no browser</li>
-                                <li>● Deploy package (.zip download)</li>
-                                <li>● Backlog com status (open/resolved)</li>
-                            </ul>
-                        </div>
-
-                        <div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:20px">
-                            <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
-                                <span style="font-size:20px">📊</span>
-                                <h4 style="color:#f8fafc;font-size:15px;margin:0">Analytics & FinOps</h4>
-                            </div>
-                            <p style="color:#94a3b8;font-size:12px;line-height:1.6;margin-bottom:12px">Intelligence completa: distribuição de OS, modelos, custos por agente, projeções financeiras.</p>
-                            <!-- Resource bars demo -->
-                            <div style="margin-bottom:12px;display:flex;flex-direction:column;gap:8px">
-                                <div>
-                                    <div style="display:flex;justify-content:space-between;margin-bottom:3px">
-                                        <span style="font-size:10px;color:#e2e8f0">manager1 CPU</span>
-                                        <span style="font-size:10px;color:#34d399">23%</span>
-                                    </div>
-                                    <div style="background:#0f172a;border-radius:4px;height:8px;width:100%;overflow:hidden">
-                                        <span style="display:block;height:100%;width:23%;background:linear-gradient(90deg,#10b981,#34d399);border-radius:4px;transition:width 0.5s"></span>
-                                    </div>
-                                </div>
-                                <div>
-                                    <div style="display:flex;justify-content:space-between;margin-bottom:3px">
-                                        <span style="font-size:10px;color:#e2e8f0">manager1 MEM</span>
-                                        <span style="font-size:10px;color:#fbbf24">67%</span>
-                                    </div>
-                                    <div style="background:#0f172a;border-radius:4px;height:8px;width:100%;overflow:hidden">
-                                        <span style="display:block;height:100%;width:67%;background:linear-gradient(90deg,#f59e0b,#fbbf24);border-radius:4px;transition:width 0.5s"></span>
-                                    </div>
-                                </div>
-                                <div>
-                                    <div style="display:flex;justify-content:space-between;margin-bottom:3px">
-                                        <span style="font-size:10px;color:#e2e8f0">raspberrypi CPU</span>
-                                        <span style="font-size:10px;color:#f87171">82%</span>
-                                    </div>
-                                    <div style="background:#0f172a;border-radius:4px;height:8px;width:100%;overflow:hidden">
-                                        <span style="display:block;height:100%;width:82%;background:linear-gradient(90deg,#ef4444,#f87171);border-radius:4px;transition:width 0.5s"></span>
-                                    </div>
-                                </div>
-                                <div>
-                                    <div style="display:flex;justify-content:space-between;margin-bottom:3px">
-                                        <span style="font-size:10px;color:#e2e8f0">raspberrypi MEM</span>
-                                        <span style="font-size:10px;color:#34d399">45%</span>
-                                    </div>
-                                    <div style="background:#0f172a;border-radius:4px;height:8px;width:100%;overflow:hidden">
-                                        <span style="display:block;height:100%;width:45%;background:linear-gradient(90deg,#10b981,#34d399);border-radius:4px;transition:width 0.5s"></span>
-                                    </div>
-                                </div>
-                            </div>
-                            <ul style="list-style:none;padding:0;font-size:11px;color:#64748b;line-height:2">
-                                <li>● OS, Arch, Models distribution charts</li>
-                                <li>● Model Catalog (Cloud + Ollama local)</li>
-                                <li>● Burn rate: $/hr, $/day, $/month, $/year</li>
-                                <li>● Cost by model, by agent, by node</li>
-                                <li>● Projections: semester, annual</li>
-                            </ul>
-                        </div>
-
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Platform -->
-    <section id="platform" class="features" style="background: rgba(124,58,237,0.03);">
-        <div class="container">
-            <div class="section-header" data-aos="fade-up">
-                <p class="section-label">Platform</p>
-                <h2>Complete AI Operations Platform</h2>
-                <p>Everything you need to operate, monitor, and orchestrate a distributed AI cluster.</p>
-            </div>
-            <div class="features-grid" data-aos="fade-up" data-aos-delay="100">
-                <div class="feature-card">
-                    <div class="feature-icon-wrap"><i class="fas fa-project-diagram"></i></div>
-                    <h3>Workflow Studio</h3>
-                    <p>Visual drag & drop editor for AI workflows. Connect agents, models and tools from your cluster.</p>
-                    <ul class="feature-list">
-                        <li>React Flow canvas</li>
-                        <li>AI Copilot assistant</li>
-                        <li>Real cluster nodes & models</li>
-                    </ul>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon-wrap"><i class="fas fa-chart-line"></i></div>
-                    <h3>Ops Deck</h3>
-                    <p>DayTrade-style operational cockpit. Real-time metrics, SLA, latency, costs and AI insights.</p>
-                    <ul class="feature-list">
-                        <li>GCP-inspired design</li>
-                        <li>AI auto-analysis</li>
-                        <li>FinOps token economics</li>
-                    </ul>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon-wrap"><i class="fas fa-flask"></i></div>
-                    <h3>Innovation Lab</h3>
-                    <p>Autonomous agent that creates, tests and fixes micro-projects. Submit ideas and watch them come to life.</p>
-                    <ul class="feature-list">
-                        <li>Auto-fix with AI (3 attempts)</li>
-                        <li>User idea submission</li>
-                        <li>Code editor + deploy package</li>
-                    </ul>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon-wrap"><i class="fas fa-brain"></i></div>
-                    <h3>Knowledge Vault</h3>
-                    <p>Obsidian-style knowledge base auto-indexed from all cluster data. Force-directed graph view.</p>
-                    <ul class="feature-list">
-                        <li>Auto-generated docs</li>
-                        <li>Full-text search</li>
-                        <li>Brain graph visualization</li>
-                    </ul>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon-wrap"><i class="fas fa-chart-pie"></i></div>
-                    <h3>Analytics & FinOps</h3>
-                    <p>Comprehensive cluster intelligence. CPU, memory, models, tokens, costs — projected monthly/yearly.</p>
-                    <ul class="feature-list">
-                        <li>Resource utilization charts</li>
-                        <li>Cost per agent/model/node</li>
-                        <li>Ollama + Cloud model catalog</li>
-                    </ul>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon-wrap"><i class="fas fa-shield-alt"></i></div>
-                    <h3>Auto-Recovery & Mesh</h3>
-                    <p>Self-healing cluster. Nodes auto-recover via SSH. Mesh relay bridges isolated networks.</p>
-                    <ul class="feature-list">
-                        <li>Recovery agent (SSH auto-heal)</li>
-                        <li>Mesh relay (LAN bridge)</li>
-                        <li>HA master/standby failover</li>
-                    </ul>
+                    <div style="color:#484f58;margin-bottom:10px">// Auto-remediation workflow</div>
+                    <div style="padding:6px 10px;background:#161b22;border:1px solid #f87171;border-radius:6px;margin-bottom:6px;color:#fca5a5;font-size:10px">&#9888; Alert: Service Down</div>
+                    <div style="padding:6px 10px;background:#161b22;border:1px solid #2563eb;border-radius:6px;margin-bottom:6px;color:#60a5fa;font-size:10px">&#129302; Claude Sonnet @ manager1</div>
+                    <div style="padding:6px 10px;background:#161b22;border:1px solid #22c55e;border-radius:6px;margin-bottom:6px;color:#4ade80;font-size:10px">&#9881; Diagnose + Fix (shell_exec)</div>
+                    <div style="padding:6px 10px;background:#161b22;border:1px solid #0891b2;border-radius:6px;margin-bottom:6px;color:#22d3ee;font-size:10px">&#9989; Validate (health_check)</div>
+                    <div style="padding:6px 10px;background:#161b22;border:1px solid #7c3aed;border-radius:6px;color:#a78bfa;font-size:10px">&#128172; Notify (Telegram)</div>
                 </div>
             </div>
         </div>
@@ -780,16 +859,14 @@
             <div class="section-header" data-aos="fade-up">
                 <p class="section-label">Install</p>
                 <h2>Up and running in 60 seconds</h2>
-                <p>One command installs the agent and CLI on any platform.</p>
+                <p>One command. Any platform. Full AI operations in under a minute.</p>
             </div>
 
-            <!-- Tailscale prerequisite notice -->
             <div class="prereq-notice" data-aos="fade-up">
                 <div class="prereq-icon"><i class="fas fa-network-wired"></i></div>
                 <div class="prereq-text">
                     <strong>Recommended: Tailscale</strong>
-                    For nodes on different networks to communicate, <a href="https://tailscale.com/download" target="_blank" rel="noopener">Tailscale</a> should be installed on every node.
-                    CH8 automatically detects your Tailscale IP and registers it with the control server.
+                    For nodes on different networks to communicate, install <a href="https://tailscale.com/download" target="_blank" rel="noopener">Tailscale</a> on every node.
                 </div>
                 <a href="https://tailscale.com/download" target="_blank" rel="noopener" class="prereq-btn">Install Tailscale <i class="fas fa-arrow-right"></i></a>
             </div>
@@ -816,38 +893,28 @@
                             <pre><code>curl -fsSL https://raw.githubusercontent.com/hudsonrj/ch8-cluster-agent/master/scripts/install.sh | bash</code></pre>
                             <button class="copy-btn"><i class="fas fa-copy"></i></button>
                         </div>
-                        <p class="install-note">Requires Python 3.10+ and Homebrew. Install Python with: <code>brew install python3</code></p>
+                        <p class="install-note">Requires Python 3.10+. Install with: <code>brew install python3</code></p>
                     </div>
                     <div class="tab-pane" id="rpi">
                         <div class="code-block">
                             <pre><code>curl -fsSL https://raw.githubusercontent.com/hudsonrj/ch8-cluster-agent/master/scripts/install-rpi.sh | bash</code></pre>
                             <button class="copy-btn"><i class="fas fa-copy"></i></button>
                         </div>
-                        <p class="install-note">Auto-detects Pi model, configures swap for low-memory devices. Use Groq (cloud) or Ollama (local) as AI provider.</p>
+                        <p class="install-note">Auto-detects Pi model. Skips heavy agents on low-RAM devices.</p>
                     </div>
                     <div class="tab-pane" id="windows">
                         <div class="code-block">
                             <pre><code>powershell -ExecutionPolicy Bypass -c "iwr -useb https://raw.githubusercontent.com/hudsonrj/ch8-cluster-agent/master/scripts/install-win32.ps1 | iex"</code></pre>
                             <button class="copy-btn"><i class="fas fa-copy"></i></button>
                         </div>
-                        <p class="install-note">Requires Python 3.10+ and Git. For best experience, use <strong>WSL2</strong>: <code>wsl --install</code> then run the Linux installer.</p>
+                        <p class="install-note">Best with WSL2: <code>wsl --install</code> then run Linux installer.</p>
                     </div>
                     <div class="tab-pane" id="android">
-                        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;">
-                            <a href="https://github.com/hudsonrj/ch8-cluster-agent/releases/latest/download/ch8-agent.apk" class="btn btn-primary" style="text-decoration:none;display:inline-flex;align-items:center;gap:8px;padding:12px 24px;border-radius:8px;">
-                                <i class="fab fa-android"></i> Download APK
-                            </a>
-                            <a href="https://f-droid.org/en/packages/com.termux/" target="_blank" class="btn btn-secondary" style="text-decoration:none;display:inline-flex;align-items:center;gap:8px;padding:12px 24px;border-radius:8px;">
-                                <i class="fas fa-terminal"></i> Get Termux
-                            </a>
-                        </div>
-                        <p class="install-note" style="margin-bottom:12px;"><strong>Option 1 — APK:</strong> Download and install the APK directly. Requires "Install from unknown sources" enabled.</p>
-                        <p class="install-note" style="margin-bottom:12px;"><strong>Option 2 — Termux:</strong> Run inside Termux terminal (from <a href="https://f-droid.org/en/packages/com.termux/" target="_blank">F-Droid</a>, NOT Play Store):</p>
                         <div class="code-block">
                             <pre><code>curl -fsSL https://raw.githubusercontent.com/hudsonrj/ch8-cluster-agent/master/scripts/install-android.sh | bash</code></pre>
                             <button class="copy-btn"><i class="fas fa-copy"></i></button>
                         </div>
-                        <p class="install-note" style="margin-top:8px;">Tip: Run <code>termux-wake-lock</code> to keep CH8 running in background.</p>
+                        <p class="install-note">Run inside Termux (from F-Droid). Use <code>termux-wake-lock</code> for background.</p>
                     </div>
                     <div class="tab-pane" id="manual">
                         <div class="code-block">
@@ -864,9 +931,9 @@ export PATH="$PATH:$(pwd)"</code></pre>
                 <div class="after-install">
                     <p class="after-label">After installing:</p>
                     <div class="code-block code-inline">
-                        <pre><code>ch8 config ai              # configure AI provider
+                        <pre><code>ch8 config ai              # configure AI provider (Bedrock, OpenAI, Ollama, Groq)
 ch8 up --token &lt;TOKEN&gt;     # join your CH8 network
-ch8 status                 # see node status and peers</code></pre>
+ch8 status                 # see nodes, agents, and peers</code></pre>
                         <button class="copy-btn"><i class="fas fa-copy"></i></button>
                     </div>
                 </div>
@@ -879,8 +946,8 @@ ch8 status                 # see node status and peers</code></pre>
         <div class="cta-glow"></div>
         <div class="container">
             <div class="cta-inner" data-aos="fade-up">
-                <h2>Start building with CH8 Agent</h2>
-                <p>Open source. Free forever. Runs on any hardware you already own.</p>
+                <h2>Replace 10 tools with one platform</h2>
+                <p>SOC + ITSM + Monitoring + CI/CD + App Builder + Analytics — all running on hardware you already own.</p>
                 <div class="cta-actions">
                     <a href="#install" class="btn btn-primary btn-lg">
                         <i class="fas fa-terminal"></i> Install Now
@@ -889,7 +956,7 @@ ch8 status                 # see node status and peers</code></pre>
                         <i class="fab fa-github"></i> GitHub
                     </a>
                 </div>
-                <p class="cta-license">MIT License · 100% Open Source · No telemetry</p>
+                <p class="cta-license">MIT License &middot; 100% Open Source &middot; No telemetry &middot; Runs on your hardware</p>
             </div>
         </div>
     </section>
@@ -901,9 +968,17 @@ ch8 status                 # see node status and peers</code></pre>
                 <div class="footer-brand">
                     <span class="logo-text">CH8<span class="logo-accent">.</span></span>
                     <span class="logo-sub">AGENT</span>
-                    <p>Distributed AI node system for any hardware.</p>
+                    <p>Complete AI Operations Platform for distributed infrastructure.</p>
                 </div>
                 <div class="footer-links">
+                    <div class="footer-col">
+                        <h4>Platform</h4>
+                        <a href="#capabilities">Capabilities</a>
+                        <a href="#soc">Security (SOC)</a>
+                        <a href="#itsm">ITSM / Helpdesk</a>
+                        <a href="#agents">Agents</a>
+                        <a href="#platform">Dashboard</a>
+                    </div>
                     <div class="footer-col">
                         <h4>Project</h4>
                         <a href="https://github.com/hudsonrj/ch8-cluster-agent" target="_blank">GitHub</a>
@@ -911,16 +986,16 @@ ch8 status                 # see node status and peers</code></pre>
                         <a href="https://github.com/hudsonrj/ch8-cluster-agent/releases" target="_blank">Releases</a>
                     </div>
                     <div class="footer-col">
-                        <h4>Community</h4>
+                        <h4>Resources</h4>
+                        <a href="https://app.ch8ai.com.br" target="_blank">Live Portal</a>
                         <a href="https://github.com/hudsonrj/ch8-cluster-agent/discussions" target="_blank">Discussions</a>
                         <a href="https://github.com/hudsonrj/ch8-cluster-agent/issues" target="_blank">Issues</a>
-                        <a href="https://github.com/hudsonrj/ch8-cluster-agent/blob/main/CONTRIBUTING.md" target="_blank">Contributing</a>
                     </div>
                 </div>
             </div>
             <div class="footer-bottom">
-                <p>&copy; 2026 CH8 Agent — MIT License</p>
-                <p>Built for developers who value privacy, performance, and freedom.</p>
+                <p>&copy; 2026 CH8 Agent &mdash; MIT License</p>
+                <p>Built for engineers who value autonomy, security, and intelligence.</p>
             </div>
         </div>
     </footer>
