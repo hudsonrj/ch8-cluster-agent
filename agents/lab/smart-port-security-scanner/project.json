@@ -1,0 +1,27 @@
+{
+  "idea": {
+    "name": "smart-port-security-scanner",
+    "description": "Monitora portas abertas do sistema, detecta mudanças suspeitas e identifica processos não autorizados escutando em portas sensíveis usando análise de padrões históricos",
+    "files": [
+      "port_scanner.py"
+    ],
+    "test_command": "python3 port_scanner.py --test",
+    "delegation": null
+  },
+  "build": {
+    "files_created": [
+      "/data2/sandbox/smart-port-security-scanner/port_scanner.py"
+    ],
+    "errors": []
+  },
+  "test": {
+    "status": "passed",
+    "output": ""
+  },
+  "created_at": "2026-05-02T00:58:15.076203",
+  "score": 95,
+  "category": "security",
+  "deploy_ready": true,
+  "documentation": "Monitora portas abertas em tempo real, detecta mudanças suspeitas e identifica processos não autorizados escutando em portas sensíveis. Integra com o cluster para alertas automáticos.",
+  "status": "deployed"
+}
