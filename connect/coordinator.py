@@ -32,6 +32,42 @@ class ControlClient:
             raise RuntimeError("Not authenticated. Run `ch8 login` or `ch8 up --token TOKEN`.")
         return {"Authorization": f"Bearer {token}"}
 
+    async def _re_authenticate(self) -> bool:
+        """Try to get a new token via /auth/recover, DB, or bootstrap."""
+        import logging
+        log = logging.getLogger("ch8.coordinator")
+        try:
+            # Strategy 1: Ask control server to recover session from DB
+            client = await self._get()
+            resp = await client.post("/auth/recover", json={"node_id": self.node_id})
+            if resp.status_code == 200:
+                new_token = resp.json().get("access_token")
+                if new_token:
+                    from .auth import _save_token
+                    _save_token(new_token)
+                    log.info(f"Re-authenticated via /auth/recover")
+                    return True
+
+            # Strategy 2: Try bootstrap from localhost (only works on control node)
+            resp = await client.post(
+                "/api/admin/bootstrap",
+                params={"network_id": get_network_id(), "label": f"auto-{self.node_id}", "ttl_hours": 8760},
+            )
+            if resp.status_code == 200:
+                preauth_token = resp.json().get("token")
+                if preauth_token:
+                    resp2 = await client.post("/auth/preauth", json={"token": preauth_token, "node_id": self.node_id})
+                    if resp2.status_code == 200:
+                        new_token = resp2.json().get("access_token")
+                        if new_token:
+                            from .auth import _save_token
+                            _save_token(new_token)
+                            log.info("Re-authenticated via bootstrap")
+                            return True
+        except Exception as e:
+            log.warning(f"Re-authentication failed: {e}")
+        return False
+
     async def _get(self) -> httpx.AsyncClient:
         if self._client is None:
             self._client = httpx.AsyncClient(base_url=CONTROL_URL, timeout=15)
@@ -59,6 +95,9 @@ class ControlClient:
             "version":    _get_version(),
         }
         resp = await client.post("/nodes/register", json=payload, headers=self._headers())
+        if resp.status_code == 401:
+            if await self._re_authenticate():
+                resp = await client.post("/nodes/register", json=payload, headers=self._headers())
         resp.raise_for_status()
         return resp.json()
 
@@ -80,6 +119,14 @@ class ControlClient:
             json=payload,
             headers=self._headers(),
         )
+        if resp.status_code == 401:
+            # Token expired/invalid — try to re-authenticate
+            if await self._re_authenticate():
+                resp = await client.put(
+                    f"/nodes/{self.node_id}/heartbeat",
+                    json=payload,
+                    headers=self._headers(),
+                )
         return resp.status_code == 200
 
     async def get_peers(self) -> List[dict]:

@@ -152,3 +152,10 @@ def get_network_id() -> Optional[str]:
 
 def is_authenticated() -> bool:
     return load_auth() is not None
+
+
+def _save_token(new_token: str) -> None:
+    """Update the access_token in auth.json without changing other fields."""
+    auth = load_auth() or {}
+    auth["access_token"] = new_token
+    save_auth(auth)
