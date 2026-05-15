@@ -42,7 +42,7 @@ KNOWN_FILE = CONFIG_DIR / "log_analyzer_known.json"
 CONFIG_DIR.mkdir(parents=True, exist_ok=True)
 BACKLOG_DIR.mkdir(parents=True, exist_ok=True)
 
-CHECK_INTERVAL = 300  # 5 minutes
+CHECK_INTERVAL = 120  # 2 minutes
 DB_URL = "postgresql://ch8app:ch8cluster2024@127.0.0.1:5432/ch8_cluster"
 
 running = True
@@ -98,6 +98,55 @@ ACTIONABLE_PATTERNS = [
         "fix_template": "# Check upstream health and increase proxy_read_timeout",
         "description": "Upstream service too slow",
     },
+    {
+        "match": "EADDRINUSE",
+        "category": "service_down",
+        "severity": "high",
+        "fix_template": "fuser -k {port}/tcp && docker restart {service}",
+        "description": "Port conflict — address already in use",
+    },
+    {
+        "match": "DB connection failed",
+        "category": "service_down",
+        "severity": "high",
+        "fix_template": "systemctl restart postgresql || docker restart postgres",
+        "description": "Database connection failure",
+    },
+    {
+        "match": "Killed process",
+        "category": "oom",
+        "severity": "critical",
+        "fix_template": "dmesg | tail -20 && free -h",
+        "description": "Process killed by OOM killer",
+    },
+    {
+        "match": "Connection refused",
+        "category": "service_down",
+        "severity": "high",
+        "fix_template": "docker restart {service} || systemctl restart {service}",
+        "description": "Service connection refused",
+    },
+    {
+        "match": "replication",
+        "category": "service_down",
+        "severity": "high",
+        "fix_template": "# Check PG replication: SELECT * FROM pg_stat_subscription;",
+        "description": "Database replication issue",
+    },
+    {
+        "match": "disk usage",
+        "category": "disk_full",
+        "severity": "medium",
+        "fix_template": "df -h && du -sh /var/log/* | sort -rh | head",
+        "description": "Disk usage warning",
+    },
+    {
+        "match": "CPU",
+        "category": "performance",
+        "severity": "medium",
+        "fix_template": "top -b -n1 | head -15",
+        "description": "High CPU usage detected",
+    },
 ]
 
 
@@ -152,18 +201,36 @@ def analyze_logs():
 
     try:
         cur = conn.cursor()
-        # Get error logs from last 10 minutes, grouped by pattern
+        # Get error/warning logs from last 30 minutes (2+ occurrences)
+        # Plus critical/security patterns from last 1 hour (1+ occurrence)
         cur.execute("""
-            SELECT hostname, source, level,
-                   LEFT(message, 200) as msg_pattern,
-                   count(*) as cnt,
-                   max(logged_at) as last_seen
-            FROM node_logs
-            WHERE level IN ('error', 'warning')
-              AND logged_at > NOW() - INTERVAL '10 minutes'
-            GROUP BY hostname, source, level, LEFT(message, 200)
-            HAVING count(*) >= 3
-            ORDER BY cnt DESC
+            (SELECT hostname, source, level,
+                    LEFT(message, 200) as msg_pattern,
+                    count(*) as cnt,
+                    max(logged_at) as last_seen
+             FROM node_logs
+             WHERE level IN ('error', 'warning', 'critical', 'alert')
+               AND logged_at > NOW() - INTERVAL '30 minutes'
+             GROUP BY hostname, source, level, LEFT(message, 200)
+             HAVING count(*) >= 2
+             ORDER BY cnt DESC
+             LIMIT 15)
+            UNION ALL
+            (SELECT hostname, source, level,
+                    LEFT(message, 200) as msg_pattern,
+                    count(*) as cnt,
+                    max(logged_at) as last_seen
+             FROM node_logs
+             WHERE level IN ('error', 'critical', 'alert')
+               AND logged_at > NOW() - INTERVAL '1 hour'
+               AND (message ILIKE '%crash%' OR message ILIKE '%killed%'
+                    OR message ILIKE '%OOM%' OR message ILIKE '%refused%'
+                    OR message ILIKE '%timeout%' OR message ILIKE '%unreachable%'
+                    OR message ILIKE '%fail%' OR message ILIKE '%denied%')
+             GROUP BY hostname, source, level, LEFT(message, 200)
+             HAVING count(*) >= 1
+             ORDER BY cnt DESC
+             LIMIT 10)
             LIMIT 20
         """)
 
@@ -246,9 +313,14 @@ def create_backlog_item(issue, pattern, known):
             return None
 
     service = _extract_service(issue["message"], issue["source"])
+    # Extract port from message if present (e.g., "0.0.0.0:3002")
+    import re
+    port_match = re.search(r':(\d{2,5})', issue.get("message", ""))
+    port = port_match.group(1) if port_match else "0"
     fix_cmd = pattern["fix_template"].format(
         service=service,
         path=issue.get("path", "/unknown"),
+        port=port,
     )
 
     # Create ITSM ticket in database
