@@ -2217,5 +2217,38 @@ def main():
         uvicorn.run(app, host=bind_host, port=AGENT_PORT, log_level="warning", loop="asyncio")
 
 
+# ── Vault API ──────────────────────────────────────────────────────────────────
+
+@app.get("/vault/list")
+async def vault_list(request: Request):
+    """List vault keys (requires auth)."""
+    from connect.vault import list_keys
+    return {"keys": list_keys()}
+
+
+@app.get("/vault/get/{path:path}")
+async def vault_get(path: str, request: Request):
+    """Get a secret from vault (requires auth)."""
+    from connect.vault import get
+    value = get(path)
+    if value is None:
+        raise HTTPException(status_code=404, detail=f"Secret not found: {path}")
+    return {"path": path, "value": value}
+
+
+@app.post("/vault/set")
+async def vault_set(request: Request):
+    """Set a secret in vault (requires auth)."""
+    body = await request.json()
+    path = body.get("path", "")
+    value = body.get("value", "")
+    desc = body.get("description", "")
+    if not path or not value:
+        raise HTTPException(status_code=400, detail="path and value required")
+    from connect.vault import set as vault_set_fn
+    vault_set_fn(path, value, desc)
+    return {"ok": True, "path": path}
+
+
 if __name__ == "__main__":
     main()
