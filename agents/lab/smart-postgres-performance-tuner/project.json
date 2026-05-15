@@ -1,0 +1,28 @@
+{
+  "idea": {
+    "name": "smart-postgres-performance-tuner",
+    "description": "Real-time PostgreSQL performance analyzer that monitors query execution, connection pools, cache hit ratios, and table bloat. Provides autonomous tuning by adjusting configuration parameters like shared_buffers, work_mem, and maintenance_work_mem based on observed workload patterns.",
+    "files": [
+      "main.py"
+    ],
+    "test_command": "python3 main.py --test",
+    "delegation": null
+  },
+  "build": {
+    "files_created": [
+      "/data2/sandbox/smart-postgres-performance-tuner/main.py"
+    ],
+    "errors": []
+  },
+  "test": {
+    "status": "passed",
+    "output": ""
+  },
+  "fix_attempts": 0,
+  "created_at": "2026-05-05T01:29:09.607508",
+  "score": 88,
+  "category": "database",
+  "deploy_ready": true,
+  "documentation": "Analisa performance do PostgreSQL em tempo real — queries lentas, conexões, locks, cache hit ratio. Gera recomendações de otimização para o ch8_cluster.",
+  "status": "deployed"
+}
