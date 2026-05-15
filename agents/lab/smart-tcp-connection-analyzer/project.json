@@ -1,0 +1,28 @@
+{
+  "idea": {
+    "name": "smart-tcp-connection-analyzer",
+    "description": "Analisa conexões TCP ativas, detecta padrões suspeitos (muitas conexões TIME_WAIT, CLOSE_WAIT, half-open), identifica possíveis vazamentos de sockets e sugere otimizações de kernel (tcp_fin_timeout, tcp_tw_reuse). Gera relatório com estatísticas por estado e processo.",
+    "files": [
+      "main.py"
+    ],
+    "test_command": "python3 main.py --test",
+    "delegation": null
+  },
+  "build": {
+    "files_created": [
+      "/data2/sandbox/smart-tcp-connection-analyzer/main.py"
+    ],
+    "errors": []
+  },
+  "test": {
+    "status": "passed",
+    "output": ""
+  },
+  "fix_attempts": 0,
+  "created_at": "2026-05-05T03:58:35.203746",
+  "score": 85,
+  "category": "network",
+  "deploy_ready": true,
+  "documentation": "Analisa conexões TCP ativas, detecta padrões suspeitos (TIME_WAIT excessivo, SYN floods, conexões externas anômalas). Alimenta alertas de segurança.",
+  "status": "deployed"
+}
