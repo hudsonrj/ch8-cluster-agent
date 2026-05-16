@@ -176,6 +176,44 @@ def _check_file_integrity():
     }
 
 
+def _check_containers():
+    """Check all Docker containers for unhealthy/crashed/restarting status."""
+    try:
+        out = subprocess.run(
+            ["docker", "ps", "-a", "--format", "{{.Names}}|{{.Status}}|{{.Image}}"],
+            capture_output=True, text=True, timeout=15
+        ).stdout
+        problems = []
+        for line in out.strip().split("\n"):
+            if not line:
+                continue
+            parts = line.split("|")
+            if len(parts) >= 2:
+                name, status = parts[0], parts[1]
+                image = parts[2] if len(parts) > 2 else ""
+                # Detect problems
+                is_bad = False
+                if "Restarting" in status or "restarting" in status:
+                    is_bad = True
+                    reason = "crash loop (restarting)"
+                elif "Exited" in status and "Exited (0)" not in status:
+                    is_bad = True
+                    reason = f"crashed ({status})"
+                elif "unhealthy" in status.lower():
+                    is_bad = True
+                    reason = "unhealthy"
+                if is_bad:
+                    problems.append({"name": name, "status": status, "image": image, "reason": reason})
+        return {
+            "ok": True,
+            "total": len(out.strip().split("\n")),
+            "problems": problems,
+            "suspicious": len(problems) > 0,
+        }
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+
 def _create_security_ticket(title, description, severity="high"):
     """Create ITSM ticket for security finding."""
     try:
@@ -259,6 +297,8 @@ def main():
             results["sessions"] = _check_sessions()
             # 4. File integrity
             results["integrity"] = _check_file_integrity()
+            # 5. Docker containers health
+            results["containers"] = _check_containers()
 
             # Evaluate findings
             alerts = []
@@ -268,6 +308,15 @@ def main():
                 alerts.append(f"Multiple failed logins: {results['sessions'].get('recent_failed_logins')}")
             if results["integrity"].get("changes_detected"):
                 alerts.append(f"Critical files modified: {results['integrity']['changes_detected']}")
+            # Container alerts
+            for prob in results.get("containers", {}).get("problems", []):
+                alerts.append(f"Container {prob['name']} is {prob['reason']}")
+                # Create specific ticket for container issues
+                _create_security_ticket(
+                    title=f"[{os.uname().nodename}] Container {prob['name']} — {prob['reason']}",
+                    description=f"Container: {prob['name']}\nStatus: {prob['status']}\nImage: {prob.get('image','?')}\nAction: docker restart {prob['name']}",
+                    severity="high" if "crash" in prob['reason'] else "medium",
+                )
 
             # Create tickets for serious findings
             for alert in alerts:

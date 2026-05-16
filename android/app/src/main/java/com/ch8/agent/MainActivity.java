@@ -104,6 +104,11 @@ public class MainActivity extends AppCompatActivity {
                     .putBoolean(KEY_CONFIGURED, true)
                     .apply();
 
+            // Register device as cluster node
+            if (!token.isEmpty()) {
+                registerDevice(server, token);
+            }
+
             showDashboard();
         });
     }
@@ -181,6 +186,29 @@ public class MainActivity extends AppCompatActivity {
                 .putBoolean(KEY_CONFIGURED, false)
                 .apply();
         showSetup();
+    }
+
+    private void registerDevice(String server, String token) {
+        new Thread(() -> {
+            try {
+                java.net.URL url = new java.net.URL(server + "/api/mobile/register");
+                java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("POST");
+                conn.setRequestProperty("Content-Type", "application/json");
+                conn.setDoOutput(true);
+                String deviceName = android.os.Build.MODEL;
+                String body = "{\"token\":\"" + token + "\",\"device_name\":\"" + deviceName + "\",\"os\":\"android\"}";
+                conn.getOutputStream().write(body.getBytes());
+                int code = conn.getResponseCode();
+                runOnUiThread(() -> {
+                    if (code == 200) {
+                        Toast.makeText(this, deviceName + " registered as cluster node!", Toast.LENGTH_LONG).show();
+                    }
+                });
+            } catch (Exception e) {
+                // Silent fail - device works as viewer even without registration
+            }
+        }).start();
     }
 
     @Override
