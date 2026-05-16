@@ -47,6 +47,15 @@ DB_URL = "postgresql://ch8app:ch8cluster2024@127.0.0.1:5432/ch8_cluster"
 
 running = True
 
+# Known false positives — ignore these (node + pattern combinations)
+IGNORE_PATTERNS = [
+    ("vmi3201672", "DB connection failed"),       # vmi has no local PG socket
+    ("vmi3201672", "connection to server on socket"),
+    ("kali", "DB connection failed"),             # kali has no local PG socket
+    ("kali", "connection to server on socket"),
+    ("manager1", "EADDRINUSE"),                   # port conflicts during restart are transient
+]
+
 # Patterns that are actionable (regex-like matching + fix templates)
 ACTIONABLE_PATTERNS = [
     {
@@ -406,6 +415,15 @@ def main():
             created = 0
 
             for issue in issues:
+                # Skip known false positives
+                skip = False
+                for ig_node, ig_pattern in IGNORE_PATTERNS:
+                    if issue.get("hostname") == ig_node and ig_pattern.lower() in issue.get("message", "").lower():
+                        skip = True
+                        break
+                if skip:
+                    continue
+
                 pattern = match_pattern(issue["message"])
                 if pattern:
                     result = create_backlog_item(issue, pattern, known)
