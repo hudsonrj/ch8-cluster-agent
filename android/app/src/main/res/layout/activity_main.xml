@@ -1,56 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:background="#0D1117">
+    android:background="#0a0b0f">
 
-    <!-- Top bar -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="56dp"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:paddingHorizontal="16dp"
-        android:background="#161B22">
-
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="CH8 Agent"
-            android:textColor="#58A6FF"
-            android:textSize="20sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/status_text"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Status: Stopped"
-            android:textColor="#F44336"
-            android:textSize="12sp" />
-
-        <Button
-            android:id="@+id/btn_start"
-            android:layout_width="wrap_content"
-            android:layout_height="36dp"
-            android:layout_marginStart="8dp"
-            android:text="Start"
-            android:textSize="12sp"
-            android:backgroundTint="#238636" />
-
-        <Button
-            android:id="@+id/btn_stop"
-            android:layout_width="wrap_content"
-            android:layout_height="36dp"
-            android:layout_marginStart="4dp"
-            android:text="Stop"
-            android:textSize="12sp"
-            android:backgroundTint="#DA3633" />
-    </LinearLayout>
-
-    <!-- Setup layout (shown first time) -->
+    <!-- Setup Layout -->
     <LinearLayout
         android:id="@+id/setup_layout"
         android:layout_width="match_parent"
@@ -64,65 +18,107 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="CH8"
-            android:textColor="#58A6FF"
             android:textSize="48sp"
-            android:textStyle="bold" />
+            android:textStyle="bold"
+            android:textColor="#6366f1"
+            android:layout_marginBottom="4dp"/>
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="Distributed AI Agent"
-            android:textColor="#8B949E"
-            android:textSize="16sp" />
+            android:text="AI Operations Platform"
+            android:textSize="14sp"
+            android:textColor="#8a93a8"
+            android:layout_marginBottom="40dp"/>
 
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="32dp"
-            android:text="Enter your network token to connect this device to your CH8 cluster."
-            android:textColor="#C9D1D9"
+            android:text="Control Server URL"
+            android:textSize="12sp"
+            android:textColor="#8a93a8"
+            android:layout_marginBottom="6dp"/>
+
+        <EditText
+            android:id="@+id/server_input"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:background="@drawable/input_bg"
+            android:textColor="#f0f2f5"
+            android:textColorHint="#505868"
+            android:hint="https://control.ch8ai.com.br"
             android:textSize="14sp"
-            android:gravity="center" />
+            android:padding="12dp"
+            android:singleLine="true"
+            android:inputType="textUri"
+            android:layout_marginBottom="16dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Token (optional)"
+            android:textSize="12sp"
+            android:textColor="#8a93a8"
+            android:layout_marginBottom="6dp"/>
 
         <EditText
             android:id="@+id/token_input"
             android:layout_width="match_parent"
             android:layout_height="48dp"
-            android:layout_marginTop="24dp"
-            android:hint="tk_xxxxx..."
-            android:textColor="#C9D1D9"
-            android:textColorHint="#484F58"
             android:background="@drawable/input_bg"
+            android:textColor="#f0f2f5"
+            android:textColorHint="#505868"
+            android:hint="tk_... (for authenticated access)"
+            android:textSize="14sp"
             android:padding="12dp"
+            android:singleLine="true"
             android:inputType="text"
-            android:singleLine="true" />
+            android:layout_marginBottom="32dp"/>
 
         <Button
             android:id="@+id/btn_connect"
             android:layout_width="match_parent"
-            android:layout_height="48dp"
-            android:layout_marginTop="16dp"
-            android:text="Connect to Network"
-            android:textColor="#FFFFFF"
-            android:backgroundTint="#238636"
-            android:textAllCaps="false"
-            android:textSize="16sp" />
+            android:layout_height="52dp"
+            android:text="Connect"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="#ffffff"
+            android:backgroundTint="#6366f1"
+            android:layout_marginBottom="16dp"/>
 
         <TextView
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:text="Get your token at control.ch8ai.com.br"
-            android:textColor="#484F58"
-            android:textSize="12sp" />
+            android:text="Connect via Tailscale for best performance.\nThe app will show the full control dashboard."
+            android:textSize="11sp"
+            android:textColor="#505868"
+            android:gravity="center"
+            android:lineSpacingExtra="4dp"/>
+
     </LinearLayout>
 
-    <!-- WebView dashboard (shown after setup) -->
+    <!-- WebView (full dashboard) -->
     <WebView
         android:id="@+id/webview"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:visibility="gone" />
+        android:visibility="gone"/>
 
-</LinearLayout>
+    <!-- Status bar overlay -->
+    <TextView
+        android:id="@+id/status_text"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:background="#1a1d26"
+        android:textColor="#8a93a8"
+        android:textSize="11sp"
+        android:padding="8dp"
+        android:gravity="center"
+        android:visibility="gone"/>
+
+    <!-- Hidden buttons for service control -->
+    <Button android:id="@+id/btn_start" android:visibility="gone" android:layout_width="0dp" android:layout_height="0dp"/>
+    <Button android:id="@+id/btn_stop" android:visibility="gone" android:layout_width="0dp" android:layout_height="0dp"/>
+
+</RelativeLayout>
