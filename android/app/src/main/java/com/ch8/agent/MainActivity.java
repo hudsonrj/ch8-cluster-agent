@@ -119,11 +119,20 @@ public class MainActivity extends AppCompatActivity {
 
         SharedPreferences prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
         String server = prefs.getString(KEY_SERVER, DEFAULT_SERVERS[1]);
+        String nodeId = prefs.getString("node_id", "");
+        String token = prefs.getString(KEY_TOKEN, "");
 
         statusText.setText("Connecting to " + server + "...");
         statusText.setVisibility(View.VISIBLE);
 
         webView.loadUrl(server);
+
+        // Inject node_id and token into WebView localStorage for heartbeat
+        if (!nodeId.isEmpty()) {
+            webView.evaluateJavascript(
+                "localStorage.setItem('ch8_mobile_node_id','" + nodeId + "');" +
+                "localStorage.setItem('ch8_mobile_token','" + token + "');", null);
+        }
     }
 
     private class CH8WebViewClient extends WebViewClient {
