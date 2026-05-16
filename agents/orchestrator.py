@@ -1280,6 +1280,93 @@ async def get_ai_config():
     }
 
 
+# ── File Upload ────────────────────────────────────────────────────────────────
+
+from fastapi import UploadFile, File, Form
+
+UPLOAD_DIR = Path("/data2/uploads")
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+
+
+@app.post("/upload")
+async def upload_file(file: UploadFile = File(...), context: str = Form("")):
+    """Upload a file to the node. Returns path and extracted text content.
+    Supports: text, PDF, images, audio, code, documents.
+    The extracted content can be used in chat context for RAG/skills/agents."""
+    import hashlib, mimetypes
+
+    # Save file
+    ts = int(time.time())
+    safe_name = file.filename.replace("/", "_").replace("..", "_")
+    dest = UPLOAD_DIR / f"{ts}_{safe_name}"
+    content_bytes = await file.read()
+    dest.write_bytes(content_bytes)
+
+    file_size = len(content_bytes)
+    mime = file.content_type or mimetypes.guess_type(safe_name)[0] or "application/octet-stream"
+    md5 = hashlib.md5(content_bytes).hexdigest()[:12]
+
+    # Extract text content based on file type
+    extracted_text = ""
+    try:
+        if mime.startswith("text/") or safe_name.endswith((".py", ".js", ".ts", ".sh", ".yaml", ".yml", ".json", ".md", ".csv", ".sql", ".conf")):
+            extracted_text = content_bytes.decode("utf-8", errors="replace")[:50000]
+        elif mime == "application/pdf" or safe_name.endswith(".pdf"):
+            # Try to extract text from PDF
+            try:
+                import subprocess
+                result = subprocess.run(["pdftotext", str(dest), "-"], capture_output=True, text=True, timeout=30)
+                if result.returncode == 0:
+                    extracted_text = result.stdout[:50000]
+                else:
+                    extracted_text = f"[PDF file: {safe_name}, {file_size} bytes — text extraction failed]"
+            except Exception:
+                extracted_text = f"[PDF file: {safe_name}, {file_size} bytes — pdftotext not available]"
+        elif mime.startswith("image/"):
+            extracted_text = f"[Image: {safe_name}, {mime}, {file_size} bytes. Stored at {dest}]"
+        elif mime.startswith("audio/"):
+            extracted_text = f"[Audio: {safe_name}, {mime}, {file_size} bytes. Stored at {dest}]"
+        else:
+            extracted_text = f"[File: {safe_name}, {mime}, {file_size} bytes. Stored at {dest}]"
+    except Exception as e:
+        extracted_text = f"[File: {safe_name}, error extracting: {e}]"
+
+    # Store metadata in knowledge if context provided
+    if context:
+        try:
+            import psycopg2
+            db_url = os.environ.get("CH8_DB_URL", "")
+            if not db_url:
+                env_file = Path.home() / ".config" / "ch8" / "env"
+                if env_file.exists():
+                    for line in env_file.read_text().splitlines():
+                        if line.startswith("CH8_DB_URL="):
+                            db_url = line.split("=", 1)[1].strip()
+            if db_url:
+                conn = psycopg2.connect(db_url)
+                cur = conn.cursor()
+                cur.execute("""INSERT INTO knowledge_articles (title, category, tags, content, source_type, source_ref, node)
+                    VALUES (%s, %s, %s, %s, 'upload', %s, %s)""",
+                    (f"Upload: {safe_name}", "procedure", [mime.split("/")[0], "upload"],
+                     f"Arquivo: {safe_name}\nContexto: {context}\n\n{extracted_text[:5000]}",
+                     str(dest), os.uname().nodename))
+                conn.commit()
+                conn.close()
+        except Exception:
+            pass
+
+    return {
+        "ok": True,
+        "path": str(dest),
+        "filename": safe_name,
+        "size": file_size,
+        "mime": mime,
+        "md5": md5,
+        "extracted_text": extracted_text[:3000],
+        "context": context,
+    }
+
+
 @app.post("/execute")
 async def execute_tool_endpoint(request: Request):
     """Execute a tool call directly. Used by the dashboard or external clients."""
