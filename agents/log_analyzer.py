@@ -54,6 +54,15 @@ IGNORE_PATTERNS = [
     ("kali", "DB connection failed"),             # kali has no local PG socket
     ("kali", "connection to server on socket"),
     ("manager1", "EADDRINUSE"),                   # port conflicts during restart are transient
+    ("manager1", "Connection refused"),           # nginx 502 during container rebuild (transient)
+    ("MacBook-Pro", "DB connection failed"),      # no local PG
+    ("MacBook-Pro-de-PC-2.local", "DB connection failed"),  # full hostname variant
+    ("MacBook-Air", "DB connection failed"),      # no local PG
+    ("lenovo", "DB connection failed"),           # no local PG
+    ("NoteAlliedIT", "DB connection failed"),     # no local PG
+    ("localhost", "DB connection failed"),        # no local PG
+    ("ALDLUBUDW01", "DB connection failed"),      # no local PG
+    ("cpqd8nr2jg4", "DB connection failed"),      # no local PG
 ]
 
 # Patterns that are actionable (regex-like matching + fix templates)

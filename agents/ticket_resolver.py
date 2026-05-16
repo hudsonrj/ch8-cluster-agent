@@ -175,7 +175,7 @@ def process_open_tickets(conn):
 
 
 def process_investigating_tickets(conn):
-    """Try to fix investigating tickets."""
+    """Try to fix investigating tickets. Uses fresh connection after each fix attempt."""
     cur = conn.cursor()
     cur.execute("""
         SELECT ticket_id, title, category, node, fix_command, severity
@@ -186,40 +186,52 @@ def process_investigating_tickets(conn):
         LIMIT 3
     """)
     tickets = cur.fetchall()
+    conn.close()  # Close before potentially long fix operations
 
     for row in tickets:
         ticket_id, title, category, node, fix_command, severity = row
         log.info(f"Tentando resolver: {ticket_id} — {title}")
 
-        # Try auto-fix
+        # Try auto-fix (can take up to 30s)
         ticket_data = {"fix_command": fix_command, "category": category, "node": node}
         output, error = _try_auto_fix(ticket_data)
 
-        if output:
-            cur.execute(
-                "UPDATE tickets SET status = 'in_progress', updated_at = NOW() WHERE ticket_id = %s",
-                (ticket_id,)
-            )
-            _add_history(conn, ticket_id, "fix_applied",
-                         f"Fix executado com sucesso. Output: {output[:200]}")
-        elif error:
-            _add_history(conn, ticket_id, "fix_attempt",
-                         f"Tentativa de fix: {error}")
-            # If critical and fix failed, escalate immediately
-            if severity == 'critical':
-                cur.execute(
-                    "UPDATE tickets SET status = 'escalated', escalated = true, updated_at = NOW() WHERE ticket_id = %s",
-                    (ticket_id,)
-                )
-                _add_history(conn, ticket_id, "escalated",
-                             "Escalado para humano — ticket crítico sem resolução automática")
-            else:
-                # Move to in_progress anyway (will be checked for resolution)
-                cur.execute(
+        # Fresh connection for DB update after fix
+        conn2 = _get_db()
+        if not conn2:
+            continue
+        try:
+            cur2 = conn2.cursor()
+            if output:
+                cur2.execute(
                     "UPDATE tickets SET status = 'in_progress', updated_at = NOW() WHERE ticket_id = %s",
                     (ticket_id,)
                 )
-        conn.commit()
+                _add_history(conn2, ticket_id, "fix_applied",
+                             f"Fix executado com sucesso. Output: {output[:200]}")
+            elif error:
+                _add_history(conn2, ticket_id, "fix_attempt",
+                             f"Tentativa de fix: {error}")
+                if severity == 'critical':
+                    cur2.execute(
+                        "UPDATE tickets SET status = 'escalated', escalated = true, updated_at = NOW() WHERE ticket_id = %s",
+                        (ticket_id,)
+                    )
+                    _add_history(conn2, ticket_id, "escalated",
+                                 "Escalado para humano — ticket critico sem resolucao automatica")
+                else:
+                    cur2.execute(
+                        "UPDATE tickets SET status = 'in_progress', updated_at = NOW() WHERE ticket_id = %s",
+                        (ticket_id,)
+                    )
+            conn2.commit()
+            conn2.close()
+        except Exception as e:
+            log.warning(f"DB update after fix failed: {e}")
+            try:
+                conn2.close()
+            except:
+                pass
 
 
 def process_in_progress_tickets(conn):
