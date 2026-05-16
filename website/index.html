@@ -736,11 +736,18 @@
                         <p class="install-note">Best with WSL2: <code>wsl --install</code> then use the Linux installer.</p>
                     </div>
                     <div class="tab-pane" id="android">
+                        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px">
+                            <a href="https://ch8agent.ch8ai.com.br/downloads/ch8-agent.apk" style="display:inline-flex;align-items:center;gap:8px;padding:12px 24px;background:var(--blue);color:#fff;border-radius:8px;font-weight:600;text-decoration:none;font-size:14px">
+                                <i class="fab fa-android"></i> Download APK (5.4MB)
+                            </a>
+                        </div>
+                        <p class="install-note" style="margin-bottom:12px"><strong>Option 1 — APK:</strong> Install the app directly. Opens the full dashboard on your phone. Connect via Tailscale or HTTPS.</p>
+                        <p class="install-note" style="margin-bottom:12px"><strong>Option 2 — Termux (node mode):</strong> Runs Python agents on the phone. For advanced users:</p>
                         <div class="code-block">
                             <pre><code>curl -fsSL https://raw.githubusercontent.com/hudsonrj/ch8-cluster-agent/master/scripts/install-android.sh | bash</code></pre>
                             <button class="copy-btn"><i class="fas fa-copy"></i></button>
                         </div>
-                        <p class="install-note">Install Termux from F-Droid first. Run <code>termux-wake-lock</code> for background.</p>
+                        <p class="install-note">Termux from F-Droid. Run <code>termux-wake-lock</code> for background.</p>
                     </div>
                 </div>
 
