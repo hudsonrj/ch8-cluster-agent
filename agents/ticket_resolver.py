@@ -333,43 +333,51 @@ def main():
         except Exception:
             pass  # If HA check fails, proceed (single-node mode)
 
-        conn = _get_db()
-        if not conn:
-            _update_state("warning", "Sem conexão com banco de dados")
-            time.sleep(30)
-            continue
-
         try:
-            # Process tickets in lifecycle order
-            process_open_tickets(conn)
-            process_investigating_tickets(conn)
-            process_in_progress_tickets(conn)
-            process_sla_breaches(conn)
-            auto_close_resolved(conn)
+            # Process tickets in lifecycle order (fresh connection per operation)
+            for task_fn in [process_open_tickets, process_investigating_tickets,
+                            process_in_progress_tickets, process_sla_breaches, auto_close_resolved]:
+                conn = _get_db()
+                if not conn:
+                    _update_state("warning", "Sem conexão com banco de dados")
+                    break
+                try:
+                    task_fn(conn)
+                    conn.close()
+                except Exception as e:
+                    log.warning(f"{task_fn.__name__} error: {e}")
+                    try:
+                        conn.close()
+                    except:
+                        pass
 
-            # Count status for reporting
-            cur = conn.cursor()
-            cur.execute("SELECT status, count(*) FROM tickets GROUP BY status")
-            counts = dict(cur.fetchall())
-            conn.close()
+            # Count status for reporting (separate connection)
+            conn = _get_db()
+            if conn:
+                try:
+                    cur = conn.cursor()
+                    cur.execute("SELECT status, count(*) FROM tickets GROUP BY status")
+                    counts = dict(cur.fetchall())
+                    conn.close()
 
-            total = sum(counts.values())
-            open_c = counts.get("open", 0)
-            inv = counts.get("investigating", 0)
-            prog = counts.get("in_progress", 0)
-            resolved = counts.get("resolved", 0)
-            escalated = counts.get("escalated", 0)
+                    total = sum(counts.values())
+                    open_c = counts.get("open", 0)
+                    inv = counts.get("investigating", 0)
+                    prog = counts.get("in_progress", 0)
+                    resolved = counts.get("resolved", 0)
+                    escalated = counts.get("escalated", 0)
 
-            _update_state("running",
-                          f"Tickets: {total} total | {open_c} open | {inv} inv | {prog} prog | {resolved} resolvidos | {escalated} escalados")
+                    _update_state("running",
+                                  f"Tickets: {total} total | {open_c} open | {inv} inv | {prog} prog | {resolved} resolvidos | {escalated} escalados")
+                except Exception:
+                    try:
+                        conn.close()
+                    except:
+                        pass
 
         except Exception as e:
             log.error(f"Cycle error: {e}")
             _update_state("error", str(e)[:80])
-            try:
-                conn.close()
-            except:
-                pass
 
         for _ in range(CHECK_INTERVAL):
             if not running:
