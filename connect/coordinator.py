@@ -181,7 +181,14 @@ class ControlClient:
 # Helpers
 
 def _get_local_ip() -> str:
-    """Best-effort guess of the local LAN IP."""
+    """Get best address. Prefers Tailscale (100.x) over public/LAN IP."""
+    try:
+        import subprocess
+        out = subprocess.check_output(["tailscale", "ip", "--4"], timeout=5, stderr=subprocess.DEVNULL).decode().strip()
+        if out.startswith("100."):
+            return out
+    except Exception:
+        pass
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s.connect(("8.8.8.8", 80))
