@@ -319,7 +319,23 @@ Seja conciso — máximo 200 palavras."""
     ])
 
     ata = "\n".join(ata_lines)
-    _save_ata(ata, date_str)
+
+    # Only save ATA if at least one specialist responded successfully
+    valid_responses = [r for r in ata_lines if len(r) > 50 and "erro HTTP" not in r and "timed out" not in r]
+    if len(valid_responses) < 3:
+        log.warning("Too many errors in standup responses. Skipping ATA save.")
+    else:
+        # Delete any previous ATA for today before saving
+        try:
+            import psycopg2
+            conn = psycopg2.connect(_get_db_url())
+            cur = conn.cursor()
+            cur.execute("DELETE FROM knowledge_articles WHERE source_ref=%s", (f"daily-ata-{date_str}",))
+            conn.commit()
+            conn.close()
+        except Exception:
+            pass
+        _save_ata(ata, date_str)
 
     log.info(f"Standup complete: {len(specialists)} specialists, {len(all_ideas)} ideas, {len(all_tasks)} tasks routed")
     for item in routed_items:
