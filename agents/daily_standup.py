@@ -84,47 +84,76 @@ def _load_specialists() -> list:
         return []
 
 
-def _ask_specialist(specialist: dict, question: str, context: str = "") -> str:
-    """Ask a specialist a question via the orchestrator."""
-    try:
-        import httpx
-        from connect.auth import CONTROL_URL, get_access_token, get_node_id
-        headers = {"Authorization": f"Bearer {get_access_token()}", "Content-Type": "application/json"}
-        messages = []
-        if specialist['system_prompt']:
-            messages.append({"role": "user", "content": f"[Sistema] Você é {specialist['nome']}, especialista em {specialist['domain']}.\n\n{specialist['system_prompt'][:1500]}\n\nResponda em PT-BR, de forma concisa."})
-            messages.append({"role": "assistant", "content": f"Entendido. Sou {specialist['nome']}."})
-        if context:
-            messages.append({"role": "user", "content": f"Contexto da reunião:\n{context}"})
-            messages.append({"role": "assistant", "content": "Entendido, tenho o contexto."})
-        messages.append({"role": "user", "content": question})
+def _wait_orchestrator_ready(max_wait: int = 120) -> bool:
+    """Wait until orchestrator is healthy, up to max_wait seconds."""
+    import httpx
+    from connect.auth import get_access_token
+    headers = {"Authorization": f"Bearer {get_access_token()}"}
+    deadline = time.time() + max_wait
+    while time.time() < deadline:
+        try:
+            r = httpx.get("http://127.0.0.1:7879/health", headers=headers, timeout=5)
+            if r.status_code == 200:
+                return True
+        except Exception:
+            pass
+        log.info("Orchestrator not ready yet, waiting 10s...")
+        time.sleep(10)
+    return False
 
-        # Call orchestrator with streaming (the only mode supported)
-        with httpx.stream("POST", "http://127.0.0.1:7879/chat",
-                          json={"messages": messages},
-                          headers=headers,
-                          timeout=90) as resp:
-            if resp.status_code != 200:
-                return f"{specialist['nome']}: erro HTTP {resp.status_code}"
-            content = ""
-            for line in resp.iter_lines():
-                if line.startswith("data: "):
-                    data = line[6:]
-                    if data == "[DONE]":
-                        break
-                    try:
-                        j = json.loads(data)
-                        c = j.get("message", {}).get("content", "")
-                        content += c
-                    except Exception:
-                        pass
-            # Clean tool_call blocks and execution details
-            content = re.sub(r'```tool_call[\s\S]*?```', '', content)
-            content = re.sub(r'⚙ Executing [^\n]+\.\.\.\n?', '', content)
-            content = re.sub(r'```\{[\s\S]*?"exit_code"[\s\S]*?```\n?', '', content)
-            return content.strip()[:1000] or f"{specialist['nome']}: sem resposta"
-    except Exception as e:
-        return f"{specialist['nome']}: erro ({str(e)[:60]})"
+
+def _ask_specialist(specialist: dict, question: str, context: str = "") -> str:
+    """Ask a specialist a question via the orchestrator, with retry."""
+    import httpx
+    from connect.auth import get_access_token
+    headers = {"Authorization": f"Bearer {get_access_token()}", "Content-Type": "application/json"}
+    messages = []
+    if specialist['system_prompt']:
+        messages.append({"role": "user", "content": f"[Sistema] Você é {specialist['nome']}, especialista em {specialist['domain']}.\n\n{specialist['system_prompt'][:1500]}\n\nResponda em PT-BR, de forma concisa."})
+        messages.append({"role": "assistant", "content": f"Entendido. Sou {specialist['nome']}."})
+    if context:
+        messages.append({"role": "user", "content": f"Contexto da reunião:\n{context}"})
+        messages.append({"role": "assistant", "content": "Entendido, tenho o contexto."})
+    messages.append({"role": "user", "content": question})
+
+    for attempt in range(3):
+        try:
+            with httpx.stream("POST", "http://127.0.0.1:7879/chat",
+                              json={"messages": messages},
+                              headers=headers,
+                              timeout=90) as resp:
+                if resp.status_code != 200:
+                    log.warning(f"  {specialist['nome']}: HTTP {resp.status_code} (tentativa {attempt+1}/3)")
+                    if attempt < 2:
+                        time.sleep(15)
+                        continue
+                    return f"{specialist['nome']}: erro HTTP {resp.status_code}"
+                buf = ""
+                for line in resp.iter_lines():
+                    if line.startswith("data: "):
+                        data = line[6:]
+                        if data == "[DONE]":
+                            break
+                        try:
+                            j = json.loads(data)
+                            c = j.get("message", {}).get("content", "")
+                            buf += c
+                        except Exception:
+                            pass
+                buf = re.sub(r'```tool_call[\s\S]*?```', '', buf)
+                buf = re.sub(r'⚙ Executing [^\n]+\.\.\.\n?', '', buf)
+                buf = re.sub(r'```\{[\s\S]*?"exit_code"[\s\S]*?```\n?', '', buf)
+                result = buf.strip()[:1000]
+                if result:
+                    return result
+                if attempt < 2:
+                    log.warning(f"  {specialist['nome']}: resposta vazia (tentativa {attempt+1}/3), retentando...")
+                    time.sleep(10)
+        except Exception as e:
+            log.warning(f"  {specialist['nome']}: exceção (tentativa {attempt+1}/3): {str(e)[:60]}")
+            if attempt < 2:
+                time.sleep(15)
+    return f"{specialist['nome']}: sem resposta após 3 tentativas"
 
 
 def _get_open_tickets() -> list:
@@ -380,9 +409,14 @@ def main():
             # Run at 19:00 UTC (16:00 BRT), once per day
             if now_utc.hour == STANDUP_HOUR_UTC and last_run_date != today:
                 last_run_date = today
-                _update_state("running", f"Executando Daily Standup {today}")
-                run_standup()
-                _update_state("idle", f"Daily concluída: {today}. Próxima amanhã às 16:00 BRT")
+                _update_state("running", f"Aguardando orchestrator — Daily Standup {today}")
+                if not _wait_orchestrator_ready(max_wait=120):
+                    log.error("Orchestrator not ready after 2min, skipping standup today")
+                    _update_state("error", "Orchestrator indisponível — daily pulada")
+                else:
+                    _update_state("running", f"Executando Daily Standup {today}")
+                    run_standup()
+                    _update_state("idle", f"Daily concluída: {today}. Próxima amanhã às 16:00 BRT")
 
         except Exception as e:
             log.error(f"Error: {e}")
