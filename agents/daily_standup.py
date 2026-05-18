@@ -99,30 +99,30 @@ def _ask_specialist(specialist: dict, question: str, context: str = "") -> str:
             messages.append({"role": "assistant", "content": "Entendido, tenho o contexto."})
         messages.append({"role": "user", "content": question})
 
-        # Call orchestrator directly (not streaming)
-        resp = httpx.post(
-            f"http://127.0.0.1:7879/chat",
-            json={"messages": messages, "stream": False},
-            headers=headers,
-            timeout=60
-        )
-        if resp.status_code == 200:
-            # Parse streaming response chunks to get final content
+        # Call orchestrator with streaming (the only mode supported)
+        with httpx.stream("POST", "http://127.0.0.1:7879/chat",
+                          json={"messages": messages},
+                          headers=headers,
+                          timeout=90) as resp:
+            if resp.status_code != 200:
+                return f"{specialist['nome']}: erro HTTP {resp.status_code}"
             content = ""
-            for line in resp.text.split("\n"):
+            for line in resp.iter_lines():
                 if line.startswith("data: "):
+                    data = line[6:]
+                    if data == "[DONE]":
+                        break
                     try:
-                        j = json.loads(line[6:])
+                        j = json.loads(data)
                         c = j.get("message", {}).get("content", "")
                         content += c
                     except Exception:
                         pass
-            # Clean tool_call blocks
+            # Clean tool_call blocks and execution details
             content = re.sub(r'```tool_call[\s\S]*?```', '', content)
-            content = re.sub(r'⚙ Executing [^\n]+\.\.\.\n', '', content)
-            content = re.sub(r'```\{[\s\S]*?"exit_code"[\s\S]*?```', '', content)
-            return content.strip()[:800] or f"{specialist['nome']}: sem resposta"
-        return f"{specialist['nome']}: erro HTTP {resp.status_code}"
+            content = re.sub(r'⚙ Executing [^\n]+\.\.\.\n?', '', content)
+            content = re.sub(r'```\{[\s\S]*?"exit_code"[\s\S]*?```\n?', '', content)
+            return content.strip()[:1000] or f"{specialist['nome']}: sem resposta"
     except Exception as e:
         return f"{specialist['nome']}: erro ({str(e)[:60]})"
 
@@ -183,7 +183,9 @@ def _route_task(task: str, author: str, node: str = "manager1") -> str:
             severity="medium", category="config",
             node=node, service=f"specialist-{author.lower()}",
             root_cause="Identificado durante Daily Standup",
+            impact=f"Tarefa pendente de {author} no domínio {author}",
             action_plan=f"1. {author} executa\n2. Valida resultado\n3. Fecha ticket",
+            fix_command="",
             source_type="daily_standup",
             source_ref=f"daily-{author.lower()}",
         )
