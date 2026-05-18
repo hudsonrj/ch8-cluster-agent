@@ -4,7 +4,7 @@ Specialist Runner Agent — Executa todos os Colaboradores Especialistas registr
 Carrega os especialistas da Knowledge Base e os executa como sub-agentes autônomos.
 Cada especialista monitora seu domínio em TODOS os nodes do cluster.
 
-Ciclo: a cada 30 minutos
+Ciclo: a cada 60 minutos
 - Carrega especialistas da KB (tag: colaborador)
 - Para cada especialista, executa um ciclo de monitoramento usando seu system prompt
 - Detecta problemas, cria tickets, gera insights
@@ -29,7 +29,7 @@ PID_FILE = CONFIG_DIR / "specialist_runner.pid"
 LOG_FILE = CONFIG_DIR / "specialist_runner.log"
 CONFIG_DIR.mkdir(parents=True, exist_ok=True)
 
-CHECK_INTERVAL = 1800  # 30 minutes
+CHECK_INTERVAL = 3600  # 60 minutes
 running = True
 
 
@@ -334,7 +334,7 @@ def _save_daily_report(specialist: dict, results: dict) -> None:
 
 ## Insights
 - Monitoramento contínuo ativo em todos os nodes
-- Próximo ciclo: em 30 minutos
+- Próximo ciclo: em 60 minutos
 """
         import psycopg2
         conn = psycopg2.connect(db_url)
