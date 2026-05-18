@@ -79,8 +79,31 @@ def get_my_role() -> str:
 
 
 def is_master() -> bool:
+    """Check if this node is the cluster master. Validates against control server to prevent stale state."""
+    from connect.auth import get_node_id as _get_nid, CONTROL_URL, get_access_token, get_network_id
+    my_id = _get_nid()
+    # Primary: check control server (source of truth)
+    try:
+        import httpx
+        r = httpx.get(f"{CONTROL_URL}/api/cluster/leader",
+                      headers={"Authorization": f"Bearer {get_access_token()}"},
+                      timeout=3)
+        if r.status_code == 200:
+            leader = r.json()
+            is_m = leader.get("master_id") == my_id
+            # Keep local state in sync
+            state = load_ha_state()
+            state["role"] = "master" if is_m else "worker"
+            state["master_id"] = leader.get("master_id", "")
+            state["master_hostname"] = leader.get("master_hostname", "")
+            state["updated_at"] = int(time.time())
+            save_ha_state(state)
+            return is_m
+    except Exception:
+        pass
+    # Fallback: local file
     state = load_ha_state()
-    return state.get("master_id") == get_node_id()
+    return state.get("master_id") == my_id
 
 
 def is_standby() -> bool:
