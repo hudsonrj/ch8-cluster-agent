@@ -229,6 +229,7 @@ def _create_security_ticket(title, description, severity="high"):
             impact="Potential security breach requires investigation",
             action_plan="1. Investigate finding\n2. Validate if legitimate\n3. Apply remediation",
             source_type="security_scan",
+            fix_command="",
             source_ref=f"scan_{int(time.time())}",
         )
     except Exception as e:
