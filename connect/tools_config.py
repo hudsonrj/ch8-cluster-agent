@@ -274,7 +274,48 @@ BUILTIN_TOOLS = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "criar_colaborador_especialista",
+            "description": "Cria um novo Colaborador Especialista (funcionário-expert) para o CH8 Hub Cluster. Gera system prompt completo, salva na Knowledge Base e abre ticket de onboarding. Use quando Hudson pedir: 'crie um especialista em X', 'monte um expert para Y', 'preciso de um colaborador para Z'.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "dominio": {"type": "string", "description": "Domínio técnico do especialista (ex: 'PostgreSQL', 'Segurança', 'IA/ML', 'Redes', 'DevOps', 'MongoDB', 'Observabilidade')"},
+                    "nome": {"type": "string", "description": "Nome do colaborador (opcional, ex: 'Marina', 'Carlos'). Se omitido, usa 'Especialista em {dominio}'"},
+                    "aprovador": {"type": "string", "description": "Quem aprova ações fora do envelope autônomo. Default: 'Hudson Santos'"},
+                    "canal_report": {"type": "string", "description": "Canal para reports diários. Default: 'ITSM + Telegram'"},
+                    "horario_report": {"type": "string", "description": "Horário do report diário. Default: '09:00 BRT'"},
+                },
+                "required": ["dominio"],
+            },
+        },
+    },
 ]
+
+# ── Skill: Criar Colaborador Especialista ───────────────────────────────────
+
+def _exec_criar_colaborador(args: dict) -> dict:
+    """Instanciate a specialist collaborator for the CH8 Hub Cluster."""
+    try:
+        import sys
+        from pathlib import Path
+        sys.path.insert(0, str(Path(__file__).parent.parent))
+        from skills.criar_colaborador_especialista import criar_colaborador_especialista
+        result = criar_colaborador_especialista(
+            dominio=args.get("dominio", ""),
+            nome=args.get("nome"),
+            canal_report=args.get("canal_report", "ITSM + Telegram"),
+            horario_report=args.get("horario_report", "09:00 BRT"),
+            aprovador=args.get("aprovador", "Hudson Santos"),
+            catalogo_path=args.get("catalogo_path", "https://control.ch8ai.com.br/knowledge"),
+            ticket_system=args.get("ticket_system", "CH8 ITSM (/api/itsm/tickets)"),
+        )
+        return result
+    except Exception as e:
+        return {"error": str(e), "ok": False}
+
 
 # ── Tool execution ──────────────────────────────────────────────────────────
 
@@ -294,6 +335,7 @@ def execute_tool(name: str, args: dict) -> dict:
         "cluster_catalog": _exec_cluster_catalog,
         "ha_status":       _exec_ha_status,
         "cluster_update":  _exec_cluster_update,
+        "criar_colaborador_especialista": _exec_criar_colaborador,
     }
 
     # Check custom tools
