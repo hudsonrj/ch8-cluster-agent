@@ -1,10 +1,18 @@
-// CH8 Cluster Extension — Background Service Worker
+// CH8 Cluster Extension — Background Service Worker (MV3)
 
 const API_BASE = 'https://control.ch8ai.com.br';
-const REFRESH_INTERVAL = 30; // seconds
+const REFRESH_INTERVAL = 0.5; // minutes (30s)
 
-// Refresh badge every 30s
-chrome.alarms.create('refresh', { periodInMinutes: REFRESH_INTERVAL / 60 });
+// Create alarm only on install/startup (not at top level)
+chrome.runtime.onInstalled.addListener(() => {
+  chrome.alarms.create('refresh', { periodInMinutes: REFRESH_INTERVAL });
+  updateBadge();
+});
+
+chrome.runtime.onStartup.addListener(() => {
+  chrome.alarms.create('refresh', { periodInMinutes: REFRESH_INTERVAL });
+  updateBadge();
+});
 
 chrome.alarms.onAlarm.addListener(async (alarm) => {
   if (alarm.name === 'refresh') {
@@ -12,16 +20,13 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
   }
 });
 
-// Update on install/startup
-chrome.runtime.onInstalled.addListener(() => updateBadge());
-chrome.runtime.onStartup.addListener(() => updateBadge());
-
 async function updateBadge() {
   try {
-    const { session } = await chrome.storage.local.get('session');
+    const { session, serverUrl } = await chrome.storage.local.get(['session', 'serverUrl']);
+    const base = serverUrl || API_BASE;
     const headers = {};
+
     if (session) {
-      // Support Bearer token (tk_...) or session cookie
       if (session.startsWith('tk_') || session.length > 30) {
         headers['Authorization'] = `Bearer ${session}`;
       } else {
@@ -29,7 +34,7 @@ async function updateBadge() {
       }
     }
 
-    const r = await fetch(`${API_BASE}/api/admin/nodes`, { headers });
+    const r = await fetch(`${base}/api/admin/nodes`, { headers });
     if (!r.ok) {
       chrome.action.setBadgeText({ text: '!' });
       chrome.action.setBadgeBackgroundColor({ color: '#ef4444' });
@@ -40,8 +45,6 @@ async function updateBadge() {
 
     chrome.action.setBadgeText({ text: String(online) });
     chrome.action.setBadgeBackgroundColor({ color: online > 0 ? '#10b981' : '#ef4444' });
-
-    // Cache data for popup
     chrome.storage.local.set({ cachedNodes: nodes, lastUpdate: Date.now() });
   } catch (e) {
     chrome.action.setBadgeText({ text: '?' });
