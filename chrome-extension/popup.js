@@ -46,7 +46,14 @@ function switchTab(tabId) {
 
 async function api(path, opts = {}) {
   const headers = { 'Content-Type': 'application/json', ...(opts.headers || {}) };
-  if (SESSION) headers['Cookie'] = `session=${SESSION}`;
+  // Support both Bearer token (stored as SESSION) and legacy session cookie
+  if (SESSION) {
+    if (SESSION.startsWith('tk_') || SESSION.startsWith('2h') || SESSION.length > 20) {
+      headers['Authorization'] = `Bearer ${SESSION}`;
+    } else {
+      headers['Cookie'] = `session=${SESSION}`;
+    }
+  }
   const r = await fetch(`${API_BASE}${path}`, { ...opts, headers });
   if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
   return r.json();
@@ -279,10 +286,24 @@ async function runAction(action) {
 
 function saveSettings() {
   API_BASE = document.getElementById('serverUrl').value.replace(/\/$/, '') || DEFAULT_URL;
-  SESSION = document.getElementById('sessionKey').value;
+  SESSION = document.getElementById('sessionKey').value.trim();
   const alertLevel = document.getElementById('alertLevel').value || 'high';
   chrome.storage.local.set({ serverUrl: API_BASE, session: SESSION, alertLevel });
   document.getElementById('dashLink').href = API_BASE;
   refresh();
   switchTab('overview');
+}
+
+// Helper: test connection
+async function testConnection() {
+  const btn = document.getElementById('testConnBtn');
+  if(btn) btn.textContent = '⏳ Testing...';
+  try {
+    const data = await api('/health');
+    if(btn) btn.textContent = `✅ ${data.online_nodes||0} nodes`;
+    setTimeout(()=>{if(btn) btn.textContent='Test';},3000);
+  } catch(e) {
+    if(btn) btn.textContent = `❌ ${e.message.slice(0,30)}`;
+    setTimeout(()=>{if(btn) btn.textContent='Test';},3000);
+  }
 }

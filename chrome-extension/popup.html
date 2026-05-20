@@ -226,8 +226,9 @@
           <input id="serverUrl" placeholder="https://control.ch8ai.com.br" />
         </div>
         <div class="settings-row">
-          <label>Session</label>
-          <input id="sessionKey" placeholder="session cookie (from browser)" type="password" />
+          <label>Bearer Token / Session</label>
+          <input id="sessionKey" placeholder="tk_... or session token" type="password" />
+          <div style="font-size:9px;color:#64748b;margin-top:4px">Pegue em: control.ch8ai.com.br → DevTools → Network → Authorization header</div>
         </div>
       </div>
       <div class="settings-section">
@@ -239,6 +240,7 @@
       </div>
       <div class="settings-section" style="display:flex;gap:8px">
         <button class="btn-primary" onclick="saveSettings()">Save Settings</button>
+        <button id="testConnBtn" onclick="testConnection()" style="background:#1e293b;border:1px solid #334155;color:#94a3b8;padding:8px 14px;border-radius:8px;font-size:12px;cursor:pointer;margin-left:6px">Test</button>
         <button class="btn-secondary" onclick="refresh()">Test Connection</button>
       </div>
     </div>

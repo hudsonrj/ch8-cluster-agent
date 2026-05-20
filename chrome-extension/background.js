@@ -19,7 +19,15 @@ chrome.runtime.onStartup.addListener(() => updateBadge());
 async function updateBadge() {
   try {
     const { session } = await chrome.storage.local.get('session');
-    const headers = session ? { 'Cookie': `session=${session}` } : {};
+    const headers = {};
+    if (session) {
+      // Support Bearer token (tk_...) or session cookie
+      if (session.startsWith('tk_') || session.length > 30) {
+        headers['Authorization'] = `Bearer ${session}`;
+      } else {
+        headers['Cookie'] = `session=${session}`;
+      }
+    }
 
     const r = await fetch(`${API_BASE}/api/admin/nodes`, { headers });
     if (!r.ok) {
