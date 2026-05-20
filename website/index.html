@@ -712,6 +712,7 @@
                     <button class="tab-btn" data-tab="rpi"><i class="fas fa-raspberry-pi"></i> Raspberry Pi</button>
                     <button class="tab-btn" data-tab="windows"><i class="fab fa-windows"></i> Windows</button>
                     <button class="tab-btn" data-tab="android"><i class="fab fa-android"></i> Android</button>
+                    <button class="tab-btn" data-tab="chrome"><i class="fab fa-chrome"></i> Chrome Extension</button>
                 </div>
 
                 <div class="tab-content">
@@ -750,6 +751,25 @@
                         <p class="install-note">Termux from F-Droid. Run <code>termux-wake-lock</code> for background.</p>
                     </div>
                 </div>
+
+                    <!-- Chrome Extension panel -->
+                    <div class="tab-pane" id="chrome">
+                        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px">
+                            <a href="https://ch8agent.ch8ai.com.br/downloads/ch8-chrome-extension.zip" style="display:inline-flex;align-items:center;gap:8px;padding:12px 24px;background:var(--blue);color:#fff;border-radius:8px;font-weight:600;text-decoration:none;font-size:14px">
+                                <i class="fab fa-chrome"></i> Download Extension (.zip)
+                            </a>
+                        </div>
+                        <p class="install-note" style="margin-bottom:12px"><strong>Install as unpacked extension:</strong></p>
+                        <ol style="color:var(--text-2);font-size:13px;line-height:1.9;padding-left:20px;margin-bottom:16px">
+                            <li>Download and unzip the file above</li>
+                            <li>Open Chrome → <code>chrome://extensions</code></li>
+                            <li>Enable <strong>Developer Mode</strong> (top right)</li>
+                            <li>Click <strong>Load unpacked</strong> → select the <code>chrome-extension/</code> folder</li>
+                            <li>Click the CH8 icon in the toolbar</li>
+                            <li>In Settings: paste your <strong>Bearer Token</strong> from the dashboard</li>
+                        </ol>
+                        <p class="install-note"><strong>Features:</strong> Live node monitor · AI chat · Alerts · Quick actions · Badge with online count</p>
+                    </div>
 
                 <div class="after-install">
                     <p class="after-label">Then:</p>
