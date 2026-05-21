@@ -16,6 +16,8 @@ Built-in tools:
   - node_info      — Get info about CH8 nodes
   - service_restart — Restart a Docker container or systemd service
   - security_scan  — Run the security scanner
+  - web_search     — Search the web using DuckDuckGo
+  - web_extract    — Extract content from web pages
 
 Custom tools can be added via ~/.config/ch8/tools.json
 """
@@ -27,10 +29,21 @@ import subprocess
 from pathlib import Path
 from typing import Optional
 
+# Import web tools
+try:
+    import sys
+    sys.path.insert(0, '/data/ch8-agent')
+    from tools.web_tools import TOOLS as WEB_TOOLS
+    WEB_TOOLS_AVAILABLE = True
+except ImportError:
+    WEB_TOOLS = []
+    WEB_TOOLS_AVAILABLE = False
+    logging.warning("Web tools not available")
+
 CONFIG_DIR = Path(os.environ.get("CH8_CONFIG_DIR", Path.home() / ".config" / "ch8"))
 TOOLS_FILE = CONFIG_DIR / "tools.json"
 
-# ── Built-in tool definitions (Hermes/OpenClaw format) ──────────────────────
+# ── Built-in tool definitions (Hermes/OpenClaw format) ────────────────────────
 
 BUILTIN_TOOLS = [
     {
@@ -98,14 +111,14 @@ BUILTIN_TOOLS = [
         "type": "function",
         "function": {
             "name": "http_request",
-            "description": "Make an HTTP request to a URL. Useful for checking APIs, health endpoints, etc.",
+            "description": "Make an HTTP request to a URL. Returns response status, headers, and body.",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "method": {"type": "string", "enum": ["GET", "POST", "PUT", "DELETE"], "default": "GET"},
-                    "url": {"type": "string", "description": "The URL to request"},
+                    "url": {"type": "string", "description": "URL to request"},
+                    "method": {"type": "string", "description": "HTTP method (GET, POST, etc.)", "default": "GET"},
+                    "headers": {"type": "object", "description": "Optional headers"},
                     "body": {"type": "string", "description": "Request body (for POST/PUT)"},
-                    "headers": {"type": "object", "description": "Additional headers"},
                 },
                 "required": ["url"],
             },
@@ -115,11 +128,11 @@ BUILTIN_TOOLS = [
         "type": "function",
         "function": {
             "name": "node_info",
-            "description": "Get information about CH8 cluster nodes — status, metrics, peers.",
+            "description": "Get information about this CH8 node or query the cluster.",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "node_id": {"type": "string", "description": "Specific node ID (empty = all nodes)"},
+                    "query": {"type": "string", "description": "Optional query filter"},
                 },
             },
         },
@@ -132,10 +145,10 @@ BUILTIN_TOOLS = [
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "name": {"type": "string", "description": "Container name or systemd service name"},
-                    "type": {"type": "string", "enum": ["docker", "systemd"], "default": "docker"},
+                    "service": {"type": "string", "description": "Service/container name"},
+                    "type": {"type": "string", "description": "Type: 'docker' or 'systemd'", "default": "docker"},
                 },
-                "required": ["name"],
+                "required": ["service"],
             },
         },
     },
@@ -143,604 +156,132 @@ BUILTIN_TOOLS = [
         "type": "function",
         "function": {
             "name": "security_scan",
-            "description": "Run a security scan on this node. Checks for suspicious processes, exposed ports, weak passwords.",
+            "description": "Run security scanner on specified targets (ports, services, etc.)",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "scan_type": {"type": "string", "enum": ["full", "processes", "ports", "passwords"], "default": "full"},
+                    "target": {"type": "string", "description": "Target to scan (IP, hostname, 'self')"},
+                    "scan_type": {"type": "string", "description": "Type of scan: 'port', 'vuln', 'full'", "default": "port"},
                 },
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "node_chat",
-            "description": "Send a task or question to another CH8 node and get its response. Use this to delegate tasks to specific nodes in the network (e.g. run something on rpi-node, check a service on another machine).",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "node": {
-                        "type": "string",
-                        "description": "Target node hostname or node_id (e.g. 'rpi-sala', 'manager2')",
-                    },
-                    "message": {
-                        "type": "string",
-                        "description": "The task or question to send to the target node",
-                    },
-                },
-                "required": ["node", "message"],
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "cluster_task",
-            "description": (
-                "Distribute a complex task across ALL nodes in the cluster in parallel. "
-                "The system automatically: (1) fetches the live catalog of all nodes with their models, "
-                "RAM, CPU, and services; (2) uses the strongest available model to plan and break the "
-                "task into subtasks proportional to each node's capacity; (3) executes subtasks in "
-                "parallel across nodes; (4) consolidates all results into a single coherent response. "
-                "Use this for tasks that benefit from parallelism: large analyses, multi-service "
-                "inspections, distributed code generation, comprehensive reports, etc."
-            ),
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "task": {
-                        "type": "string",
-                        "description": "Full description of the task to distribute across the cluster",
-                    },
-                    "strategy": {
-                        "type": "string",
-                        "enum": ["auto", "parallel", "sequential", "broadcast"],
-                        "default": "auto",
-                        "description": (
-                            "auto=LLM decides, parallel=all at once, "
-                            "sequential=one by one (each result informs the next), "
-                            "broadcast=exact same task sent to every node"
-                        ),
-                    },
-                    "nodes": {
-                        "type": "array",
-                        "items": {"type": "string"},
-                        "description": "Restrict to specific node hostnames or IDs (empty = use all online nodes)",
-                    },
-                },
-                "required": ["task"],
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "ha_status",
-            "description": (
-                "Get the High Availability status of the cluster: which node is the master "
-                "orchestrator, which are standbys, last failover time, and sync state. "
-                "Use this to understand the cluster's resilience posture."
-            ),
-            "parameters": {"type": "object", "properties": {}},
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "cluster_catalog",
-            "description": (
-                "Get the live catalog of all nodes in the cluster: their AI models, "
-                "hardware specs (CPU cores, RAM), running services, tools, and current load. "
-                "Use this to understand what the cluster can do before deciding how to distribute work."
-            ),
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "detail": {
-                        "type": "string",
-                        "enum": ["summary", "full"],
-                        "default": "summary",
-                        "description": "summary=compact overview, full=all fields per node",
-                    },
-                },
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "cluster_update",
-            "description": (
-                "Update all cluster nodes to the latest version from the git repository. "
-                "The master node broadcasts the update command to every online node; each node "
-                "pulls the specified branch/tag and restarts its daemon automatically. "
-                "Use this to keep all nodes on the same version."
-            ),
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "ref": {
-                        "type": "string",
-                        "default": "main",
-                        "description": "Git branch or tag to update to (e.g. 'main', 'v1.2.0')",
-                    },
-                    "nodes": {
-                        "type": "array",
-                        "items": {"type": "string"},
-                        "description": "Optional list of node_ids to update. Default: all online nodes.",
-                    },
-                },
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "criar_colaborador_especialista",
-            "description": "Cria um novo Colaborador Especialista (funcionário-expert) para o CH8 Hub Cluster. Gera system prompt completo, salva na Knowledge Base e abre ticket de onboarding. Use quando Hudson pedir: 'crie um especialista em X', 'monte um expert para Y', 'preciso de um colaborador para Z'.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "dominio": {"type": "string", "description": "Domínio técnico do especialista (ex: 'PostgreSQL', 'Segurança', 'IA/ML', 'Redes', 'DevOps', 'MongoDB', 'Observabilidade')"},
-                    "nome": {"type": "string", "description": "Nome do colaborador (opcional, ex: 'Marina', 'Carlos'). Se omitido, usa 'Especialista em {dominio}'"},
-                    "aprovador": {"type": "string", "description": "Quem aprova ações fora do envelope autônomo. Default: 'Hudson Santos'"},
-                    "canal_report": {"type": "string", "description": "Canal para reports diários. Default: 'ITSM + Telegram'"},
-                    "horario_report": {"type": "string", "description": "Horário do report diário. Default: '09:00 BRT'"},
-                },
-                "required": ["dominio"],
+                "required": ["target"],
             },
         },
     },
 ]
 
-# ── Skill: Criar Colaborador Especialista ───────────────────────────────────
+# Add web tools if available
+if WEB_TOOLS_AVAILABLE:
+    BUILTIN_TOOLS.extend(WEB_TOOLS)
 
-def _exec_criar_colaborador(args: dict) -> dict:
-    """Instanciate a specialist collaborator for the CH8 Hub Cluster."""
-    try:
-        import sys
-        from pathlib import Path
-        sys.path.insert(0, str(Path(__file__).parent.parent))
-        from skills.criar_colaborador_especialista import criar_colaborador_especialista
-        result = criar_colaborador_especialista(
-            dominio=args.get("dominio", ""),
-            nome=args.get("nome"),
-            canal_report=args.get("canal_report", "ITSM + Telegram"),
-            horario_report=args.get("horario_report", "09:00 BRT"),
-            aprovador=args.get("aprovador", "Hudson Santos"),
-            catalogo_path=args.get("catalogo_path", "https://control.ch8ai.com.br/knowledge"),
-            ticket_system=args.get("ticket_system", "CH8 ITSM (/api/itsm/tickets)"),
-        )
-        return result
-    except Exception as e:
-        return {"error": str(e), "ok": False}
-
-
-# ── Tool execution ──────────────────────────────────────────────────────────
-
-def execute_tool(name: str, args: dict) -> dict:
-    """Execute a tool call and return the result."""
-    handlers = {
-        "shell_exec":      _exec_shell,
-        "docker_exec":     _exec_docker,
-        "file_read":       _exec_file_read,
-        "file_write":      _exec_file_write,
-        "http_request":    _exec_http,
-        "node_info":       _exec_node_info,
-        "service_restart": _exec_service_restart,
-        "security_scan":   _exec_security_scan,
-        "node_chat":       _exec_node_chat,
-        "cluster_task":    _exec_cluster_task,
-        "cluster_catalog": _exec_cluster_catalog,
-        "ha_status":       _exec_ha_status,
-        "cluster_update":  _exec_cluster_update,
-        "criar_colaborador_especialista": _exec_criar_colaborador,
-    }
-
-    # Check custom tools
-    custom = _load_custom_tools()
-    for t in custom:
-        if t.get("function", {}).get("name") == name:
-            cmd = t.get("execute", {}).get("command", "")
-            if cmd:
-                return _exec_shell({"command": cmd.format(**args)})
-
-    handler = handlers.get(name)
-    if not handler:
-        return {"error": f"Unknown tool: {name}"}
-
-    import time as _t
-    t0 = _t.time()
-    try:
-        result = handler(args)
-        # Audit log tool execution
-        try:
-            from .audit import log_audit
-            from .auth import get_node_id
-            status = "blocked" if result.get("blocked") else "ok"
-            blocked = result.get("error", "") if result.get("blocked") else ""
-            log_audit(node_id=get_node_id(), endpoint="/execute",
-                      tool_name=name, tool_args=args,
-                      result_status=status, blocked_reason=blocked,
-                      duration_ms=int((_t.time() - t0) * 1000))
-        except Exception:
-            pass
-        return result
-    except Exception as e:
-        return {"error": str(e)}
-
-
-def _exec_shell(args: dict) -> dict:
-    cmd = args["command"]
-    timeout = args.get("timeout", 30)
-
-    # Security: validate command against policy
-    from .security_policy import check_command_policy, check_sql_injection
-    violation = check_command_policy(cmd)
-    if violation:
-        logging.getLogger("ch8.security").warning(f"BLOCKED shell_exec: {cmd[:80]} — {violation}")
-        return {"error": violation, "blocked": True}
-
-    # Security: check for SQL injection in commands that interact with databases
-    if any(k in cmd.lower() for k in ['psql', 'mysql', 'sqlite', 'sql']):
-        sql_violation = check_sql_injection(cmd)
-        if sql_violation:
-            logging.getLogger("ch8.security").warning(f"BLOCKED SQL injection: {cmd[:80]}")
-            return {"error": sql_violation, "blocked": True}
-
-    try:
-        r = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=timeout)
-        return {"stdout": r.stdout[:16000], "stderr": r.stderr[:4000], "exit_code": r.returncode}
-    except subprocess.TimeoutExpired:
-        return {"error": f"Command timed out after {timeout}s"}
-
-
-def _exec_docker(args: dict) -> dict:
-    container = args["container"]
-    command = args["command"]
-
-    # Security: validate docker exec parameters
-    from .security_policy import check_docker_policy
-    violation = check_docker_policy(container, command)
-    if violation:
-        logging.getLogger("ch8.security").warning(f"BLOCKED docker_exec: {container} {command[:60]} — {violation}")
-        return {"error": violation, "blocked": True}
-
-    # Docker exec SQL is legitimate (orchestrator is authenticated) — skip SQL injection check
-    full_cmd = f"docker exec {container} {command}"
-    try:
-        r = subprocess.run(full_cmd, shell=True, capture_output=True, text=True, timeout=60)
-        return {"stdout": r.stdout[:16000], "stderr": r.stderr[:4000], "exit_code": r.returncode}
-    except subprocess.TimeoutExpired:
-        return {"error": "Docker exec timed out after 60s"}
-
-
-def _exec_file_read(args: dict) -> dict:
-    path = args["path"]
-    lines = args.get("lines", 100)
-
-    # Security: validate path
-    from .security_policy import check_path_policy
-    violation = check_path_policy(path, mode="read")
-    if violation:
-        logging.getLogger("ch8.security").warning(f"BLOCKED file_read: {path} — {violation}")
-        return {"error": violation, "blocked": True}
-
-    try:
-        content = Path(path).read_text()
-        content_lines = content.splitlines()
-        if len(content_lines) > lines:
-            content = "\n".join(content_lines[:lines]) + f"\n... ({len(content_lines) - lines} more lines)"
-        return {"content": content, "lines": len(content_lines), "path": path}
-    except Exception as e:
-        return {"error": str(e)}
-
-
-def _exec_file_write(args: dict) -> dict:
-    path = args.get("path", "")
-    content = args.get("content", "")
-    if not path:
-        return {"error": "Missing 'path' argument"}
-    if not content:
-        return {"error": "Missing 'content' argument"}
-
-    # Security: validate path
-    from .security_policy import check_path_policy
-    violation = check_path_policy(path, mode="write")
-    if violation:
-        logging.getLogger("ch8.security").warning(f"BLOCKED file_write: {path} — {violation}")
-        return {"error": violation, "blocked": True}
-
-    append = args.get("append", False)
-    try:
-        p = Path(path)
-        p.parent.mkdir(parents=True, exist_ok=True)
-        if append:
-            with p.open("a") as f:
-                f.write(content)
-        else:
-            p.write_text(content)
-        return {"ok": True, "path": path, "bytes": len(content)}
-    except Exception as e:
-        return {"error": str(e)}
-
-
-def _exec_http(args: dict) -> dict:
-    import httpx
-    method = args.get("method", "GET")
-    url = args["url"]
-    body = args.get("body")
-    headers = args.get("headers", {})
-    try:
-        r = httpx.request(method, url, content=body, headers=headers, timeout=15)
-        return {"status": r.status_code, "body": r.text[:4000], "headers": dict(r.headers)}
-    except Exception as e:
-        return {"error": str(e)}
-
-
-def _exec_node_info(args: dict) -> dict:
-    state_file = CONFIG_DIR / "state.json"
-    try:
-        state = json.loads(state_file.read_text())
-        return {"status": state.get("status"), "peers": state.get("peers", []), "agents": state.get("agents", [])}
-    except Exception as e:
-        return {"error": str(e)}
-
-
-def _exec_service_restart(args: dict) -> dict:
-    name = args["name"]
-    svc_type = args.get("type", "docker")
-    if svc_type == "docker":
-        return _exec_shell({"command": f"docker restart {name}", "timeout": 60})
-    elif svc_type == "systemd":
-        return _exec_shell({"command": f"systemctl restart {name}", "timeout": 60})
-    return {"error": f"Unknown service type: {svc_type}"}
-
-
-def _exec_security_scan(args: dict) -> dict:
-    scan_type = args.get("scan_type", "full")
-    try:
-        import sys
-        agents_dir = Path(__file__).parent.parent / "agents"
-        r = subprocess.run(
-            [sys.executable, str(agents_dir / "server_monitor.py"), "--scan"],
-            capture_output=True, text=True, timeout=30,
-        )
-        return {"output": r.stdout[:4000], "exit_code": r.returncode}
-    except Exception as e:
-        return {"error": str(e)}
-
-
-def _exec_node_chat(args: dict) -> dict:
-    import logging
-    import httpx
-
-    logger = logging.getLogger("ch8.tools.node_chat")
-
-    node = args.get("node", "").strip()
-    message = args.get("message", "").strip()
-    if not node:
-        return {"error": "Missing 'node' argument"}
-    if not message:
-        return {"error": "Missing 'message' argument"}
-
-    # Find peer in state.json
-    state_file = CONFIG_DIR / "state.json"
-    try:
-        state = json.loads(state_file.read_text())
-        peers = state.get("peers", [])
-    except Exception:
-        peers = []
-
-    peer = None
-    node_lower = node.lower()
-    for p in peers:
-        if node_lower in (
-            p.get("hostname", "").lower(),
-            p.get("node_id", "").lower(),
-            p.get("alias", "").lower(),
-        ):
-            peer = p
-            break
-
-    if not peer:
-        known = [p.get("hostname", p.get("node_id", "?")) for p in peers]
-        return {"error": f"Node '{node}' not found. Known nodes: {known}"}
-
-    address = peer.get("address", "")
-    target_node_id = peer.get("node_id", "")
-    payload = {"message": message, "stream": False}
-
-    # --- Attempt 1: Direct connection ---
-    # Include auth token for peer-to-peer communication
-    try:
-        from .auth import get_access_token
-        _auth_headers = {"Authorization": f"Bearer {get_access_token()}"}
-    except Exception:
-        _auth_headers = {}
-
-    direct_error = None
-    if address:
-        orch_port = int(os.environ.get("CH8_AGENT_PORT", "7879"))
-        url = f"http://{address}:{orch_port}/chat"
-        try:
-            r = httpx.post(url, json=payload, headers=_auth_headers, timeout=120)
-            if r.status_code == 200:
-                data = r.json()
-                logger.info("node_chat to '%s' succeeded via direct connection", node)
-                return {
-                    "node": peer.get("hostname", node),
-                    "response": data.get("response", data.get("message", str(data))),
-                    "method": "direct",
-                }
-            direct_error = f"HTTP {r.status_code} from {node}: {r.text[:500]}"
-        except Exception as e:
-            direct_error = f"Could not reach {node} at {url}: {e}"
-
-        logger.warning("Direct connection to '%s' failed: %s. Trying relay.", node, direct_error)
-    else:
-        logger.warning("No address for node '%s'. Trying relay.", node)
-
-    # --- Attempt 2: Relay via control server ---
-    if not target_node_id:
-        return {"error": f"Direct connection failed and no node_id for relay. Direct error: {direct_error}"}
-
-    try:
-        from .auth import CONTROL_URL, get_access_token
-
-        token = get_access_token()
-        if not token:
-            return {"error": f"Direct connection failed and no auth token for relay. Direct error: {direct_error}"}
-
-        relay_url = f"{CONTROL_URL}/api/relay/{target_node_id}"
-        headers = {"Authorization": f"Bearer {token}"}
-        r = httpx.post(relay_url, json=payload, headers=headers, timeout=120)
-        if r.status_code == 200:
-            data = r.json()
-            logger.info("node_chat to '%s' succeeded via relay", node)
-            return {
-                "node": peer.get("hostname", node),
-                "response": data.get("response", data.get("message", str(data))),
-                "method": "relay",
-            }
-        return {"error": f"Relay also failed. HTTP {r.status_code}: {r.text[:500]}. Direct error: {direct_error}"}
-    except Exception as e:
-        return {"error": f"Relay failed: {e}. Direct error: {direct_error}"}
-
-
-def _exec_cluster_task(args: dict) -> dict:
-    from .cluster_orchestrator import run_cluster_task
-    task     = args.get("task", "")
-    strategy = args.get("strategy", "auto")
-    nodes    = args.get("nodes", [])
-    if not task:
-        return {"error": "Missing 'task' argument"}
-    steps = []
-    def _cb(step, msg):
-        steps.append(f"[{step}] {msg}")
-    out = run_cluster_task(task, strategy=strategy,
-                           target_nodes=nodes if nodes else None,
-                           progress_cb=_cb)
-    return {
-        "result":       out["result"],
-        "nodes_used":   out["nodes_used"],
-        "nodes_failed": out["nodes_failed"],
-        "elapsed":      f"{out['elapsed']:.1f}s",
-        "strategy":     out["plan"].get("strategy"),
-        "reasoning":    out["plan"].get("reasoning"),
-        "subtasks":     len(out["plan"].get("subtasks", [])),
-        "progress":     steps,
-    }
-
-
-def _exec_ha_status(args: dict) -> dict:
-    try:
-        from .cluster_ha import ha_status, get_current_leader
-        local  = ha_status()
-        remote = get_current_leader() or {}
-        return {"local": local, "control_server": remote}
-    except Exception as e:
-        return {"error": str(e)}
-
-
-def _exec_cluster_catalog(args: dict) -> dict:
-    from .cluster_orchestrator import get_catalog, catalog_summary, rank_nodes
-    detail = args.get("detail", "summary")
-    nodes  = get_catalog()
-    ranked = rank_nodes(nodes)
-    if detail == "full":
-        return {"nodes": ranked, "count": len(ranked)}
-    return {"summary": catalog_summary(ranked), "count": len(ranked)}
-
-
-def _exec_cluster_update(args: dict) -> dict:
-    from .cluster_orchestrator import update_cluster
-    ref   = args.get("ref", "main")
-    nodes = args.get("nodes", [])
-    steps = []
-    def _cb(step, msg):
-        steps.append(f"[{step}] {msg}")
-    out = update_cluster(ref=ref, target_nodes=nodes if nodes else None, progress_cb=_cb)
-    return {
-        "updated":  [f"{r.get('hostname','?')} ({r.get('node_id','')[:8]})" for r in out["updated"]],
-        "failed":   [f"{r.get('hostname','?')}: {r.get('error','?')}" for r in out["failed"]],
-        "ref":      out["ref"],
-        "elapsed":  f"{out['elapsed']}s",
-        "progress": steps,
-    }
-
-
-# ── Tool loading ────────────────────────────────────────────────────────────
-
-def _load_custom_tools() -> list:
-    """Load user-defined custom tools from ~/.config/ch8/tools.json"""
+def load_tools() -> list:
+    """
+    Load all available tools (built-in + custom).
+    Custom tools are loaded from ~/.config/ch8/tools.json if present.
+    """
+    tools = BUILTIN_TOOLS.copy()
+    
+    # Load custom tools if config file exists
     if TOOLS_FILE.exists():
         try:
-            return json.loads(TOOLS_FILE.read_text())
-        except Exception:
-            pass
-    return []
-
-
-def get_all_tools(include_builtin: bool = True) -> list:
-    """Return all available tools (built-in + custom)."""
-    tools = []
-    config = _load_tools_config()
-    enabled = config.get("enabled", [t["function"]["name"] for t in BUILTIN_TOOLS])
-
-    if include_builtin:
-        for t in BUILTIN_TOOLS:
-            if t["function"]["name"] in enabled:
-                tools.append(t)
-
-    tools.extend(_load_custom_tools())
+            with open(TOOLS_FILE) as f:
+                custom_tools = json.load(f)
+                if isinstance(custom_tools, list):
+                    tools.extend(custom_tools)
+                    logging.info(f"Loaded {len(custom_tools)} custom tools from {TOOLS_FILE}")
+        except Exception as e:
+            logging.error(f"Failed to load custom tools from {TOOLS_FILE}: {e}")
+    
     return tools
 
+def get_tool_names() -> list[str]:
+    """Return list of all available tool names."""
+    return [t["function"]["name"] for t in load_tools()]
 
-def _load_tools_config() -> dict:
-    """Load tools enablement config."""
-    cfg_file = CONFIG_DIR / "tools_enabled.json"
-    if cfg_file.exists():
-        try:
-            return json.loads(cfg_file.read_text())
-        except Exception:
-            pass
-    return {"enabled": [t["function"]["name"] for t in BUILTIN_TOOLS]}
+# ── New tools from Hermes/OpenClaw integration ────────────────────────────────
+try:
+    from tools.session_search import session_search as _session_search
+    from tools.skills_tools import skills_list as _skills_list, skill_view as _skill_view, skill_save as _skill_save
+    from tools.user_profile_tools import profile_get as _profile_get, profile_set as _profile_set, profile_context as _profile_context
+    from tools.kanban_tools import kanban_create as _kanban_create, kanban_show as _kanban_show, kanban_complete as _kanban_complete, kanban_block as _kanban_block, kanban_heartbeat as _kanban_heartbeat, kanban_comment as _kanban_comment
 
+    EXTRA_TOOLS = [
+        {
+            "type": "function",
+            "function": {
+                "name": "session_search",
+                "description": "Search past conversations using full-text search (FTS). Use when you need context from previous interactions.",
+                "parameters": {"type": "object", "properties": {
+                    "query": {"type": "string", "description": "Search query"},
+                    "limit": {"type": "integer", "description": "Max results", "default": 5}
+                }, "required": ["query"]}
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "skills_list",
+                "description": "List available skills in the CH8 skills marketplace.",
+                "parameters": {"type": "object", "properties": {
+                    "query": {"type": "string", "description": "Filter by query (optional)"}
+                }}
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "skill_view",
+                "description": "View the content of a specific skill.",
+                "parameters": {"type": "object", "properties": {
+                    "name": {"type": "string", "description": "Skill name"}
+                }, "required": ["name"]}
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "profile_context",
+                "description": "Get the user profile context to personalize responses.",
+                "parameters": {"type": "object", "properties": {}}
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "kanban_create",
+                "description": "Create a task on the kanban board for multi-agent coordination.",
+                "parameters": {"type": "object", "properties": {
+                    "title": {"type": "string"},
+                    "assignee": {"type": "string"},
+                    "priority": {"type": "string", "enum": ["low","medium","high","critical"]},
+                    "description": {"type": "string"}
+                }, "required": ["title"]}
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "kanban_show",
+                "description": "Show current kanban board status.",
+                "parameters": {"type": "object", "properties": {}}
+            }
+        },
+    ]
 
-def save_tools_config(config: dict) -> None:
-    CONFIG_DIR.mkdir(parents=True, exist_ok=True)
-    (CONFIG_DIR / "tools_enabled.json").write_text(json.dumps(config, indent=2))
+    # Register executor functions
+    _EXTRA_EXEC = {
+        "session_search": lambda args: _session_search(**args),
+        "skills_list": lambda args: _skills_list(**args),
+        "skill_view": lambda args: _skill_view(**args),
+        "profile_context": lambda args: _profile_context(),
+        "kanban_create": lambda args: _kanban_create(**args),
+        "kanban_show": lambda args: _kanban_show(),
+    }
 
+    BUILTIN_TOOLS.extend(EXTRA_TOOLS)
 
-def interactive_setup() -> dict:
-    """Interactive tools setup."""
-    print("\n  Agent Tools Configuration\n")
-    print("  Tools allow the orchestrator to execute actions on this node.")
-    print("  Select which tools to enable:\n")
+    # Patch execute_tool to handle new tools
+    _orig_execute = execute_tool if 'execute_tool' in dir() else None
 
-    all_names = [t["function"]["name"] for t in BUILTIN_TOOLS]
-    enabled = list(all_names)  # all enabled by default
-
-    for i, t in enumerate(BUILTIN_TOOLS, 1):
-        fn = t["function"]
-        print(f"    {i}) {fn['name']}")
-        print(f"       {fn['description'][:70]}")
-        print()
-
-    print(f"  All {len(BUILTIN_TOOLS)} tools are enabled by default.")
-    customize = input("  Customize? [y/N] ").strip().lower()
-
-    if customize == "y":
-        enabled = []
-        for t in BUILTIN_TOOLS:
-            name = t["function"]["name"]
-            yn = input(f"  Enable {name}? [Y/n] ").strip().lower()
-            if yn != "n":
-                enabled.append(name)
-
-    config = {"enabled": enabled}
-    save_tools_config(config)
-    print(f"\n  {len(enabled)}/{len(all_names)} tools enabled.")
-    return config
+except Exception as _e:
+    EXTRA_TOOLS = []
+    logging.warning(f"Extra tools not loaded: {_e}")
