@@ -143,7 +143,7 @@ def _ask_specialist(specialist: dict, question: str, context: str = "") -> str:
                 buf = re.sub(r'```tool_call[\s\S]*?```', '', buf)
                 buf = re.sub(r'⚙ Executing [^\n]+\.\.\.\n?', '', buf)
                 buf = re.sub(r'```\{[\s\S]*?"exit_code"[\s\S]*?```\n?', '', buf)
-                result = buf.strip()[:1000]
+                result = buf.strip()[:3000]
                 if result:
                     return result
                 if attempt < 2:
@@ -206,14 +206,20 @@ def _route_task(task: str, author: str, node: str = "manager1") -> str:
     """Route a task to ITSM as a ticket."""
     try:
         from connect.db import create_ticket
+        # Clean task: remove **** priority markers, keep full text
+        import re as _re
+        task_clean = _re.sub(r'\s*\*{4}\s*', ' ', task).strip()
+        # Build rich action_plan from task
+        action_plan = f"Tarefa delegada a {author} durante Daily Standup:\n\n{task_clean}\n\nPróximos passos:\n1. {author} analisa e executa\n2. Documentar resultado na KB\n3. Fechar ticket com resolução"
+        
         tid = create_ticket(
-            title=f"[Daily/{author}] {task[:80]}",
-            description=f"Tarefa identificada na Daily Standup por {author}:\n\n{task}",
+            title=f"[Daily/{author}] {task_clean[:180]}",
+            description=f"Tarefa identificada na Daily Standup por {author}:\n\n{task_clean}",
             severity="medium", category="config",
             node=node, service=f"specialist-{author.lower()}",
-            root_cause="Identificado durante Daily Standup",
-            impact=f"Tarefa pendente de {author} no domínio {author}",
-            action_plan=f"1. {author} executa\n2. Valida resultado\n3. Fecha ticket",
+            root_cause=f"Identificado durante Daily Standup — {author}",
+            impact=f"Tarefa pendente de {author}: {task_clean[:100]}",
+            action_plan=action_plan,
             fix_command="",
             source_type="daily_standup",
             source_ref=f"daily-{author.lower()}",

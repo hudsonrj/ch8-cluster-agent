@@ -268,6 +268,11 @@ def create_ticket(title: str, description: str, severity: str, category: str,
             "note": f"Ticket criado automaticamente — {category}"
         }])
 
+        # Clean title: remove **** markers, truncate safely
+        import re as _re
+        title = _re.sub(r'\s*\*{4}\s*', ' ', str(title)).strip()
+        title = title[:190]  # safe limit under varchar(200)
+        
         cur.execute("""
             INSERT INTO tickets (ticket_id, title, description, severity, category,
                 node, service, root_cause, impact, action_plan, fix_command,
