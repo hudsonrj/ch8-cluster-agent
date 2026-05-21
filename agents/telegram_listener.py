@@ -159,10 +159,21 @@ def _chat_with_orchestrator(message: str, bot_token: str = "", chat_id: str = ""
     if bot_token and chat_id:
         threading.Thread(target=_typing_loop, daemon=True).start()
 
+    # Load auth token
+    auth_token = ""
+    try:
+        import json as _json
+        auth_file = CONFIG_DIR / "auth.json"
+        if auth_file.exists():
+            auth_token = _json.loads(auth_file.read_text()).get("access_token", "")
+    except Exception:
+        pass
+    headers = {"Authorization": f"Bearer {auth_token}"} if auth_token else {}
+
     full_response = ""
     try:
         with httpx.Client(timeout=120, transport=transport) as client:
-            with client.stream("POST", url, json=payload) as resp:
+            with client.stream("POST", url, json=payload, headers=headers) as resp:
                 if resp.status_code != 200:
                     return f"Error: orchestrator returned {resp.status_code}"
                 for line in resp.iter_lines():
