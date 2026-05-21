@@ -51,9 +51,10 @@ def _run_async(coro):
         return asyncio.run(coro)
 
 # Timeout para esperar resposta de cada nó (segundos)
-NODE_TIMEOUT = 45  # seconds per node attempt (LLM can take 30s+)
-PEER_RELAY_TIMEOUT = 15  # seconds per peer relay attempt
-BROADCAST_NODE_TIMEOUT = 40  # LLMs need time to generate response
+import os as _os
+NODE_TIMEOUT = int(_os.environ.get("CH8_NODE_TIMEOUT", "45"))  # configurable via env
+PEER_RELAY_TIMEOUT = int(_os.environ.get("CH8_RELAY_TIMEOUT", "15"))
+BROADCAST_NODE_TIMEOUT = int(_os.environ.get("CH8_BROADCAST_TIMEOUT", "40"))
 
 # Máximo de tentativas por subtarefa
 MAX_RETRIES = 1
@@ -601,8 +602,8 @@ async def execute_plan_async(plan: Dict, catalog: List[Dict], is_broadcast: bool
         async def _with_timeout(s):
             try:
                 return await asyncio.wait_for(
-                    _send_to_node_async(s, catalog, timeout_override=_t),
-                    timeout=global_timeout
+                    _send_to_node_async(s, catalog, timeout_override=timeout or _t),
+                    timeout=(timeout or global_timeout)
                 )
             except asyncio.TimeoutError:
                 return {"subtask_id": s["id"], "node_name": s.get("node_name", "?"),
@@ -811,6 +812,7 @@ async def run_cluster_task_async(
     strategy: str = "auto",
     target_nodes: Optional[List[str]] = None,
     progress_cb=None,
+    timeout: Optional[int] = None,
 ) -> Dict:
     """Async version of run_cluster_task — can be awaited directly from FastAPI handlers."""
     t0 = time.time()

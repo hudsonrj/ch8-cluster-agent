@@ -1403,6 +1403,7 @@ async def cluster_task_endpoint(request: Request):
         task     = body.get("task", "")
         strategy = body.get("strategy", "auto")
         nodes    = body.get("nodes", [])
+        timeout  = body.get("timeout")  # optional custom timeout in seconds
 
         if not task:
             return {"error": "Missing 'task'"}
@@ -1415,7 +1416,8 @@ async def cluster_task_endpoint(request: Request):
         result = await run_cluster_task_async(
             task, strategy=strategy,
             target_nodes=nodes if nodes else None,
-            progress_cb=_cb
+            progress_cb=_cb,
+            timeout=int(timeout) if timeout else None,
         )
 
         return {
