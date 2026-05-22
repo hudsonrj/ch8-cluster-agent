@@ -283,5 +283,304 @@ try:
     _orig_execute = execute_tool if 'execute_tool' in dir() else None
 
 except Exception as _e:
+    _EXTRA_EXEC = {}
     EXTRA_TOOLS = []
+
+
+# ── Tool execution ────────────────────────────────────────────────────────────
+
+def execute_tool(name: str, args: dict) -> dict:
+    """Execute a tool call and return the result."""
+    # Extra tools (Hermes/OpenClaw) take priority
+    if name in _EXTRA_EXEC:
+        try:
+            return _EXTRA_EXEC[name](args)
+        except Exception as e:
+            return {"error": str(e)}
+
+    handlers = {
+        "shell_exec":      _exec_shell,
+        "docker_exec":     _exec_docker,
+        "file_read":       _exec_file_read,
+        "file_write":      _exec_file_write,
+        "http_request":    _exec_http,
+        "node_info":       _exec_node_info,
+        "service_restart": _exec_service_restart,
+        "security_scan":   _exec_security_scan,
+        "node_chat":       _exec_node_chat,
+        "cluster_task":    _exec_cluster_task,
+        "cluster_catalog": _exec_cluster_catalog,
+        "ha_status":       _exec_ha_status,
+        "cluster_update":  _exec_cluster_update,
+        "web_search":      _exec_web_search,
+        "web_extract":     _exec_web_extract,
+    }
+
+    # Custom tools from tools.json
+    if TOOLS_FILE.exists():
+        try:
+            custom = json.loads(TOOLS_FILE.read_text())
+            for t in custom:
+                if t.get("function", {}).get("name") == name:
+                    cmd = t.get("execute", {}).get("command", "")
+                    if cmd:
+                        return _exec_shell({"command": cmd.format(**args)})
+        except Exception:
+            pass
+
+    handler = handlers.get(name)
+    if not handler:
+        return {"error": f"Unknown tool: {name}"}
+    try:
+        return handler(args)
+    except Exception as e:
+        return {"error": str(e)}
+
+
+def _exec_shell(args: dict) -> dict:
+    cmd = args.get("command", "")
+    timeout = args.get("timeout", 30)
+    # Security policy check
+    try:
+        from connect.security_policy import check_command_policy
+        violation = check_command_policy(cmd)
+        if violation:
+            return {"error": f"Command blocked by security policy: {violation}", "blocked": True}
+    except ImportError:
+        pass
+    try:
+        r = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=timeout)
+        return {"stdout": r.stdout[:4000], "stderr": r.stderr[:2000], "exit_code": r.returncode}
+    except subprocess.TimeoutExpired:
+        return {"error": f"Command timed out after {timeout}s"}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+def _exec_docker(args: dict) -> dict:
+    container = args.get("container", "")
+    command = args.get("command", "")
+    # Basic injection prevention
+    if ";" in container or "`" in container or "$(" in container:
+        return {"error": "Invalid container name"}
+    return _exec_shell({"command": f"docker exec {container} sh -c {json.dumps(command)}", "timeout": 30})
+
+
+def _exec_file_read(args: dict) -> dict:
+    path = args.get("path", "")
+    lines = args.get("lines", 100)
+    try:
+        from connect.security_policy import check_path_policy
+        violation = check_path_policy(path, "read")
+        if violation:
+            return {"error": f"Path blocked by security policy: {violation}", "blocked": True}
+    except ImportError:
+        pass
+    try:
+        content = Path(path).read_text()
+        content_lines = content.splitlines()
+        if len(content_lines) > lines:
+            content = "\n".join(content_lines[:lines]) + f"\n... ({len(content_lines) - lines} more lines)"
+        return {"content": content, "lines": len(content_lines), "path": path}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+def _exec_file_write(args: dict) -> dict:
+    path = args.get("path", "")
+    content = args.get("content", "")
+    if not path:
+        return {"error": "Missing 'path' argument"}
+    if not content:
+        return {"error": "Missing 'content' argument"}
+    try:
+        from connect.security_policy import check_path_policy
+        violation = check_path_policy(path, "write")
+        if violation:
+            return {"error": f"Path blocked by security policy: {violation}", "blocked": True}
+    except ImportError:
+        pass
+    append = args.get("append", False)
+    try:
+        p = Path(path)
+        p.parent.mkdir(parents=True, exist_ok=True)
+        if append:
+            with p.open("a") as f:
+                f.write(content)
+        else:
+            p.write_text(content)
+        return {"ok": True, "path": path, "bytes": len(content)}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+def _exec_http(args: dict) -> dict:
+    try:
+        import httpx
+        method = args.get("method", "GET")
+        url = args["url"]
+        body = args.get("body")
+        headers = args.get("headers", {})
+        r = httpx.request(method, url, content=body, headers=headers, timeout=15)
+        return {"status": r.status_code, "body": r.text[:4000], "headers": dict(r.headers)}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+def _exec_node_info(args: dict) -> dict:
+    state_file = CONFIG_DIR / "state.json"
+    try:
+        state = json.loads(state_file.read_text())
+        return {"status": state.get("status"), "peers": state.get("peers", []), "agents": state.get("agents", [])}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+def _exec_service_restart(args: dict) -> dict:
+    name = args.get("service", args.get("name", ""))
+    svc_type = args.get("type", "docker")
+    if svc_type == "docker":
+        return _exec_shell({"command": f"docker restart {name}", "timeout": 60})
+    elif svc_type == "systemd":
+        return _exec_shell({"command": f"systemctl restart {name}", "timeout": 60})
+    return {"error": f"Unknown service type: {svc_type}"}
+
+
+def _exec_security_scan(args: dict) -> dict:
+    try:
+        import sys as _sys
+        agents_dir = Path(__file__).parent.parent / "agents"
+        r = subprocess.run(
+            [_sys.executable, str(agents_dir / "server_monitor.py"), "--scan"],
+            capture_output=True, text=True, timeout=30,
+        )
+        return {"output": r.stdout[:4000], "exit_code": r.returncode}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+def _exec_node_chat(args: dict) -> dict:
+    import httpx as _httpx
+    node = args.get("node", "").strip()
+    message = args.get("message", "").strip()
+    if not node:
+        return {"error": "Missing 'node' argument"}
+    if not message:
+        return {"error": "Missing 'message' argument"}
+
+    state_file = CONFIG_DIR / "state.json"
+    try:
+        state = json.loads(state_file.read_text())
+        peers = state.get("peers", [])
+    except Exception:
+        peers = []
+
+    peer = None
+    node_lower = node.lower()
+    for p in peers:
+        if node_lower in (p.get("hostname", "").lower(), p.get("node_id", "").lower(), p.get("alias", "").lower()):
+            peer = p
+            break
+
+    if not peer:
+        known = [p.get("hostname", p.get("node_id", "?")) for p in peers]
+        return {"error": f"Node '{node}' not found. Known: {known}"}
+
+    address = peer.get("address", "")
+    target_node_id = peer.get("node_id", "")
+    payload = {"message": message, "stream": False}
+
+    if address:
+        orch_port = int(os.environ.get("CH8_AGENT_PORT", "7879"))
+        url = f"http://{address}:{orch_port}/chat"
+        try:
+            from connect.auth import get_access_token
+            token = get_access_token()
+            r = _httpx.post(url, json=payload, headers={"Authorization": f"Bearer {token}"}, timeout=60)
+            if r.status_code == 200:
+                data = r.json()
+                return {"node": peer.get("hostname", node), "response": data.get("response", str(data)), "method": "direct"}
+            direct_error = f"HTTP {r.status_code}: {r.text[:200]}"
+        except Exception as e:
+            direct_error = str(e)
+    else:
+        direct_error = "no address"
+
+    # Relay fallback
+    try:
+        from connect.auth import CONTROL_URL, get_access_token
+        token = get_access_token()
+        r = _httpx.post(f"{CONTROL_URL}/api/relay/{target_node_id}", json=payload,
+                        headers={"Authorization": f"Bearer {token}"}, timeout=60)
+        if r.status_code == 200:
+            data = r.json()
+            return {"node": peer.get("hostname", node), "response": data.get("response", str(data)), "method": "relay"}
+        return {"error": f"Relay failed HTTP {r.status_code}. Direct: {direct_error}"}
+    except Exception as e:
+        return {"error": f"Relay failed: {e}. Direct: {direct_error}"}
+
+
+def _exec_cluster_task(args: dict) -> dict:
+    try:
+        from connect.cluster_orchestrator import run_cluster_task
+        task = args.get("task", "")
+        if not task:
+            return {"error": "Missing 'task' argument"}
+        steps = []
+        out = run_cluster_task(task, strategy=args.get("strategy", "auto"),
+                               target_nodes=args.get("nodes") or None,
+                               progress_cb=lambda s, m: steps.append(f"[{s}] {m}"))
+        return {"result": out["result"], "nodes_used": out["nodes_used"],
+                "elapsed": f"{out['elapsed']:.1f}s", "progress": steps}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+def _exec_cluster_catalog(args: dict) -> dict:
+    try:
+        from connect.cluster_orchestrator import get_catalog, rank_nodes, catalog_summary
+        nodes = get_catalog()
+        ranked = rank_nodes(nodes)
+        if args.get("detail") == "full":
+            return {"nodes": ranked, "count": len(ranked)}
+        return {"summary": catalog_summary(ranked), "count": len(ranked)}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+def _exec_ha_status(args: dict) -> dict:
+    try:
+        from connect.cluster_ha import ha_status, get_current_leader
+        return {"local": ha_status(), "control_server": get_current_leader() or {}}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+def _exec_cluster_update(args: dict) -> dict:
+    try:
+        from connect.cluster_orchestrator import update_cluster
+        steps = []
+        out = update_cluster(ref=args.get("ref", "main"),
+                             target_nodes=args.get("nodes") or None,
+                             progress_cb=lambda s, m: steps.append(f"[{s}] {m}"))
+        return {"updated": out.get("updated", []), "failed": out.get("failed", []),
+                "elapsed": str(out.get("elapsed", "")), "progress": steps}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+def _exec_web_search(args: dict) -> dict:
+    try:
+        from tools.web_tools import web_search
+        return web_search(query=args.get("query", ""), max_results=args.get("max_results", 5))
+    except Exception as e:
+        return {"error": str(e)}
+
+
+def _exec_web_extract(args: dict) -> dict:
+    try:
+        from tools.web_tools import web_extract
+        return web_extract(url=args.get("url", ""))
+    except Exception as e:
+        return {"error": str(e)}
     logging.warning(f"Extra tools not loaded: {_e}")
