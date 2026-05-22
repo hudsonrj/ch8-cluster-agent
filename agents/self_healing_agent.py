@@ -110,13 +110,15 @@ def check_disk_space() -> list[dict]:
 def check_failed_services() -> list[dict]:
     """Check for failed systemd services."""
     issues = []
-    stdout, _, rc = _run("systemctl list-units --state=failed --no-legend 2>/dev/null")
+    stdout, _, rc = _run("systemctl list-units --state=failed --no-legend --plain 2>/dev/null")
     if rc == 0 and stdout:
         for line in stdout.splitlines()[:5]:
-            parts = line.strip().split()
+            line = line.strip()
+            if not line or line.startswith('●') or line.startswith('UNIT'): continue
+            parts = line.split()
             name = parts[0] if parts else ''
-            # Only valid service names (contain .service, .socket, etc.)
-            if name and '.' in name and not name.startswith('●') and not name.startswith('UNIT'):
+            # Only valid unit names: must contain a dot and end in .service/.socket/.timer etc.
+            if name and '.' in name and any(name.endswith(s) for s in ('.service','.socket','.timer','.mount','.path')):
                 issues.append({"type": "service_failed", "service": name})
     return issues
 
@@ -327,7 +329,7 @@ def run_cycle():
                                 action_plan=f"1. Investigar causa: {issue_type}\n2. Executar: {action_filled}\n3. Verificar se resolveu\n4. Documentar na KB",
                                 node=os.uname().nodename
                             )
-                            if tid: tickets_created += 1; log.info(f"  🎫 Ticket criado: {tid}")
+                            if tid: tickets_created += 1; log.info(f"  🎫 Ticket: {tid}")
                     except Exception as e:
                         log.error(f"  Fix exception for {issue_type}: {e}")
                 else:

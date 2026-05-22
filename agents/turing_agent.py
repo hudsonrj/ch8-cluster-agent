@@ -141,13 +141,25 @@ def analyze_cluster_health() -> dict:
     return health
 
 
+# Track recent actions to avoid repetition
+_recent_actions: dict = {}  # key -> last_timestamp
+
+def _was_recently_actioned(key: str, cooldown_hours: int = 6) -> bool:
+    last = _recent_actions.get(key, 0)
+    return time.time() - last < cooldown_hours * 3600
+
+def _mark_actioned(key: str):
+    _recent_actions[key] = time.time()
+
 def strategic_review(health: dict) -> list[dict]:
     """Turing's strategic analysis — high-level decisions."""
     decisions = []
     
-    # 1. Critical nodes offline
+    # 1. Critical nodes offline (rate limit: 1 action per node per 6h)
     if health.get("offline"):
         for node in health["offline"][:3]:
+            if _was_recently_actioned(f"offline_{node}"): continue
+            _mark_actioned(f"offline_{node}")
             decisions.append({
                 "priority": "critical",
                 "action": "investigate_offline_node",
@@ -156,8 +168,10 @@ def strategic_review(health: dict) -> list[dict]:
                 "description": f"Node {node} está offline — investigar causa e restaurar"
             })
     
-    # 2. Disk emergencies
+    # 2. Disk emergencies (rate limit: 1 per node per 4h)
     for node in (health.get("high_disk") or [])[:2]:
+        if _was_recently_actioned(f"disk_{node}", cooldown_hours=4): continue
+        _mark_actioned(f"disk_{node}")
         decisions.append({
             "priority": "high",
             "action": "disk_cleanup",
@@ -166,10 +180,11 @@ def strategic_review(health: dict) -> list[dict]:
             "description": f"Disco crítico em {node} — limpeza urgente necessária"
         })
     
-    # 3. Many open tickets
+    # 3. Many open tickets (rate limit: 1 per 8h)
     if len(health.get("tickets", [])) >= 5:
         critical_tickets = [t for t in health["tickets"] if t["severity"] in ("critical", "high")]
-        if critical_tickets:
+        if critical_tickets and not _was_recently_actioned("ticket_review", cooldown_hours=8):
+            _mark_actioned("ticket_review")
             decisions.append({
                 "priority": "high",
                 "action": "resolve_tickets",
@@ -233,8 +248,24 @@ Seja conciso e técnico. Máximo 150 palavras."""
                 conn.commit(); conn.close()
         except: pass
         
-        # Create ticket for tracking if high priority
+        # Create ticket only if no open ticket for same issue in last 6 hours
         if priority in ("critical", "high"):
+            try:
+                import psycopg2 as _pg2
+                _c = _get_db()
+                if _c:
+                    _cur = _c.cursor()
+                    _cur.execute("""SELECT COUNT(*) FROM tickets
+                        WHERE source_type='turing' AND status NOT IN ('closed','resolved')
+                        AND title LIKE %s AND created_at > NOW() - INTERVAL '6 hours'""",
+                        (f"%{spec}%{desc[:30]}%",))
+                    existing = _cur.fetchone()[0]
+                    _c.close()
+                    if existing > 0:
+                        log.debug(f"[TURING] Ticket already exists for this issue, skipping creation")
+                        return True
+            except Exception:
+                pass
             _create_ticket(
                 title=f"[Turing→{spec}] {desc[:150]}",
                 description=f"Delegado por Turing Agent:\n\n{desc}\n\n**Resposta do Especialista:**\n{result}",
