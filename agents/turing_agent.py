@@ -117,8 +117,17 @@ def analyze_cluster_health() -> dict:
         if r.status_code == 200:
             nodes = r.json()
             health["nodes"] = nodes
+            # Exclude self-referential nodes (manager1 monitoring itself as "localhost")
+            SELF_NAMES = {'localhost', '127.0.0.1', 'manager1'}
+            import socket as _sock
+            try:
+                SELF_NAMES.add(_sock.gethostname().lower())
+            except Exception:
+                pass
             health["online"] = sum(1 for n in nodes if n.get("status") == "online")
-            health["offline"] = [n["hostname"] for n in nodes if n.get("status") != "online"]
+            health["offline"] = [n["hostname"] for n in nodes
+                                 if n.get("status") != "online"
+                                 and n.get("hostname", "").lower() not in SELF_NAMES]
             health["high_disk"] = [n["hostname"] for n in nodes if (n.get("disk_pct") or 0) > 88]
             health["high_cpu"] = [n["hostname"] for n in nodes if (n.get("cpu_pct") or 0) > 85]
             health["high_mem"] = [n["hostname"] for n in nodes if (n.get("mem_pct") or 0) > 90]

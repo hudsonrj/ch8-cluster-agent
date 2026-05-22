@@ -146,8 +146,28 @@ def _try_auto_fix(ticket):
         return None, f"Erro ao executar fix: {e}"
 
 
+# Patterns that identify known false positives — auto-resolve immediately
+_FALSE_POSITIVE_PATTERNS = [
+    ("snap-",         "Snap mount unit — não é serviço CH8. Falso positivo filtrado."),
+    ("hassio",        "Home Assistant supervisor — não faz parte da infra CH8. Falso positivo."),
+    ("localhost está offline", "localhost é o próprio nó master — não é um node remoto. Falso positivo."),
+    ("manager1 está offline",  "manager1 é o nó master e está online. Monitoramento circular detectado. Falso positivo."),
+    ("Nodes offline detectados: manager1",  "manager1 é o nó master, está online. Falso positivo de auto-monitoramento."),
+    ("Nodes offline detectados: localhost", "localhost é o próprio host. Não é node remoto offline. Falso positivo."),
+]
+
+
+def _is_false_positive(title: str) -> str | None:
+    """Return resolution message if ticket is a known false positive, else None."""
+    title_lower = title.lower()
+    for pattern, resolution in _FALSE_POSITIVE_PATTERNS:
+        if pattern.lower() in title_lower:
+            return resolution
+    return None
+
+
 def process_open_tickets(conn):
-    """Move open tickets to investigating + add initial diagnosis."""
+    """Move open tickets to investigating + add initial diagnosis. Auto-close false positives."""
     cur = conn.cursor()
     cur.execute("""
         SELECT ticket_id, title, category, node, root_cause, severity
@@ -155,15 +175,28 @@ def process_open_tickets(conn):
         ORDER BY
             CASE severity WHEN 'critical' THEN 0 WHEN 'high' THEN 1 WHEN 'medium' THEN 2 ELSE 3 END,
             created_at ASC
-        LIMIT 5
+        LIMIT 10
     """)
     tickets = cur.fetchall()
 
     for row in tickets:
         ticket_id, title, category, node, root_cause, severity = row
-        log.info(f"Investigando: {ticket_id} — {title}")
 
-        # Move to investigating
+        # Auto-resolve false positives immediately
+        fp_reason = _is_false_positive(title)
+        if fp_reason:
+            log.info(f"Falso positivo: {ticket_id} — {title[:60]}")
+            cur.execute(
+                "UPDATE tickets SET status = 'resolved', resolved_at = NOW(), "
+                "resolution = %s, assigned_to = 'ticket_resolver', updated_at = NOW() "
+                "WHERE ticket_id = %s",
+                (fp_reason, ticket_id)
+            )
+            _add_history(conn, ticket_id, "resolved", f"[Auto] Falso positivo identificado e resolvido: {fp_reason}")
+            conn.commit()
+            continue
+
+        log.info(f"Investigando: {ticket_id} — {title}")
         cur.execute(
             "UPDATE tickets SET status = 'investigating', assigned_to = 'ticket_resolver', updated_at = NOW() WHERE ticket_id = %s",
             (ticket_id,)

@@ -117,8 +117,12 @@ def check_failed_services() -> list[dict]:
             if not line or line.startswith('●') or line.startswith('UNIT'): continue
             parts = line.split()
             name = parts[0] if parts else ''
-            # Only valid unit names: must contain a dot and end in .service/.socket/.timer etc.
-            if name and '.' in name and any(name.endswith(s) for s in ('.service','.socket','.timer','.mount','.path')):
+            # Only flag .service/.socket/.timer — ignore snap/mount/hassio/tmp units
+            SKIP_PREFIXES = ('snap-', 'tmp-', 'sys-', 'dev-', 'run-', 'home-', 'boot-', 'hassio')
+            if (name and '.' in name
+                    and any(name.endswith(s) for s in ('.service', '.socket', '.timer'))
+                    and not any(name.startswith(p) for p in SKIP_PREFIXES)
+                    and 'hassio' not in name):
                 issues.append({"type": "service_failed", "service": name})
     return issues
 
