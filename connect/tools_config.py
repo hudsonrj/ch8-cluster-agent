@@ -193,6 +193,9 @@ def load_tools() -> list:
     
     return tools
 
+# Alias mantido para compatibilidade com 'ch8 up' e outros importadores
+get_all_tools = load_tools
+
 def get_tool_names() -> list[str]:
     """Return list of all available tool names."""
     return [t["function"]["name"] for t in load_tools()]
