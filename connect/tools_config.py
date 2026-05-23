@@ -193,8 +193,20 @@ def load_tools() -> list:
     
     return tools
 
-# Alias mantido para compatibilidade com 'ch8 up' e outros importadores
+# Aliases mantidos para compatibilidade com 'ch8 up' e outros importadores
 get_all_tools = load_tools
+
+
+def interactive_setup() -> dict:
+    """Interactive tools setup — called by 'ch8 up'. All tools enabled by default."""
+    all_names = [t["function"]["name"] for t in BUILTIN_TOOLS]
+    config = {"enabled": all_names}
+    try:
+        CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+        (CONFIG_DIR / "tools_enabled.json").write_text(json.dumps(config, indent=2))
+    except Exception:
+        pass
+    return config
 
 def get_tool_names() -> list[str]:
     """Return list of all available tool names."""
