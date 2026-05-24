@@ -641,17 +641,8 @@ def main():
 
     while running:
         try:
-            # HA check — only run on master
-            try:
-                from connect.cluster_ha import is_master
-                if not is_master():
-                    _update_state("idle", "Standby — não sou o master")
-                    for _ in range(CHECK_INTERVAL):
-                        if not running: break
-                        time.sleep(1)
-                    continue
-            except Exception:
-                pass
+            # specialist_runner always runs on the node with the primary DB
+            # No HA check needed — it's idempotent and DB-bound
 
             specialists = _load_specialists()
             if not specialists:
