@@ -329,6 +329,7 @@ def execute_tool(name: str, args: dict) -> dict:
         "cluster_update":  _exec_cluster_update,
         "web_search":      _exec_web_search,
         "web_extract":     _exec_web_extract,
+        "calendar_create": _exec_calendar_create,
     }
 
     # Custom tools from tools.json
@@ -598,4 +599,35 @@ def _exec_web_extract(args: dict) -> dict:
         return web_extract(url=args.get("url", ""))
     except Exception as e:
         return {"error": str(e)}
-    logging.warning(f"Extra tools not loaded: {_e}")
+
+
+def _exec_calendar_create(args: dict) -> dict:
+    """Create an event in the cluster agenda (persistent DB)."""
+    try:
+        import httpx
+        from connect.auth import CONTROL_URL, get_access_token
+        token = get_access_token()
+        payload = {
+            "title":       args.get("title", "Evento"),
+            "description": args.get("description", ""),
+            "type":        args.get("type", "monitoramento"),
+            "date":        args.get("date"),
+            "time":        args.get("time", "09:00"),
+            "end_time":    args.get("end_time"),
+            "recurrence":  args.get("recurrence", "none"),
+            "recur_until": args.get("recur_until"),
+            "specialist":  args.get("specialist"),
+            "source":      args.get("source", "specialist"),
+            "source_ref":  args.get("source_ref"),
+            "color":       args.get("color"),
+            "node":        args.get("node", "manager1"),
+        }
+        r = httpx.post(
+            f"{CONTROL_URL}/api/agenda/events",
+            json=payload,
+            headers={"Authorization": f"Bearer {token}"},
+            timeout=10,
+        )
+        return r.json()
+    except Exception as e:
+        return {"error": str(e)}

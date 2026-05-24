@@ -27,6 +27,7 @@ PID_FILE = CONFIG_DIR / "turing_agent.pid"
 CYCLE_SECS    = 300    # 5 min reactive strategic review
 QUICK_SECS    = 60     # 1 min quick health check
 PLANNING_SECS = 14400  # 4 hours autonomous Opus planning
+ONEONONE_SECS = 86400  # 24 hours — run weekly 1-on-1 scheduler once a day
 
 running = True
 
@@ -500,6 +501,115 @@ Seja executor. Gere um plano com delegações claras para cada especialista rele
         f"Turing | Plano autônomo executado: {tickets_created} tarefas delegadas | {datetime.now().strftime('%H:%M')}")
 
 
+def run_weekly_oneonones():
+    """Turing conducts 1-on-1 reviews with each specialist — runs Monday 09:00 BRT."""
+    from datetime import date, timedelta
+    now = datetime.now()
+    # Only run on Mondays (weekday == 0)
+    if now.weekday() != 0:
+        return
+
+    log.info("[TURING] Iniciando 1-on-1s semanais com todos os especialistas...")
+    _update_state("running", "Turing | Conduzindo 1-on-1s semanais com especialistas...")
+
+    specs_schedule = [
+        ("Sigma",        0, "09:00"),  # Monday
+        ("Nikolas",      1, "09:00"),  # Tuesday
+        ("Mr Robot",     2, "09:00"),  # Wednesday
+        ("Jarvis",       3, "09:00"),  # Thursday
+        ("Atlas",        4, "09:00"),  # Friday
+        ("Orion",        0, "10:00"),
+        ("Hermes",       1, "10:00"),
+        ("Sitetc",       2, "10:00"),
+        ("Lexus",        3, "10:00"),
+        ("Pesquisador",  4, "10:00"),
+    ]
+
+    monday = date.today() - timedelta(days=date.today().weekday())
+    results = []
+
+    for spec, day_offset, t in specs_schedule:
+        ev_date = (monday + timedelta(days=day_offset)).isoformat()
+        spec_lower = spec.lower().replace(" ", "_")
+
+        # Ensure weekly event exists in agenda
+        try:
+            import httpx
+            auth_file = CONFIG_DIR / "auth.json"
+            token = json.loads(auth_file.read_text()).get("access_token", "") if auth_file.exists() else ""
+            httpx.post("http://127.0.0.1:8081/api/agenda/events", json={
+                "title": f"1-on-1 Turing × {spec}",
+                "description": f"Revisão semanal do Turing com {spec}.",
+                "type": "reuniao", "date": ev_date, "time": t,
+                "end_time": str(int(t[:2])+1).zfill(2)+t[2:],
+                "recurrence": "weekly", "specialist": spec,
+                "source": "turing", "source_ref": f"turing-1on1-{spec_lower}-{ev_date}",
+                "color": "#a855f7",
+            }, headers={"Authorization": f"Bearer {token}"}, timeout=8)
+        except Exception:
+            pass
+
+        # Conduct the 1-on-1 conversation (only today's scheduled specialist)
+        today_offset = date.today().weekday()
+        if day_offset != today_offset:
+            continue
+
+        log.info(f"  [1-on-1] Turing × {spec}")
+        prompt = (
+            f"REVISÃO SEMANAL — Turing × {spec}\n"
+            f"Data: {date.today().isoformat()}\n\n"
+            f"Tópicos obrigatórios:\n"
+            f"1. O que você fez essa semana? (tickets resolvidos, descobertas, melhorias)\n"
+            f"2. Quais foram os principais desafios?\n"
+            f"3. Você precisa de ajuda de outro especialista?\n"
+            f"4. Qual é seu plano para a próxima semana?\n"
+            f"5. Há algo que o Turing deveria saber ou decidir?\n\n"
+            f"Seja direto e específico. Máximo 200 palavras."
+        )
+        system = (
+            f"Você é {spec}, especialista sênior do CH8 Hub Cluster. "
+            "Você está em um 1-on-1 semanal com Turing, seu CTO-AI. "
+            "Seja honesto, proativo e específico. PT-BR."
+        )
+        response = _ask_ai(f"[Sistema] {system}\n\n{prompt}", timeout=60)
+
+        if response and len(response) > 50:
+            results.append({"specialist": spec, "response": response})
+            log.info(f"  [{spec}] {response[:100]}...")
+
+            # Save to KB
+            try:
+                conn = _get_db()
+                if conn:
+                    cur = conn.cursor()
+                    cur.execute("""
+                        INSERT INTO knowledge_articles
+                            (title, category, tags, content, source_type, source_ref, node)
+                        VALUES (%s,'procedure',%s,%s,'turing-1on1',%s,'manager1')
+                    """, (
+                        f"1-on-1 Turing × {spec} — {date.today().isoformat()}",
+                        ["1on1", "turing", spec_lower, "semanal"],
+                        f"# 1-on-1 Semanal: Turing × {spec}\n**Data:** {date.today()}\n\n{response}",
+                        f"1on1-{spec_lower}-{date.today().isoformat()}",
+                    ))
+                    conn.commit(); conn.close()
+            except Exception:
+                pass
+
+            # Create follow-up ticket if specialist raised issues
+            if any(w in response.lower() for w in ["bloqueado", "problema", "ajuda", "crítico", "urgente"]):
+                _create_ticket(
+                    title=f"[1-on-1] {spec} reportou blocker/problema",
+                    description=f"Levantado no 1-on-1 semanal Turing × {spec}:\n\n{response[:400]}",
+                    severity="medium", category="config",
+                    assigned_to=spec,
+                    action_plan=response[:200],
+                )
+
+    if results:
+        log.info(f"[TURING] 1-on-1s concluídos: {len(results)} specialist(s) hoje")
+
+
 def run_strategic_cycle():
     """Full 5-minute strategic review."""
     try:
@@ -546,6 +656,7 @@ def main():
 
     quick_counter  = 0
     last_planning  = 0  # run immediately on first strategic cycle
+    last_oneonone  = 0
 
     while running:
         try:
@@ -560,6 +671,11 @@ def main():
             if time.time() - last_planning >= PLANNING_SECS:
                 run_autonomous_planning()
                 last_planning = time.time()
+
+            # Weekly 1-on-1s — check once per day on Mondays
+            if time.time() - last_oneonone >= ONEONONE_SECS:
+                run_weekly_oneonones()
+                last_oneonone = time.time()
 
             if quick_counter % 5 == 0:
                 quick_counter = 0
