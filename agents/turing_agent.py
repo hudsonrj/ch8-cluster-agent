@@ -24,8 +24,9 @@ log = logging.getLogger("ch8.turing")
 
 CONFIG_DIR = Path(os.environ.get("CH8_CONFIG_DIR", Path.home() / ".config" / "ch8"))
 PID_FILE = CONFIG_DIR / "turing_agent.pid"
-CYCLE_SECS = 300  # 5 minutes strategic review
-QUICK_SECS = 60   # 1 minute quick health check
+CYCLE_SECS    = 300    # 5 min reactive strategic review
+QUICK_SECS    = 60     # 1 min quick health check
+PLANNING_SECS = 14400  # 4 hours autonomous Opus planning
 
 running = True
 
@@ -353,6 +354,152 @@ def run_quick_check():
         log.error(f"Quick check error: {e}")
 
 
+def _ask_opus(prompt: str, system: str = "", timeout: int = 300) -> str:
+    """Call Opus 4.7 directly via orchestrator with Turing system prompt."""
+    try:
+        import httpx
+        auth_file = CONFIG_DIR / "auth.json"
+        token = ""
+        if auth_file.exists():
+            token = json.loads(auth_file.read_text()).get("access_token", "")
+        messages = []
+        if system:
+            messages.append({"role": "user", "content": system})
+            messages.append({"role": "assistant", "content": "Entendido. Sou Turing, CTO."})
+        messages.append({"role": "user", "content": prompt})
+        r = httpx.post("http://127.0.0.1:8081/api/chat",
+            json={"messages": messages, "model": "claude-opus-4-7", "timeout": timeout},
+            headers={"Authorization": f"Bearer {token}"} if token else {},
+            timeout=timeout + 10)
+        d = r.json()
+        return (d.get("reply") or d.get("response") or "").strip()
+    except Exception as e:
+        log.warning(f"Opus call failed: {e}")
+        return ""
+
+
+def _parse_and_create_delegations(plan_text: str) -> int:
+    """Parse Turing plan for specialist delegations and create ITSM tickets."""
+    specs = list(SPECIALISTS.keys()) + ["Pesquisador", "Hermes", "Lexus", "Sitetc"]
+    found = []
+    pat = re.compile(r'[-–•]\s*\*{0,2}([A-Za-zÀ-ú\s]+?)\*{0,2}(?:\s*\([^)]*\))?\s*[→:]\s*(.{15,200})')
+    for m in pat.finditer(plan_text):
+        cand = m.group(1).strip()
+        task = m.group(2).replace("**", "").split("\n")[0].strip()
+        spec = next((s for s in specs if s.lower() in cand.lower()), None)
+        if spec and len(task) > 10 and not any(f["spec"] == spec for f in found):
+            found.append({"spec": spec, "task": task})
+
+    created = 0
+    for item in found[:8]:
+        try:
+            _create_ticket(
+                title=f"[Turing→{item['spec']}] {item['task'][:80]}",
+                description=f"Planejamento autônomo do Turing.\n\nTarefa: {item['task']}\n\nEspecialista: {item['spec']}\nOrigem: turing-auto-planning",
+                severity="medium", category="config",
+                assigned_to=item["spec"],
+                action_plan=item["task"][:300],
+            )
+            created += 1
+            log.info(f"  [TURING] Ticket delegado → {item['spec']}: {item['task'][:60]}")
+        except Exception as e:
+            log.debug(f"Delegation ticket failed: {e}")
+    return created
+
+
+def run_autonomous_planning():
+    """Full autonomous planning cycle using Opus 4.7 — runs every 4 hours."""
+    log.info("[TURING] ▶ Iniciando ciclo de planejamento autônomo (Opus 4.7)...")
+    _update_state("running", "Turing | Planejamento autônomo com Opus — analisando cluster...")
+
+    # Build rich cluster context
+    health = analyze_cluster_health()
+    conn = _get_db()
+    ctx = {"open_tickets": 0, "resolved_today": 0, "kb_articles": 0, "specialists": list(SPECIALISTS.keys())}
+    if conn:
+        try:
+            cur = conn.cursor()
+            cur.execute("SELECT COUNT(*) FROM tickets WHERE status NOT IN ('closed','resolved')")
+            ctx["open_tickets"] = cur.fetchone()[0]
+            cur.execute("SELECT COUNT(*) FROM tickets WHERE resolved_at::date = CURRENT_DATE")
+            ctx["resolved_today"] = cur.fetchone()[0]
+            cur.execute("SELECT COUNT(*) FROM knowledge_articles")
+            ctx["kb_articles"] = cur.fetchone()[0]
+            # Recent unresolved tickets summary
+            cur.execute("""SELECT title, severity, assigned_to FROM tickets
+                WHERE status NOT IN ('closed','resolved')
+                ORDER BY CASE severity WHEN 'critical' THEN 0 WHEN 'high' THEN 1 ELSE 2 END
+                LIMIT 5""")
+            ctx["top_tickets"] = [{"title": r[0], "sev": r[1], "owner": r[2]} for r in cur.fetchall()]
+            conn.close()
+        except Exception:
+            pass
+
+    nodes_online = health.get("online", 0)
+    nodes_total = len(health.get("nodes", []))
+    disk_critical = health.get("high_disk", [])
+    offline_nodes = health.get("offline", [])
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M BRT")
+
+    system_prompt = f"""Você é TURING, o CTO-AI do CH8 Hub Cluster. Opera com autonomia total.
+Especialistas disponíveis: {', '.join(ctx['specialists'] + ['Pesquisador', 'Hermes', 'Lexus', 'Sitetc'])}
+
+MODO: PLANEJAMENTO AUTÔNOMO — sem enrolação, sem perguntas. Execute e reporte.
+Ao delegar, use o formato exato: - **Especialista** (Domínio): [tarefa concreta e acionável]
+Cada bullet vira um ticket ITSM automaticamente."""
+
+    planning_prompt = f"""PLANEJAMENTO AUTÔNOMO — {now_str}
+
+ESTADO ATUAL DO CLUSTER:
+- Nodes: {nodes_online}/{nodes_total} online
+- Nodes offline: {', '.join(offline_nodes) if offline_nodes else 'nenhum'}
+- Disco crítico (>88%): {', '.join(disk_critical) if disk_critical else 'nenhum'}
+- Tickets abertos: {ctx['open_tickets']} | Resolvidos hoje: {ctx['resolved_today']}
+- Knowledge Base: {ctx['kb_articles']} artigos
+
+TICKETS ATIVOS (top 5):
+{chr(10).join(f"  [{t['sev']}] {t['title'][:70]} → {t['owner'] or '?'}" for t in ctx.get('top_tickets', []))}
+
+MISSÃO DESTE CICLO (próximas 4 horas):
+1. Analise o estado atual do cluster
+2. Identifique os 3-5 problemas ou oportunidades mais importantes
+3. Gere um plano de ação com tarefas específicas por especialista
+4. Priorize: segurança > disponibilidade > performance > custo > melhorias
+
+Seja executor. Gere um plano com delegações claras para cada especialista relevante."""
+
+    plan = _ask_opus(planning_prompt, system=system_prompt, timeout=280)
+
+    if not plan or len(plan) < 100:
+        log.warning("[TURING] Plano vazio ou muito curto — abortando ciclo")
+        return
+
+    log.info(f"[TURING] Plano gerado ({len(plan)} chars). Processando delegações...")
+
+    # Create delegation tickets from the plan
+    tickets_created = _parse_and_create_delegations(plan)
+
+    # Save plan to KB
+    try:
+        conn = _get_db()
+        if conn:
+            cur = conn.cursor()
+            cur.execute("""INSERT INTO knowledge_articles
+                (title, category, tags, content, source_type, source_ref, node)
+                VALUES (%s,'procedure',%s,%s,'turing-auto',%s,'manager1')""",
+                (f"Plano Autônomo Turing — {datetime.now().strftime('%Y-%m-%d %H:%M')}",
+                 ["turing", "planejamento", "autonomo"],
+                 f"# Plano Autônomo — Turing CTO\n**Data:** {now_str}\n**Tickets criados:** {tickets_created}\n\n{plan}",
+                 f"turing-plan-{int(time.time())}"))
+            conn.commit(); conn.close()
+    except Exception as e:
+        log.debug(f"KB save failed: {e}")
+
+    log.info(f"[TURING] ✅ Planejamento concluído: {tickets_created} tickets criados")
+    _update_state("running",
+        f"Turing | Plano autônomo executado: {tickets_created} tarefas delegadas | {datetime.now().strftime('%H:%M')}")
+
+
 def run_strategic_cycle():
     """Full 5-minute strategic review."""
     try:
@@ -394,23 +541,33 @@ def main():
     signal.signal(signal.SIGINT, _stop)
     
     log.info("🤖 Turing Agent starting — superintelligência do CH8 Hub Cluster")
-    log.info(f"  Quick check: {QUICK_SECS}s | Strategic review: {CYCLE_SECS}s")
+    log.info(f"  Quick: {QUICK_SECS}s | Strategic: {CYCLE_SECS}s | Planning (Opus): {PLANNING_SECS//3600}h")
     _update_state("running", "Turing inicializando — carregando estado do cluster...")
-    
-    quick_counter = 0
+
+    quick_counter  = 0
+    last_planning  = 0  # run immediately on first strategic cycle
+
     while running:
         try:
             quick_counter += 1
             run_quick_check()
-            
-            # Strategic review every 5 quick cycles
+
+            # Reactive strategic review every 5 quick cycles (~5 min)
             if quick_counter % 5 == 0:
                 run_strategic_cycle()
+
+            # Autonomous planning with Opus every 4 hours
+            if time.time() - last_planning >= PLANNING_SECS:
+                run_autonomous_planning()
+                last_planning = time.time()
+
+            if quick_counter % 5 == 0:
                 quick_counter = 0
+
         except Exception as e:
             log.error(f"Main loop error: {e}")
             _update_state("warning", f"Turing: erro no loop — {str(e)[:80]}")
-        
+
         for _ in range(QUICK_SECS):
             if not running: break
             time.sleep(1)
