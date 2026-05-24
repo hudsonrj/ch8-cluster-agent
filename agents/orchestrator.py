@@ -375,7 +375,6 @@ def _best_model() -> str:
         return ai["model"]
     if DEFAULT_MODEL:
         return DEFAULT_MODEL
-    # Ollama auto-detect
     ctx = _get_context()
     models = ctx.get("models", [])
     if not models:
@@ -385,6 +384,112 @@ def _best_model() -> str:
             if pref in m:
                 return m
     return models[0]
+
+
+# ── Smart Routing ─────────────────────────────────────────────────────────────
+
+# Routing table: task category → best model
+# Priority: prefer local/cheap for simple tasks, cloud for complex/strategic
+ROUTING_TABLE = {
+    "simple":    {"model": "qwen3.5:0.8b",                          "reason": "fast + free, < 1s"},
+    "code":      {"model": "llama3.1:8b-instruct-q4_K_M",           "reason": "strong at code"},
+    "search":    {"model": "claude-haiku-4-5",                       "reason": "fast + accurate"},
+    "ticket":    {"model": "us.anthropic.claude-sonnet-4-5-20250929-v1:0", "reason": "quality + context"},
+    "document":  {"model": "us.anthropic.claude-sonnet-4-5-20250929-v1:0", "reason": "long context"},
+    "checklist": {"model": "claude-haiku-4-5",                       "reason": "structured output"},
+    "strategic": {"model": "claude-opus-4-7",                        "reason": "deep reasoning"},
+    "default":   {"model": "us.anthropic.claude-sonnet-4-5-20250929-v1:0", "reason": "balanced quality"},
+}
+
+# Keyword patterns → task category
+ROUTING_PATTERNS = [
+    # Strategic / planning (highest priority — check first)
+    ("strategic", ["objetivo estratégico", "plano estratégico", "roadmap", "turing", "cto",
+                   "planejamento autônomo", "distribu", "delegar especialistas", "autonomous plan"]),
+    # Code / technical
+    ("code",      ["python", "javascript", "typescript", "sql", "função", "function", "código",
+                   "code", "script", "bug", "debug", "implement", "classe", "class", "api endpoint",
+                   "dockerfile", "docker-compose", "yaml", "json schema"]),
+    # Checklist / health
+    ("checklist", ["checklist", "health check", "verificar", "status", "monitor", "diagnóstico",
+                   "audit", "scan", "inspecionar"]),
+    # Tickets / ITSM
+    ("ticket",    ["ticket", "itsm", "incidente", "incident", "sla", "escalate", "resolver",
+                   "root cause", "rca", "postmortem"]),
+    # Document / summarize
+    ("document",  ["resumo", "summary", "relatório", "report", "documentar", "document",
+                   "escrever", "write", "artigo", "article", "explicar em detalhes"]),
+    # Search / research
+    ("search",    ["busque", "search", "pesquise", "pesquisa", "encontre", "find",
+                   "cve", "vulnerability", "latest", "recente", "notícia", "news"]),
+    # Simple / quick
+    ("simple",    ["o que é", "what is", "defin", "sim ou não", "yes or no",
+                   "verdadeiro", "falso", "true", "false", "quantos", "how many",
+                   "qual é", "what's", "responda em uma palavra", "one word"]),
+]
+
+def _classify_task(messages: list) -> str:
+    """Classify the task category from the last user message."""
+    last = next((m["content"] for m in reversed(messages) if m.get("role") == "user"), "")
+    text = last.lower()
+    for category, keywords in ROUTING_PATTERNS:
+        if any(k in text for k in keywords):
+            return category
+    return "default"
+
+
+def _available_models() -> set:
+    """Get set of model IDs available on online nodes."""
+    try:
+        from connect.auth import CONTROL_URL, get_network_id, get_access_token
+        import httpx as _httpx
+        token = get_access_token()
+        r = _httpx.get(f"{CONTROL_URL}/nodes",
+                       params={"network_id": get_network_id()},
+                       headers={"Authorization": f"Bearer {token}"}, timeout=5)
+        if r.status_code == 200:
+            nodes = r.json().get("nodes", [])
+            available = set()
+            for n in nodes:
+                if n.get("status") == "online":
+                    for m in n.get("models", []):
+                        available.add(m)
+            return available
+    except Exception:
+        pass
+    return set()
+
+
+def smart_route(messages: list, hint: str = "") -> tuple[str, str]:
+    """
+    Select the best model for the given messages.
+    Returns (model_id, reason).
+    hint: optional category override ('simple','code','strategic',etc.)
+    """
+    category = hint if hint in ROUTING_TABLE else _classify_task(messages)
+    route = ROUTING_TABLE.get(category, ROUTING_TABLE["default"])
+    target_model = route["model"]
+    reason = route["reason"]
+
+    # Check if target model is available (for Ollama local models)
+    # Bedrock models are always available via cloud
+    bedrock_models = {
+        "claude-opus-4-7", "claude-haiku-4-5",
+        "us.anthropic.claude-sonnet-4-5-20250929-v1:0",
+        "us.anthropic.claude-opus-4-7",
+    }
+    if target_model in bedrock_models:
+        return target_model, f"[smart:{category}] {reason}"
+
+    # For Ollama: check if the node has it, fallback to Haiku if not
+    available = _available_models()
+    if target_model in available:
+        return target_model, f"[smart:{category}] {reason} (local)"
+
+    # Model not available locally → fall back to Haiku (cheap cloud)
+    fallback = "claude-haiku-4-5"
+    log.debug(f"smart_route: {target_model} unavailable, fallback to {fallback}")
+    return fallback, f"[smart:{category}→fallback] {reason}"
 
 
 # ── streaming backends ───────────────────────────────────────────────────────
@@ -969,7 +1074,17 @@ async def chat(request: Request):
         messages = [{"role": "user", "content": body["message"]}]
     stream   = body.get("stream", True)
     _m = body.get("model", "")
-    model = _m if _m and _m != "auto" else _best_model()
+    _hint = body.get("routing_hint", "")
+
+    if _m and _m not in ("auto", "smart"):
+        model = _m          # explicit model → use it directly
+        routing_reason = "explicit"
+    elif _m == "smart" or not _m:
+        model, routing_reason = smart_route(messages, _hint)
+        log.info(f"smart_route → {model} ({routing_reason})")
+    else:
+        model = _best_model()
+        routing_reason = "default"
 
     # Security: check for prompt injection in user messages
     if messages:
@@ -1692,6 +1807,40 @@ async def relay_forward(request: Request):
             errors.append(f"{addr}: {type(e).__name__}")
 
     return {"error": f"Cannot reach {target.get('hostname',target_node_id)} from {os.uname().nodename}: tried {list(addresses_to_try)}"}
+
+
+@app.get("/routing")
+async def routing_info():
+    """Return smart routing table and available models."""
+    available = _available_models()
+    table = []
+    for category, route in ROUTING_TABLE.items():
+        model = route["model"]
+        is_bedrock = any(x in model for x in ("claude", "anthropic"))
+        avail = is_bedrock or model in available
+        table.append({
+            "category": category,
+            "model": model,
+            "reason": route["reason"],
+            "available": avail,
+            "type": "cloud" if is_bedrock else "local",
+        })
+    return {
+        "routing_table": table,
+        "available_local": sorted(available),
+        "patterns": {cat: kws[:3] for cat, kws in ROUTING_PATTERNS},
+    }
+
+
+@app.post("/routing/test")
+async def routing_test(request: Request):
+    """Test smart routing for a given message."""
+    body = await request.json()
+    messages = body.get("messages", [{"role": "user", "content": body.get("message", "")}])
+    hint = body.get("hint", "")
+    category = hint if hint else _classify_task(messages)
+    model, reason = smart_route(messages, hint)
+    return {"category": category, "model": model, "reason": reason}
 
 
 @app.get("/version")
