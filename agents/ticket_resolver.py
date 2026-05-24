@@ -148,12 +148,22 @@ def _try_auto_fix(ticket):
 
 # Patterns that identify known false positives — auto-resolve immediately
 _FALSE_POSITIVE_PATTERNS = [
+    # Snap/systemd
     ("snap-",         "Snap mount unit — não é serviço CH8. Falso positivo filtrado."),
     ("hassio",        "Home Assistant supervisor — não faz parte da infra CH8. Falso positivo."),
+    # Self-referential nodes (master monitoring itself)
     ("localhost está offline", "localhost é o próprio nó master — não é um node remoto. Falso positivo."),
     ("manager1 está offline",  "manager1 é o nó master e está online. Monitoramento circular detectado. Falso positivo."),
     ("Nodes offline detectados: manager1",  "manager1 é o nó master, está online. Falso positivo de auto-monitoramento."),
     ("Nodes offline detectados: localhost", "localhost é o próprio host. Não é node remoto offline. Falso positivo."),
+    # Mobile nodes (heartbeat intermitente por bateria/sleep)
+    ("Moto G54 5G",    "Android device — heartbeat intermitente por modo sleep/bateria. Não é falha real."),
+    ("Mobile Device",  "Mobile device — heartbeat intermitente. Comportamento esperado em dispositivos móveis."),
+    # Corporate workstation (pode ser desligada fora do horário)
+    ("CPQD8NR2JG4 está offline", "Workstation corporativa CPQD8NR2JG4 — pode estar desligada fora do horário comercial. Não é incidente."),
+    ("Nodes offline detectados: CPQD8NR2JG4", "CPQD8NR2JG4 offline — workstation corporativa. Não é incidente fora do horário."),
+    # Teste
+    ("Teste ticket delegação", "Ticket de teste — sem ação necessária."),
 ]
 
 

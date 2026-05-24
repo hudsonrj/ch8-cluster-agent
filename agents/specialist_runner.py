@@ -29,7 +29,7 @@ PID_FILE = CONFIG_DIR / "specialist_runner.pid"
 LOG_FILE = CONFIG_DIR / "specialist_runner.log"
 CONFIG_DIR.mkdir(parents=True, exist_ok=True)
 
-CHECK_INTERVAL = 3600  # 60 minutes
+CHECK_INTERVAL = 900   # 15 minutes — faster autonomous response
 running = True
 
 
