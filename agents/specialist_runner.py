@@ -287,6 +287,258 @@ def _get_open_tickets(domain: str) -> list:
         return []
 
 
+def _get_assigned_tickets(nome: str) -> list:
+    """Get tickets assigned to this specialist."""
+    try:
+        db_url = _get_db_url()
+        if not db_url:
+            return []
+        import psycopg2, psycopg2.extras
+        conn = psycopg2.connect(db_url)
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur.execute("""
+            SELECT ticket_id, title, description, severity, category, node, fix_command, root_cause
+            FROM tickets
+            WHERE assigned_to = %s AND status IN ('open','investigating','in_progress')
+            ORDER BY CASE severity WHEN 'critical' THEN 0 WHEN 'high' THEN 1 ELSE 2 END
+            LIMIT 3
+        """, (nome,))
+        rows = [dict(r) for r in cur.fetchall()]
+        conn.close()
+        return rows
+    except Exception:
+        return []
+
+
+def _update_ticket(ticket_id: str, status: str, note: str, resolution: str = "") -> None:
+    try:
+        db_url = _get_db_url()
+        if not db_url:
+            return
+        import psycopg2
+        conn = psycopg2.connect(db_url)
+        cur = conn.cursor()
+        if status in ("resolved", "closed") and resolution:
+            cur.execute(
+                "UPDATE tickets SET status=%s, resolution=%s, resolved_at=NOW(), updated_at=NOW() WHERE ticket_id=%s",
+                (status, resolution, ticket_id))
+        else:
+            cur.execute(
+                "UPDATE tickets SET status=%s, updated_at=NOW() WHERE ticket_id=%s",
+                (status, ticket_id))
+        # Add to history
+        import json as _j, time as _t
+        history_entry = _j.dumps([{"ts": str(int(_t.time())), "action": status, "by": "specialist_runner", "note": note[:200]}])
+        cur.execute(
+            "UPDATE tickets SET history = COALESCE(history::jsonb, '[]'::jsonb) || %s::jsonb WHERE ticket_id=%s",
+            (history_entry, ticket_id))
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        log.debug(f"Failed to update ticket {ticket_id}: {e}")
+
+
+def _ask_specialist(from_spec: str, to_spec: str, context: str, ticket_id: str) -> None:
+    """Create a sub-ticket asking another specialist for help."""
+    try:
+        db_url = _get_db_url()
+        if not db_url:
+            return
+        import psycopg2
+        from datetime import timedelta
+        conn = psycopg2.connect(db_url)
+        cur = conn.cursor()
+        cur.execute("""
+            INSERT INTO tickets (ticket_id, title, description, severity, category,
+                status, node, assigned_to, source_type, source_ref, sla_deadline, created_at, updated_at)
+            VALUES ('TKT-' || to_char(NOW(),'YYYYMMDD-HH24MISS'), %s, %s, 'medium', 'config',
+                'open', 'manager1', %s, 'specialist-collab', %s, NOW() + INTERVAL '24 hours', NOW(), NOW())
+        """, (
+            f"[{from_spec}→{to_spec}] Solicitação de colaboração — {ticket_id}",
+            f"Especialista {from_spec} solicita ajuda de {to_spec}.\n\nContexto:\n{context}\n\nTicket original: {ticket_id}",
+            to_spec, ticket_id,
+        ))
+        conn.commit()
+        conn.close()
+        log.info(f"  [{from_spec}] Requested help from {to_spec} for {ticket_id}")
+    except Exception as e:
+        log.debug(f"Failed to create collaboration ticket: {e}")
+
+
+def _save_skill(nome: str, skill_name: str, description: str, content: str, triggers: list) -> None:
+    """Save a new skill to ch8_skills table when specialist discovers a reusable pattern."""
+    try:
+        db_url = _get_db_url()
+        if not db_url:
+            return
+        import psycopg2
+        conn = psycopg2.connect(db_url)
+        cur = conn.cursor()
+        cur.execute("""
+            INSERT INTO ch8_skills (name, description, triggers, content, author)
+            VALUES (%s, %s, %s, %s, %s)
+            ON CONFLICT (name) DO UPDATE SET
+                content = EXCLUDED.content,
+                description = EXCLUDED.description,
+                updated_at = NOW()
+            RETURNING id
+        """, (skill_name, description, triggers, content, nome))
+        sid = cur.fetchone()
+        conn.commit()
+        conn.close()
+        log.info(f"  [{nome}] New skill saved: {skill_name} (id={sid[0] if sid else '?'})")
+    except Exception as e:
+        log.debug(f"Failed to save skill: {e}")
+
+
+def _resolve_ticket_with_llm(specialist: dict, ticket: dict) -> dict:
+    """Use the orchestrator (with specialist system prompt) to resolve a ticket autonomously."""
+    import httpx
+    nome = specialist['nome']
+    ticket_id = ticket['ticket_id']
+    title = ticket['title']
+    description = ticket.get('description', '')
+    fix_cmd = ticket.get('fix_command', '')
+    severity = ticket.get('severity', 'medium')
+
+    # Build context-rich prompt for the specialist
+    cluster_context = ""
+    try:
+        db_url = _get_db_url()
+        import psycopg2, psycopg2.extras
+        conn = psycopg2.connect(db_url)
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur.execute("SELECT COUNT(*) n FROM tickets WHERE status NOT IN ('closed','resolved')")
+        open_t = cur.fetchone()['n']
+        conn.close()
+        cluster_context = f"\nCluster: {open_t} tickets abertos atualmente."
+    except Exception:
+        pass
+
+    specialists_list = "Sigma (DevOps), Nikolas (DBA), Hermes (MCP), Mr Robot (Segurança), Jarvis (IA), Atlas (MongoDB), Orion (Performance), Lexus (Apps), Sitetc (Sites), Pesquisador (Web)"
+
+    system = (specialist['system_prompt'][:800] or
+              f"Você é {nome}, especialista em {specialist['domain']} no CH8 Hub Cluster.")
+
+    user_msg = f"""[TICKET ATRIBUÍDO A VOCÊ — RESOLVER AGORA]
+
+Ticket: {ticket_id} [{severity.upper()}]
+Título: {title}
+Descrição: {description[:400]}
+{"Fix sugerido: " + fix_cmd if fix_cmd else ""}
+{cluster_context}
+
+Você tem acesso a ferramentas (shell_exec, web_search, postgres_query, etc.).
+
+INSTRUÇÕES:
+1. Analise o problema
+2. Execute as ações necessárias usando ferramentas
+3. Se precisar de ajuda de outro especialista, diga: PEDIR_AJUDA: [nome] — [motivo]
+4. Se identificar padrão reutilizável, diga: NOVA_SKILL: [nome] | [descrição] | [conteúdo]
+5. Ao resolver, diga: RESOLVIDO: [resumo do que foi feito]
+6. Se não conseguir resolver, diga: BLOQUEADO: [motivo]
+
+Outros especialistas disponíveis: {specialists_list}
+Responda em PT-BR. Seja direto e execute ações concretas."""
+
+    messages = [
+        {"role": "user", "content": system},
+        {"role": "assistant", "content": f"Entendido. Sou {nome}. Vou analisar e resolver o {ticket_id}."},
+        {"role": "user", "content": user_msg},
+    ]
+
+    try:
+        from connect.auth import get_access_token
+        token = get_access_token()
+        full_text = ""
+        with httpx.stream("POST", "http://127.0.0.1:7879/chat",
+                          json={"messages": messages, "stream": True},
+                          headers={"Authorization": f"Bearer {token}"},
+                          timeout=90) as r:
+            for line in r.iter_lines():
+                if line.startswith("data: ") and line != "data: [DONE]":
+                    try:
+                        import json as _j
+                        d = _j.loads(line[6:])
+                        full_text += d.get("message", {}).get("content", "")
+                    except Exception:
+                        pass
+        return {"text": full_text, "ok": bool(full_text)}
+    except Exception as e:
+        return {"text": "", "ok": False, "error": str(e)}
+
+
+def _process_llm_response(specialist: dict, ticket: dict, response: str) -> None:
+    """Process the LLM response: update ticket, ask for help, save skills."""
+    nome = specialist['nome']
+    ticket_id = ticket['ticket_id']
+
+    if not response:
+        _update_ticket(ticket_id, "investigating", f"{nome}: sem resposta do LLM, tentando novamente")
+        return
+
+    # Detect resolution
+    if "RESOLVIDO:" in response:
+        import re
+        m = re.search(r'RESOLVIDO:\s*(.+?)(?:\n|$)', response)
+        resolution = m.group(1).strip() if m else response[-200:]
+        _update_ticket(ticket_id, "resolved", f"{nome} resolveu: {resolution[:100]}", resolution)
+        log.info(f"  [{nome}] Resolved {ticket_id}: {resolution[:60]}")
+
+        # Save as skill if identified
+        skill_m = re.search(r'NOVA_SKILL:\s*([^|]+)\|([^|]+)\|(.+)', response, re.DOTALL)
+        if skill_m:
+            skill_name = skill_m.group(1).strip().lower().replace(' ', '-')
+            skill_desc = skill_m.group(2).strip()
+            skill_content = skill_m.group(3).strip()
+            triggers = [ticket['category'], nome.lower(), ticket.get('node', '')]
+            _save_skill(nome, skill_name, skill_desc, skill_content, triggers)
+
+    elif "BLOQUEADO:" in response:
+        import re
+        m = re.search(r'BLOQUEADO:\s*(.+?)(?:\n|$)', response)
+        reason = m.group(1).strip() if m else "sem detalhes"
+        _update_ticket(ticket_id, "investigating", f"{nome} bloqueado: {reason[:100]}")
+        log.warning(f"  [{nome}] Blocked on {ticket_id}: {reason[:60]}")
+
+    elif "PEDIR_AJUDA:" in response:
+        import re
+        m = re.search(r'PEDIR_AJUDA:\s*(\w[\w\s]*?)\s*[—-]\s*(.+?)(?:\n|$)', response)
+        if m:
+            other_spec = m.group(1).strip()
+            reason = m.group(2).strip()
+            _ask_specialist(nome, other_spec, f"Ticket {ticket_id}: {ticket['title']}\n\nMotivo: {reason}", ticket_id)
+            _update_ticket(ticket_id, "in_progress", f"{nome} pediu ajuda de {other_spec}: {reason[:80]}")
+
+    else:
+        # Progress update — in_progress
+        summary = response.strip()[:200]
+        _update_ticket(ticket_id, "in_progress", f"{nome}: {summary}")
+
+    # Save to KB as work log
+    try:
+        db_url = _get_db_url()
+        if not db_url:
+            return
+        import psycopg2
+        from datetime import datetime as _dt
+        conn = psycopg2.connect(db_url)
+        cur = conn.cursor()
+        cur.execute("""
+            INSERT INTO knowledge_articles (title, category, tags, content, source_type, source_ref, node)
+            VALUES (%s,'troubleshooting',%s,%s,'specialist_runner',%s,'manager1')
+        """, (
+            f"[{nome}] Work log: {ticket['title'][:60]}",
+            ['especialista', nome.lower(), 'work_log', ticket['category']],
+            f"# Work Log — {nome}\n**Ticket:** {ticket_id}\n**Título:** {ticket['title']}\n\n## Resposta do Especialista\n{response[:2000]}",
+            f"worklog-{nome.lower()}-{ticket_id}",
+        ))
+        conn.commit()
+        conn.close()
+    except Exception:
+        pass
+
+
 def _create_finding_ticket(nome: str, domain: str, finding: str) -> None:
     """Create ITSM ticket for critical finding."""
     try:
@@ -415,9 +667,26 @@ def main():
             all_results = []
             for specialist in specialists:
                 try:
+                    nome = specialist['nome']
+
+                    # 1. Resolve assigned tickets autonomously
+                    assigned = _get_assigned_tickets(nome)
+                    if assigned:
+                        log.info(f"  [{nome}] {len(assigned)} ticket(s) assigned — resolving...")
+                        for ticket in assigned[:2]:  # max 2 per cycle to avoid overload
+                            _update_ticket(ticket['ticket_id'], 'investigating',
+                                           f"{nome} iniciou investigação autônoma")
+                            resp = _resolve_ticket_with_llm(specialist, ticket)
+                            if resp.get('ok'):
+                                _process_llm_response(specialist, ticket, resp['text'])
+                            else:
+                                _update_ticket(ticket['ticket_id'], 'in_progress',
+                                               f"{nome}: LLM indisponível — {resp.get('error','?')[:80]}")
+
+                    # 2. Domain monitoring cycle
                     results = _run_specialist_cycle(specialist, nodes)
                     all_results.append(results)
-                    log.info(f"  [{specialist['nome']}] {len(results['findings'])} findings, {len(results['actions_taken'])} actions")
+                    log.info(f"  [{nome}] {len(results['findings'])} findings, {len(results['actions_taken'])} actions")
                 except Exception as e:
                     log.error(f"  [{specialist['nome']}] Cycle error: {e}")
 
