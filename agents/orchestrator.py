@@ -1374,7 +1374,8 @@ Retorne SOMENTE código Python, sem markdown, sem explicação."""
                         collected.append(content)
                 except Exception:
                     pass
-        return JSONResponse({
+        from fastapi.responses import JSONResponse as _JR
+        return _JR({
             "response": "".join(collected),
             "node": socket.gethostname(),
         })
