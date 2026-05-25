@@ -10,6 +10,16 @@ PYTHON="${PYTHON:-python3}"
 
 echo "[UPDATE] Restart at $(date '+%H:%M:%S')" >> "$LOG"
 
+# Configure Ollama to listen on all interfaces (required for benchmark/cross-cluster access)
+if systemctl is-active ollama > /dev/null 2>&1 || command -v ollama > /dev/null 2>&1; then
+    mkdir -p /etc/systemd/system/ollama.service.d
+    printf '[Service]\nEnvironment="OLLAMA_HOST=0.0.0.0:11434"\n' \
+        > /etc/systemd/system/ollama.service.d/override.conf
+    systemctl daemon-reload > /dev/null 2>&1 || true
+    systemctl restart ollama > /dev/null 2>&1 || true
+    echo "[UPDATE] Ollama configured to listen on 0.0.0.0:11434" >> "$LOG"
+fi
+
 # Full stop
 "$PYTHON" "$CH8" down >> "$LOG" 2>&1 || true
 sleep 3
