@@ -1810,6 +1810,58 @@ async def relay_forward(request: Request):
     return {"error": f"Cannot reach {target.get('hostname',target_node_id)} from {os.uname().nodename}: tried {list(addresses_to_try)}"}
 
 
+@app.post("/ollama-proxy")
+async def ollama_proxy(request: Request):
+    """Proxy Ollama inference requests — runs on HOST so can reach all Tailscale nodes.
+    Solves container→Tailscale streaming issue for benchmark."""
+    body = await request.json()
+    ollama_base = body.get("ollama_url", "http://127.0.0.1:11434")
+    model = body.get("model", "")
+    prompt = body.get("prompt", "")
+    num_predict = body.get("num_predict", 150)
+    keep_alive = body.get("keep_alive", -1)
+
+    if not model or not prompt:
+        from fastapi.responses import JSONResponse as _JR2
+        return _JR2({"error": "model and prompt required"}, status_code=400)
+
+    collected = []
+    error = None
+    t0 = __import__("time").time()
+
+    try:
+        async with httpx.AsyncClient(timeout=120) as c:
+            async with c.stream("POST", f"{ollama_base}/api/generate",
+                json={"model": model, "prompt": prompt, "stream": True,
+                      "num_predict": num_predict, "keep_alive": keep_alive}) as r:
+                if r.status_code != 200:
+                    error = f"Ollama HTTP {r.status_code}"
+                else:
+                    async for line in r.aiter_lines():
+                        if line:
+                            try:
+                                d = json.loads(line)
+                                collected.append(d.get("response", ""))
+                                if d.get("done"):
+                                    break
+                            except Exception:
+                                pass
+    except Exception as e:
+        error = str(e)[:100]
+
+    elapsed_ms = int((__import__("time").time() - t0) * 1000)
+    reply = "".join(collected)[:1500]
+
+    from fastapi.responses import JSONResponse as _JR3
+    return _JR3({
+        "ok": not error and bool(reply),
+        "reply": reply,
+        "latency_ms": elapsed_ms,
+        "model": model,
+        "error": error,
+    })
+
+
 @app.get("/routing")
 async def routing_info():
     """Return smart routing table and available models."""
