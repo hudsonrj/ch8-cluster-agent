@@ -167,6 +167,60 @@ BUILTIN_TOOLS = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "ticket_list",
+            "description": "List ITSM tickets from the cluster. Filter by status (open/in_progress/resolved/closed), severity, node, category.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "status":   {"type": "string", "description": "Filter by status: open, in_progress, resolved, closed"},
+                    "severity": {"type": "string", "description": "Filter by severity: critical, high, medium, low"},
+                    "limit":    {"type": "integer", "description": "Max tickets to return (default 50)"},
+                    "node":     {"type": "string", "description": "Filter by node name"},
+                },
+                "required": [],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "ticket_update",
+            "description": "Update an ITSM ticket: change status, assign to specialist, add resolution notes, close duplicates.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "ticket_id":   {"type": "string", "description": "Ticket ID (e.g. TK-001)"},
+                    "status":      {"type": "string", "description": "New status: open, investigating, in_progress, resolved, closed"},
+                    "assigned_to": {"type": "string", "description": "Specialist name to assign"},
+                    "resolution":  {"type": "string", "description": "Resolution notes"},
+                    "note":        {"type": "string", "description": "History note"},
+                },
+                "required": ["ticket_id"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "ticket_create",
+            "description": "Create a new ITSM ticket in the cluster.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "title":       {"type": "string", "description": "Ticket title"},
+                    "description": {"type": "string", "description": "Detailed description"},
+                    "severity":    {"type": "string", "description": "critical, high, medium, low"},
+                    "category":    {"type": "string", "description": "service_down, performance, config, security, etc."},
+                    "node":        {"type": "string", "description": "Affected node"},
+                    "assigned_to": {"type": "string", "description": "Specialist to assign"},
+                },
+                "required": ["title", "severity"],
+            },
+        },
+    },
 ]
 
 # Add web tools if available
@@ -331,6 +385,9 @@ def execute_tool(name: str, args: dict) -> dict:
         "web_extract":     _exec_web_extract,
         "calendar_create": _exec_calendar_create,
         "openclaw_chat":   _exec_openclaw_chat,
+        "ticket_list":     _exec_ticket_list,
+        "ticket_update":   _exec_ticket_update,
+        "ticket_create":   _exec_ticket_create,
     }
 
     # Custom tools from tools.json
@@ -651,6 +708,69 @@ def _exec_calendar_create(args: dict) -> dict:
             json=payload,
             headers={"Authorization": f"Bearer {token}"},
             timeout=10,
+        )
+        return r.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+# ── ITSM ticket tools ─────────────────────────────────────────────────────────
+
+def _exec_ticket_list(args: dict) -> dict:
+    """List ITSM tickets from the cluster with optional filters."""
+    try:
+        import httpx
+        from connect.auth import CONTROL_URL, get_access_token
+        token = get_access_token()
+        params = {}
+        for k in ("status", "severity", "node", "category", "limit"):
+            if args.get(k):
+                params[k] = args[k]
+        r = httpx.get(
+            f"{CONTROL_URL}/api/itsm/tickets",
+            params=params,
+            headers={"Authorization": f"Bearer {token}"},
+            timeout=15,
+        )
+        data = r.json()
+        tickets = data.get("tickets", data) if isinstance(data, dict) else data
+        return {"tickets": tickets, "count": len(tickets)}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+def _exec_ticket_update(args: dict) -> dict:
+    """Update a ticket: change status, assign, add resolution note."""
+    try:
+        import httpx
+        from connect.auth import CONTROL_URL, get_access_token
+        ticket_id = args.get("ticket_id") or args.get("id", "")
+        if not ticket_id:
+            return {"error": "ticket_id required"}
+        token = get_access_token()
+        payload = {k: v for k, v in args.items() if k not in ("ticket_id", "id")}
+        r = httpx.put(
+            f"{CONTROL_URL}/api/itsm/tickets/{ticket_id}",
+            json=payload,
+            headers={"Authorization": f"Bearer {token}"},
+            timeout=15,
+        )
+        return r.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+def _exec_ticket_create(args: dict) -> dict:
+    """Create a new ITSM ticket."""
+    try:
+        import httpx
+        from connect.auth import CONTROL_URL, get_access_token
+        token = get_access_token()
+        r = httpx.post(
+            f"{CONTROL_URL}/api/itsm/tickets",
+            json=args,
+            headers={"Authorization": f"Bearer {token}"},
+            timeout=15,
         )
         return r.json()
     except Exception as e:
