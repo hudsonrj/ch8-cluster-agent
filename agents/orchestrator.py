@@ -352,6 +352,12 @@ ticket_list   — list tickets (filter by status, severity, node, limit)
 ticket_update — update ticket: status (open/investigating/in_progress/resolved/closed), assigned_to, resolution, note
 ticket_create — create new ticket (title, severity, category, description, assigned_to)
 
+## Wazuh SIEM tools (security monitoring)
+wazuh_summary — 24h overview: alert counts by severity, active agents (dwallied, dw-tulip), top attacker IPs
+wazuh_alerts  — recent alerts filtered by level (8=medium, 12=high, 15=critical) and time window
+wazuh_cves    — CVEs detected by vulnerability scanner (last 7 days)
+When asked about security, attacks, brute force, or vulnerabilities → use wazuh_summary or wazuh_alerts immediately.
+
 Example: user says "resolve os tickets duplicados"
 ```tool_call
 {{"name": "ticket_list", "args": {{"limit": 100}}}}

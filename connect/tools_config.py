@@ -205,6 +205,44 @@ BUILTIN_TOOLS = [
     {
         "type": "function",
         "function": {
+            "name": "wazuh_summary",
+            "description": "Get Wazuh SIEM 24h summary: alert counts (critical/high/medium/low), active agents, top attack source IPs.",
+            "parameters": {"type": "object", "properties": {}, "required": []},
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "wazuh_alerts",
+            "description": "Query Wazuh SIEM for recent security alerts. Filter by minimum level (1-15), time window (hours), and result limit.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "level": {"type": "integer", "description": "Minimum alert level (1-15). 8=medium, 12=high, 15=critical. Default 8."},
+                    "hours": {"type": "integer", "description": "Time window in hours (default 24)"},
+                    "limit": {"type": "integer", "description": "Max alerts to return (default 50)"},
+                },
+                "required": [],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "wazuh_cves",
+            "description": "List CVEs detected by Wazuh vulnerability scanner in the last 7 days.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "limit": {"type": "integer", "description": "Max CVEs to return (default 20)"},
+                },
+                "required": [],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "ticket_create",
             "description": "Create a new ITSM ticket in the cluster.",
             "parameters": {
@@ -388,6 +426,9 @@ def execute_tool(name: str, args: dict) -> dict:
         "ticket_list":     _exec_ticket_list,
         "ticket_update":   _exec_ticket_update,
         "ticket_create":   _exec_ticket_create,
+        "wazuh_summary":   _exec_wazuh_summary,
+        "wazuh_alerts":    _exec_wazuh_alerts,
+        "wazuh_cves":      _exec_wazuh_cves,
     }
 
     # Custom tools from tools.json
@@ -772,6 +813,54 @@ def _exec_ticket_create(args: dict) -> dict:
             headers={"Authorization": f"Bearer {token}"},
             timeout=15,
         )
+        return r.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+# ── Wazuh SIEM tools ──────────────────────────────────────────────────────────
+
+def _exec_wazuh_alerts(args: dict) -> dict:
+    """Query Wazuh SIEM for recent security alerts."""
+    try:
+        import httpx
+        from connect.auth import CONTROL_URL, get_access_token
+        token = get_access_token()
+        params = {k: args[k] for k in ("level","limit","hours") if args.get(k)}
+        r = httpx.get(f"{CONTROL_URL}/api/wazuh/alerts",
+                      params=params,
+                      headers={"Authorization": f"Bearer {token}"},
+                      timeout=15)
+        return r.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+def _exec_wazuh_summary(args: dict) -> dict:
+    """Get Wazuh 24h summary: alert counts by severity, active agents, top attackers."""
+    try:
+        import httpx
+        from connect.auth import CONTROL_URL, get_access_token
+        token = get_access_token()
+        r = httpx.get(f"{CONTROL_URL}/api/wazuh/summary",
+                      headers={"Authorization": f"Bearer {token}"},
+                      timeout=15)
+        return r.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+def _exec_wazuh_cves(args: dict) -> dict:
+    """List CVEs detected by Wazuh vulnerability scanner (last 7 days)."""
+    try:
+        import httpx
+        from connect.auth import CONTROL_URL, get_access_token
+        token = get_access_token()
+        params = {"limit": args.get("limit", 20)}
+        r = httpx.get(f"{CONTROL_URL}/api/wazuh/cves",
+                      params=params,
+                      headers={"Authorization": f"Bearer {token}"},
+                      timeout=15)
         return r.json()
     except Exception as e:
         return {"error": str(e)}
