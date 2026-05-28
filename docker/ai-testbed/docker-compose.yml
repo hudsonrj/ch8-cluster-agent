@@ -1,0 +1,61 @@
+# AI Testbed — Containers para testes de ferramentas
+# Recomendado por: Pesquisador + Wired (OpenClaw) — 2026-05-28
+version: '3.8'
+services:
+  litellm:
+    image: ghcr.io/berriai/litellm:main-stable
+    container_name: ai-litellm
+    ports: ["4000:4000"]
+    environment:
+      - LITELLM_MASTER_KEY=ch8-litellm-key
+    volumes: [./litellm_config.yml:/app/config.yaml]
+    restart: unless-stopped
+    networks: [ai-testbed]
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: ai-webui
+    ports: ["8888:8080"]
+    environment:
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+    volumes: [open-webui-data:/app/backend/data]
+    extra_hosts: ["host.docker.internal:host-gateway"]
+    restart: unless-stopped
+    networks: [ai-testbed]
+  weaviate:
+    image: semitechnologies/weaviate:latest
+    container_name: ai-weaviate
+    ports: ["8087:8080"]
+    environment:
+      - AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED=true
+      - DEFAULT_VECTORIZER_MODULE=none
+    volumes: [weaviate-data:/var/lib/weaviate]
+    restart: unless-stopped
+    networks: [ai-testbed]
+  langfuse:
+    image: langfuse/langfuse:latest
+    container_name: ai-langfuse
+    ports: ["3100:3000"]
+    environment:
+      - DATABASE_URL=postgresql://langfuse:langfuse@langfuse-db:5432/langfuse
+      - NEXTAUTH_SECRET=ch8-langfuse-secret
+      - NEXTAUTH_URL=http://localhost:3100
+      - SALT=ch8-salt
+    depends_on: [langfuse-db]
+    restart: unless-stopped
+    networks: [ai-testbed]
+  langfuse-db:
+    image: postgres:15-alpine
+    container_name: ai-langfuse-db
+    environment:
+      - POSTGRES_USER=langfuse
+      - POSTGRES_PASSWORD=langfuse
+      - POSTGRES_DB=langfuse
+    volumes: [langfuse-db-data:/var/lib/postgresql/data]
+    networks: [ai-testbed]
+networks:
+  ai-testbed:
+    driver: bridge
+volumes:
+  open-webui-data:
+  weaviate-data:
+  langfuse-db-data:

@@ -1,0 +1,23 @@
+model_list:
+  - model_name: claude-haiku
+    litellm_params:
+      model: bedrock/claude-haiku-4-5
+  - model_name: claude-sonnet
+    litellm_params:
+      model: bedrock/us.anthropic.claude-sonnet-4-5-20250929-v1:0
+  - model_name: qwen-local
+    litellm_params:
+      model: ollama/qwen3.5:0.8b
+      api_base: http://100.65.70.126:11434
+  - model_name: gemma-local
+    litellm_params:
+      model: ollama/gemma3:1b
+      api_base: http://100.65.70.126:11434
+  - model_name: lmstudio-qwen
+    litellm_params:
+      model: openai/qwen/qwen3.5-9b
+      api_base: http://100.79.116.45:1234
+      api_key: lm-studio
+router_settings:
+  routing_strategy: latency-based-routing
+  num_retries: 2
