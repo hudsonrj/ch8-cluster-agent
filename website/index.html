@@ -3,12 +3,57 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="CH8 Agent — The first autonomous AI company running on your own hardware. A CTO-AI, 10+ specialist employees, self-healing ops, and zero cloud cost.">
+  <meta name="description" content="CH8 Agent — Your AI company on your hardware. Turing CTO, 14+ AI specialists, Wazuh SIEM, Cloudflare DNS, terminal emulator, self-healing ops, career ladder, zero cloud cost.">
   <title>CH8 Agent — Your AI Company, On Your Hardware</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    /* New feature badges */
+    .new-badge{display:inline-block;background:rgba(57,255,20,.12);color:#39ff14;border:1px solid rgba(57,255,20,.3);border-radius:4px;padding:2px 7px;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;vertical-align:middle;margin-left:6px}
+    .feature-grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:32px}
+    .feature-grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:20px;margin-top:32px}
+    @media(max-width:768px){.feature-grid-3,.feature-grid-2{grid-template-columns:1fr}}
+    .feat-card{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:24px;transition:all .2s}
+    .feat-card:hover{border-color:rgba(255,255,255,.15);transform:translateY(-2px)}
+    .feat-icon{font-size:28px;margin-bottom:12px}
+    .feat-title{font-size:16px;font-weight:700;color:#f0f6fc;margin-bottom:8px}
+    .feat-desc{font-size:13px;color:#8b949e;line-height:1.6}
+    .feat-tags{margin-top:12px;display:flex;flex-wrap:wrap;gap:6px}
+    .feat-tags span{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:4px;padding:2px 8px;font-size:10px;font-weight:600;color:#8b949e;font-family:'JetBrains Mono',monospace}
+    /* Cost section */
+    .cost-compare{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin:28px 0}
+    @media(max-width:768px){.cost-compare{grid-template-columns:1fr}}
+    .cost-card{border-radius:12px;padding:20px;text-align:center}
+    .cost-card.red{background:rgba(248,81,73,.08);border:1px solid rgba(248,81,73,.2)}
+    .cost-card.green{background:rgba(63,185,80,.08);border:1px solid rgba(63,185,80,.2)}
+    .cost-card.blue{background:rgba(88,166,255,.08);border:1px solid rgba(88,166,255,.2)}
+    .cost-num{font-size:32px;font-weight:900;font-family:'JetBrains Mono',monospace;margin-bottom:4px}
+    .cost-label{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#8b949e;font-weight:700}
+    /* Timeline for career */
+    .career-ladder{display:flex;gap:0;margin:24px 0;overflow-x:auto;padding-bottom:8px}
+    .career-step{display:flex;flex-direction:column;align-items:center;min-width:100px;position:relative}
+    .career-step:not(:last-child)::after{content:'→';position:absolute;right:-14px;top:16px;color:#30363d;font-size:16px}
+    .career-icon{font-size:24px;margin-bottom:6px}
+    .career-name{font-size:11px;font-weight:700;color:#e6edf3;text-align:center}
+    .career-pts{font-size:9px;color:#8b949e;font-family:monospace;text-align:center}
+    /* Terminal demo */
+    .terminal-demo{background:#0d1117;border:1px solid #21262d;border-radius:10px;overflow:hidden;margin:24px 0}
+    .terminal-header{background:#161b22;padding:8px 14px;display:flex;align-items:center;gap:8px;border-bottom:1px solid #21262d}
+    .terminal-dot{width:10px;height:10px;border-radius:50%}
+    .terminal-body{padding:16px;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.8}
+    .t-prompt{color:#3fb950}.t-cmd{color:#e6edf3}.t-out{color:#8b949e}.t-nl{color:#a371f7}.t-green{color:#39d353}.t-dim{color:#484f58}
+    /* Wazuh section */
+    .wazuh-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:20px 0}
+    @media(max-width:768px){.wazuh-stats{grid-template-columns:1fr 1fr}}
+    .wazuh-stat{background:rgba(248,81,73,.06);border:1px solid rgba(248,81,73,.15);border-radius:8px;padding:14px;text-align:center}
+    .wazuh-stat.green{background:rgba(63,185,80,.06);border-color:rgba(63,185,80,.15)}
+    .wazuh-stat.yellow{background:rgba(210,153,34,.06);border-color:rgba(210,153,34,.15)}
+    .wazuh-stat.blue{background:rgba(88,166,255,.06);border-color:rgba(88,166,255,.15)}
+    .ws-num{font-size:28px;font-weight:900;font-family:'JetBrains Mono',monospace}
+    .ws-lbl{font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:#8b949e;font-weight:700}
+  </style>
 </head>
 <body>
 
@@ -22,12 +67,13 @@
     <div class="nav-links">
       <a href="#turing">Turing CTO</a>
       <a href="#specialists">AI Team</a>
-      <a href="#mcp">MCP Server</a>
-      <a href="#ops">Self-Healing Ops</a>
-      <a href="#security">Security</a>
+      <a href="#wazuh">Wazuh SIEM</a>
+      <a href="#terminal">Terminal</a>
+      <a href="#mcp">MCP</a>
+      <a href="#ops">Ops</a>
       <a href="#install">Install</a>
     </div>
-    <a href="https://app.ch8ai.com.br" class="btn-nav" target="_blank">Get Access</a>
+    <a href="https://control.ch8ai.com.br" class="btn-nav" target="_blank">Live Dashboard</a>
   </div>
 </nav>
 
@@ -42,16 +88,16 @@
   <div class="container hero-content">
     <div class="hero-badge">
       <span class="badge-dot"></span>
-      <span>14 nodes · 89 agents · 0 incidents unresolved</span>
+      <span>14 nodes · 17 AI specialists · Wazuh SIEM · Cloudflare · Terminal</span>
     </div>
     <h1 class="hero-title">
       Your hardware.<br>
       <span class="gradient-text">Your AI company.</span>
     </h1>
     <p class="hero-sub">
-      CH8 Agent turns any cluster of machines — old laptops, Raspberry Pis, cloud VMs — into
-      a fully autonomous AI operations company. A CTO-AI that plans and delegates.
-      A team of AI specialists that executes. Zero human intervention required.
+      CH8 Agent turns any cluster — old laptops, Raspberry Pis, cloud VMs — into a fully autonomous
+      AI operations company. Turing CTO that plans and delegates. 17 specialist employees that execute.
+      Wazuh SIEM security. Cloudflare DNS management. Browser terminal. Zero cloud cost.
     </p>
     <div class="hero-actions">
       <a href="#install" class="btn-primary">Deploy in 60 seconds</a>
@@ -59,84 +105,69 @@
     </div>
     <div class="hero-stats">
       <div class="stat">
-        <div class="stat-num">95<span>%</span></div>
-        <div class="stat-label">Cost saved vs cloud</div>
+        <div class="stat-num">R$166k<span>/mo</span></div>
+        <div class="stat-label">Savings vs hiring</div>
       </div>
       <div class="stat-div"></div>
       <div class="stat">
-        <div class="stat-num">14</div>
-        <div class="stat-label">Nodes monitored</div>
-      </div>
-      <div class="stat-div"></div>
-      <div class="stat">
-        <div class="stat-num">10<span>+</span></div>
+        <div class="stat-num">17</div>
         <div class="stat-label">AI specialist employees</div>
       </div>
       <div class="stat-div"></div>
       <div class="stat">
+        <div class="stat-num">6,938<span>%</span></div>
+        <div class="stat-label">ROI on AI payroll</div>
+      </div>
+      <div class="stat-div"></div>
+      <div class="stat">
         <div class="stat-num">24<span>/7</span></div>
-        <div class="stat-label">Autonomous operation</div>
+        <div class="stat-label">Autonomous ops</div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- The Concept -->
+<!-- What's new -->
 <section class="concept">
   <div class="container">
-    <div class="concept-grid">
-      <div class="concept-text">
-        <div class="tag">The Disruption</div>
-        <h2>You have machines.<br>We turn them into<br><span class="gradient-text">a living AI company.</span></h2>
-        <p>
-          Most infrastructure software makes you the operator. CH8 Agent makes you the CEO.
-          You give objectives. The AI plans, executes, fixes problems, hires new specialists when needed,
-          and reports back — all autonomously.
-        </p>
-        <p>
-          Every machine in your network becomes a node. Every node runs agents.
-          Agents talk to each other, escalate when stuck, and learn from every resolution.
-          The cluster gets smarter every day.
-        </p>
-        <div class="concept-pills">
-          <span class="pill">Autonomous ops</span>
-          <span class="pill">Self-healing</span>
-          <span class="pill">AI specialists</span>
-          <span class="pill">Zero cloud lock-in</span>
-          <span class="pill">Runs on old hardware</span>
-        </div>
+    <div class="section-label">v2026 — Major Release</div>
+    <h2 class="section-title">Everything your IT team needs.<br><span class="gradient-text">Delivered by AI.</span></h2>
+    <div class="feature-grid-3">
+      <div class="feat-card">
+        <div class="feat-icon">🛡</div>
+        <div class="feat-title">Wazuh SIEM <span class="new-badge">NEW</span></div>
+        <div class="feat-desc">Full Wazuh integration with AI analysis. Real-time threat detection, CVE scanning, brute force alerts. Mr Robot queries Wazuh and responds in seconds.</div>
+        <div class="feat-tags"><span>threat intel</span><span>CVE scanner</span><span>brute force</span></div>
       </div>
-      <div class="concept-diagram">
-        <div class="diag-node diag-center">
-          <div class="diag-icon">🤖</div>
-          <div class="diag-label">TURING<br><span>CTO-AI · Opus 4.7</span></div>
-        </div>
-        <div class="diag-ring">
-          <div class="diag-spec spec-1">
-            <div class="spec-dot" style="background:#8b5cf6"></div>
-            <span>Sigma<br>DevOps</span>
-          </div>
-          <div class="diag-spec spec-2">
-            <div class="spec-dot" style="background:#336791"></div>
-            <span>Nikolas<br>DBA</span>
-          </div>
-          <div class="diag-spec spec-3">
-            <div class="spec-dot" style="background:#ef4444"></div>
-            <span>Mr Robot<br>Security</span>
-          </div>
-          <div class="diag-spec spec-4">
-            <div class="spec-dot" style="background:#f59e0b"></div>
-            <span>Jarvis<br>AI/LLM</span>
-          </div>
-          <div class="diag-spec spec-5">
-            <div class="spec-dot" style="background:#0ea5e9"></div>
-            <span>Pesquisador<br>Web Intel</span>
-          </div>
-          <div class="diag-spec spec-6">
-            <div class="spec-dot" style="background:#10b981"></div>
-            <span>Hermes<br>MCP</span>
-          </div>
-        </div>
+      <div class="feat-card">
+        <div class="feat-icon">☁</div>
+        <div class="feat-title">Cloudflare DNS <span class="new-badge">NEW</span></div>
+        <div class="feat-desc">Manage all your Cloudflare zones from one dashboard. Traffic analytics, firewall rules, DNS records. Historical data saved to PostgreSQL.</div>
+        <div class="feat-tags"><span>DNS management</span><span>analytics</span><span>firewall</span></div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">⌨</div>
+        <div class="feat-title">Node Terminal <span class="new-badge">NEW</span></div>
+        <div class="feat-desc">Browser-based terminal on every node. Type shell commands or natural language — Claude translates and executes. Routing via Tailscale mesh.</div>
+        <div class="feat-tags"><span>shell</span><span>NL commands</span><span>any node</span></div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">📊</div>
+        <div class="feat-title">Specialist Evaluations <span class="new-badge">NEW</span></div>
+        <div class="feat-desc">Weekly report system, peer review between specialists (fully autonomous), career ladder with 7 levels. Performance tracked over time.</div>
+        <div class="feat-tags"><span>weekly reports</span><span>peer review</span><span>XP system</span></div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">💰</div>
+        <div class="feat-title">FinOps & Cost Analysis <span class="new-badge">NEW</span></div>
+        <div class="feat-desc">Real Bedrock pricing, per-specialist cost breakdown, market salary comparison. Zeta FinOps specialist monitors sub-utilization and enforces efficiency.</div>
+        <div class="feat-tags"><span>Bedrock pricing</span><span>salary comparison</span><span>ROI tracking</span></div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">📞</div>
+        <div class="feat-title">Virtual Team Calls <span class="new-badge">NEW</span></div>
+        <div class="feat-desc">Open a call with all specialists on any topic. Each one speaks in turn, from their domain expertise. Auto-generated minutes with tickets and actions.</div>
+        <div class="feat-tags"><span>team call</span><span>auto minutes</span><span>TTS audio</span></div>
       </div>
     </div>
   </div>
@@ -148,83 +179,55 @@
     <div class="section-label">Chief Technology Officer · AI</div>
     <h2 class="section-title">Turing doesn't ask.<br><span class="gradient-text">Turing executes.</span></h2>
     <p class="section-sub">
-      Powered by Claude Opus 4.7 — the most capable model available — Turing is your AI CTO.
       Give it an objective. It breaks it down, creates tickets, assigns specialists, builds a timeline,
-      and reports results. No follow-up questions. No hand-holding.
+      monitors progress, escalates blockers, and closes the loop. No meetings. No check-ins. Just results.
     </p>
-
-    <div class="turing-demo">
-      <div class="demo-chat">
-        <div class="demo-header">
-          <div class="demo-dot red"></div>
-          <div class="demo-dot yellow"></div>
-          <div class="demo-dot green"></div>
-          <span style="margin-left:8px;font-size:11px;color:#666">Chat with Turing · control.ch8ai.com.br/turing</span>
-        </div>
-        <div class="demo-messages">
-          <div class="demo-msg user">
-            <span>Objective: Zero disk alerts in the entire cluster within 24h. Also audit all DB replications.</span>
+    <div class="feature-grid-2">
+      <div>
+        <div class="terminal-demo">
+          <div class="terminal-header">
+            <div class="terminal-dot" style="background:#ff5f57"></div>
+            <div class="terminal-dot" style="background:#febc2e"></div>
+            <div class="terminal-dot" style="background:#28c840"></div>
+            <span style="color:#8b949e;font-size:11px;margin-left:8px;font-family:monospace">turing@ch8 ~ /chat</span>
           </div>
-          <div class="demo-msg turing">
-            <div class="turing-avatar">🤖</div>
-            <div>
-              <strong>TURING</strong> · Claude Opus 4.7
-              <div class="demo-response">
-                Analyzing cluster state...<br><br>
-                <strong>Plan — 6 tasks, 4 specialists, 24h window:</strong><br><br>
-                • <strong>Sigma</strong> (DevOps): Clean NoteAlliedIT 99.4% disk — docker prune + log rotation<br>
-                • <strong>Sigma</strong> (DevOps): Clean CPQD8NR2JG4 93.7% — /tmp cleanup + builder cache<br>
-                • <strong>Sigma</strong> (DevOps): Monitor lenovo 90.1% — alert threshold set<br>
-                • <strong>Nikolas</strong> (DBA): Audit PostgreSQL replication — check lag on all 3 replicas<br>
-                • <strong>Nikolas</strong> (DBA): Verify Oracle data integrity post-Docker restart<br>
-                • <strong>Pesquisador</strong> (Web): Search CVE-2025-49844 Redis RediShell — assess exposure<br><br>
-                <span class="demo-action">🎫 6 tickets created · Delegated · Added to agenda</span>
-              </div>
-            </div>
+          <div class="terminal-body">
+            <div><span class="t-prompt">you →</span> <span class="t-cmd">reduza custos de infra em 30% este mês</span></div>
+            <br>
+            <div><span class="t-prompt">turing →</span></div>
+            <div class="t-out">📋 Criando plano de ação...</div>
+            <br>
+            <div class="t-out">✅ <span class="t-green">TKT-001</span> → Sigma: audit idle processes all nodes</div>
+            <div class="t-out">✅ <span class="t-green">TKT-002</span> → Zeta: identify underutilized instances</div>
+            <div class="t-out">✅ <span class="t-green">TKT-003</span> → Orion: review SLO — downgrade non-critical</div>
+            <div class="t-out">✅ <span class="t-green">TKT-004</span> → Nikolas: optimize DB — remove 8 unused indexes</div>
+            <br>
+            <div class="t-out">📊 Projeção: <span class="t-green">-34% infra cost</span> · 4 tickets · 72h deadline</div>
+            <div class="t-dim">— reporting daily progress to Hudson Santos</div>
           </div>
         </div>
       </div>
-      <div class="turing-powers">
-        <div class="power-item">
-          <div class="power-icon">📋</div>
-          <div>
-            <strong>Plan & Break Down</strong>
-            <p>Any objective → structured tasks with deadlines and owners. Automatically.</p>
+      <div>
+        <div class="feature-grid-2" style="margin-top:0">
+          <div class="feat-card" style="padding:18px">
+            <div class="feat-icon" style="font-size:22px">🧠</div>
+            <div class="feat-title" style="font-size:14px">Smart Routing</div>
+            <div class="feat-desc" style="font-size:12px">Routes each subtask to the right specialist. Haiku for quick checks, Sonnet for complex analysis, Opus for strategic planning.</div>
           </div>
-        </div>
-        <div class="power-item">
-          <div class="power-icon">🎫</div>
-          <div>
-            <strong>Create & Delegate Tickets</strong>
-            <p>Every delegation becomes an ITSM ticket assigned to the right specialist. No manual work.</p>
+          <div class="feat-card" style="padding:18px">
+            <div class="feat-icon" style="font-size:22px">🎯</div>
+            <div class="feat-title" style="font-size:14px">Tool Execution</div>
+            <div class="feat-desc" style="font-size:12px">ticket_list, ticket_update, ticket_create, node_chat, wazuh_summary, wazuh_alerts — 25+ tools, executed immediately, no permission required.</div>
           </div>
-        </div>
-        <div class="power-item">
-          <div class="power-icon">👤</div>
-          <div>
-            <strong>Hire Specialists</strong>
-            <p>Domain not covered? Turing proposes and hires a new AI specialist in one click.</p>
+          <div class="feat-card" style="padding:18px">
+            <div class="feat-icon" style="font-size:22px">📅</div>
+            <div class="feat-title" style="font-size:14px">Agenda & Reports</div>
+            <div class="feat-desc" style="font-size:12px">Schedules training sessions, generates weekly reports, delivers to Telegram. Evaluates specialists and escalates underperformers.</div>
           </div>
-        </div>
-        <div class="power-item">
-          <div class="power-icon">📊</div>
-          <div>
-            <strong>Report & Deliver</strong>
-            <p>Ask for a report and get structured output: what each specialist did, what's pending.</p>
-          </div>
-        </div>
-        <div class="power-item">
-          <div class="power-icon">🔍</div>
-          <div>
-            <strong>Real Web Research</strong>
-            <p>Uses Brave Search API to find CVEs, docs, benchmarks before deciding. No hallucinations.</p>
-          </div>
-        </div>
-        <div class="power-item">
-          <div class="power-icon">🗓</div>
-          <div>
-            <strong>Agenda & Timeline</strong>
-            <p>Creates project schedules, tracks deadlines, escalates when SLAs are at risk.</p>
+          <div class="feat-card" style="padding:18px">
+            <div class="feat-icon" style="font-size:22px">⚡</div>
+            <div class="feat-title" style="font-size:14px">Never Asks Permission</div>
+            <div class="feat-desc" style="font-size:12px">CRITICAL behavioral rule: NEVER presents options. NEVER asks to confirm. Executes immediately and reports what was done.</div>
           </div>
         </div>
       </div>
@@ -232,213 +235,329 @@
   </div>
 </section>
 
-<!-- Specialist Team -->
+<!-- Specialists -->
 <section id="specialists" class="feature-section">
   <div class="container">
-    <div class="section-label">The AI Team</div>
+    <div class="section-label">The AI Team · 17 Employees</div>
     <h2 class="section-title">Not bots. <span class="gradient-text">Employees.</span></h2>
     <p class="section-sub">
-      Each specialist is an AI agent with deep expertise in one domain, running on your hardware.
-      They receive tickets, execute autonomously, ask colleagues for help when stuck,
-      learn from every resolution, and get smarter every day.
+      Each specialist is an AI agent with deep domain expertise, a career ladder, weekly performance reports,
+      autonomous peer reviews, and real costs tracked against market salaries.
+      You hire, pause, transfer, or rehabilitate them at any time.
     </p>
     <div class="specialists-grid">
       <div class="spec-card">
-        <div class="spec-card-icon" style="background:rgba(139,92,246,.15);color:#8b5cf6">🔧</div>
+        <div class="spec-card-icon" style="background:rgba(139,92,246,.15);color:#8b5cf6">⚙️</div>
         <h3>Sigma</h3>
-        <p class="spec-domain">Infrastructure & DevOps</p>
-        <p>Disk cleanup, Docker management, cross-node health checks, CI/CD pipelines. Runs shell commands across all nodes.</p>
-        <div class="spec-tools">
-          <span>shell_exec</span><span>docker</span><span>disk_cleanup</span>
-        </div>
+        <p class="spec-domain">Infrastructure & DevOps · SRE</p>
+        <p>Disk cleanup, Docker management, cross-node health, CI/CD pipelines. Shell commands across all nodes via Tailscale mesh.</p>
+        <div class="spec-tools"><span>shell_exec</span><span>docker</span><span>disk</span><span>CI/CD</span></div>
       </div>
       <div class="spec-card">
         <div class="spec-card-icon" style="background:rgba(51,103,145,.15);color:#336791">🐘</div>
         <h3>Nikolas</h3>
-        <p class="spec-domain">DBA — All Databases</p>
-        <p>PostgreSQL, MySQL, Oracle, MongoDB, Redis. Replication monitoring, query optimization, backup validation.</p>
-        <div class="spec-tools">
-          <span>postgres_query</span><span>replication</span><span>backup</span>
-        </div>
+        <p class="spec-domain">DBA — PostgreSQL · Oracle · Redis</p>
+        <p>Query tuning, pgvector, replication monitoring, backup validation, index audits. Handles failover and data migrations.</p>
+        <div class="spec-tools"><span>postgres</span><span>oracle</span><span>replication</span><span>pgvector</span></div>
       </div>
       <div class="spec-card">
-        <div class="spec-card-icon" style="background:rgba(239,68,68,.15);color:#ef4444">🛡</div>
+        <div class="spec-card-icon" style="background:rgba(239,68,68,.15);color:#ef4444">🛡️</div>
         <h3>Mr Robot</h3>
-        <p class="spec-domain">Security</p>
-        <p>CVE scanning, 7-layer protection audits, pentest validation, port exposure analysis, incident response.</p>
-        <div class="spec-tools">
-          <span>security_scan</span><span>CVE intel</span><span>port_scan</span>
-        </div>
+        <p class="spec-domain">Security & Incident Response</p>
+        <p>Wazuh SIEM queries, CVE scanning, brute force detection, firewall rules, penetration testing, 7-layer protection audits.</p>
+        <div class="spec-tools"><span>wazuh_alerts</span><span>CVE intel</span><span>firewall</span><span>pentest</span></div>
       </div>
       <div class="spec-card">
         <div class="spec-card-icon" style="background:rgba(245,158,11,.15);color:#f59e0b">⚡</div>
         <h3>Jarvis</h3>
-        <p class="spec-domain">Artificial Intelligence</p>
-        <p>LLM orchestration, RAG pipeline management, model benchmarking, AI cost optimization, Bedrock/Ollama management.</p>
-        <div class="spec-tools">
-          <span>bedrock</span><span>ollama</span><span>rag</span>
-        </div>
+        <p class="spec-domain">Artificial Intelligence & LLMs</p>
+        <p>LLM orchestration, RAG pipelines, model benchmarking, Bedrock/Ollama/LMStudio management. Optimizes AI costs per token.</p>
+        <div class="spec-tools"><span>bedrock</span><span>ollama</span><span>rag</span><span>benchmark</span></div>
       </div>
       <div class="spec-card">
         <div class="spec-card-icon" style="background:rgba(14,165,233,.15);color:#0ea5e9">🔍</div>
         <h3>Pesquisador</h3>
-        <p class="spec-domain">Web Intelligence</p>
-        <p>Real-time web research via Brave Search API. CVE monitoring, tech news, documentation lookup. Never hallucinates — cites sources.</p>
-        <div class="spec-tools">
-          <span>Brave Search</span><span>web_extract</span><span>CVE watch</span>
-        </div>
+        <p class="spec-domain">Tech Intelligence · Research</p>
+        <p>Proactive weekly research: CVEs, SRE trends, IA/LLM updates, cloud pricing, compliance changes. Opens lab projects for each finding.</p>
+        <div class="spec-tools"><span>web_search</span><span>CVE watch</span><span>tech radar</span></div>
       </div>
       <div class="spec-card">
         <div class="spec-card-icon" style="background:rgba(16,185,129,.15);color:#10b981">⚙</div>
         <h3>Hermes</h3>
-        <p class="spec-domain">MCP & Integrations</p>
-        <p>Maintains the MCP Server (19 tools), manages protocol integrations, monitors tool latency, deploys to new nodes.</p>
-        <div class="spec-tools">
-          <span>mcp_server</span><span>19 tools</span><span>protocol</span>
-        </div>
+        <p class="spec-domain">MCP Server & Integrations</p>
+        <p>Maintains MCP Server (19+ tools), protocol integrations, tool latency monitoring, deploys to new nodes automatically.</p>
+        <div class="spec-tools"><span>mcp_server</span><span>19 tools</span><span>protocol</span></div>
       </div>
       <div class="spec-card">
         <div class="spec-card-icon" style="background:rgba(71,162,72,.15);color:#47A248">🍃</div>
         <h3>Atlas</h3>
-        <p class="spec-domain">MongoDB</p>
-        <p>Replica sets, sharding, aggregation pipeline optimization, index audits, backup and recovery validation.</p>
-        <div class="spec-tools">
-          <span>mongodb</span><span>replica_set</span><span>indexes</span>
-        </div>
+        <p class="spec-domain">MongoDB & NoSQL</p>
+        <p>Replica sets, sharding, aggregation pipeline optimization, index audits, Atlas Cloud monitoring.</p>
+        <div class="spec-tools"><span>mongodb</span><span>replica_set</span><span>sharding</span></div>
       </div>
       <div class="spec-card">
-        <div class="spec-card-icon" style="background:rgba(59,130,246,.15);color:#3b82f6">👁</div>
+        <div class="spec-card-icon" style="background:rgba(59,130,246,.15);color:#3b82f6">👁️</div>
         <h3>Orion</h3>
         <p class="spec-domain">Performance & Observability</p>
-        <p>SLI/SLO tracking, latency analysis, resource prediction, alert fatigue management, capacity planning.</p>
-        <div class="spec-tools">
-          <span>metrics</span><span>SLO</span><span>predictions</span>
-        </div>
+        <p>SLI/SLO tracking, latency analysis, resource prediction, alert fatigue reduction, OpenTelemetry management.</p>
+        <div class="spec-tools"><span>metrics</span><span>SLO</span><span>predictions</span><span>OTel</span></div>
       </div>
       <div class="spec-card">
         <div class="spec-card-icon" style="background:rgba(6,182,212,.15);color:#06b6d4">🌐</div>
         <h3>Sitetc</h3>
-        <p class="spec-domain">Sites & Web Apps</p>
-        <p>Monitors all web properties, nginx health, SSL certificates, uptime, and web performance across all nodes.</p>
-        <div class="spec-tools">
-          <span>nginx</span><span>ssl</span><span>uptime</span>
-        </div>
+        <p class="spec-domain">Sites & Web Services</p>
+        <p>Nginx health, SSL certificates, uptime monitoring, Cloudflare DNS sync, CDN performance across all web properties.</p>
+        <div class="spec-tools"><span>nginx</span><span>ssl</span><span>cloudflare</span><span>uptime</span></div>
+      </div>
+      <div class="spec-card" style="border-color:rgba(5,150,105,.3)">
+        <div class="spec-card-icon" style="background:rgba(5,150,105,.15);color:#059669">💰</div>
+        <h3>Zeta <span class="new-badge">NEW</span></h3>
+        <p class="spec-domain">FinOps & Cloud Economics</p>
+        <p>Monitors AWS/Azure/GCP costs, identifies idle resources, enforces efficiency, compares platforms. Blocks budget overruns.</p>
+        <div class="spec-tools"><span>cost analysis</span><span>TCO</span><span>spot advisor</span><span>billing</span></div>
+      </div>
+      <div class="spec-card" style="border-color:rgba(180,83,9,.3)">
+        <div class="spec-card-icon" style="background:rgba(180,83,9,.15);color:#b45309">⏳</div>
+        <h3>Kronos <span class="new-badge">NEW</span></h3>
+        <p class="spec-domain">Obsolescence & Modernization</p>
+        <p>Tracks EOL dates for all components, generates migration plans, enforces patching SLAs, manages tech debt backlog.</p>
+        <div class="spec-tools"><span>EOL tracking</span><span>migration</span><span>tech debt</span><span>CVE deps</span></div>
       </div>
       <div class="spec-card spec-card-new">
         <div class="spec-card-icon" style="background:rgba(255,255,255,.05);color:#666">+</div>
         <h3>Hire a Specialist</h3>
-        <p class="spec-domain">Any domain you need</p>
-        <p>Tell Turing what expertise you need. A new AI specialist is hired, onboarded, and operational in under a minute.</p>
-        <div class="spec-tools">
-          <span>FinOps</span><span>ML Ops</span><span>Networking</span><span>any domain</span>
-        </div>
+        <p class="spec-domain">Any domain — operational in &lt;60s</p>
+        <p>Tell Turing what expertise you need. New specialist is hired, onboarded with a full system prompt, and assigned to open tickets immediately.</p>
+        <div class="spec-tools"><span>custom domain</span><span>auto onboard</span><span>instant hire</span></div>
       </div>
     </div>
 
-    <div class="collab-box">
-      <h3>Specialists collaborate. Autonomously.</h3>
-      <div class="collab-flow">
-        <div class="flow-step">
-          <div class="flow-num">1</div>
-          <p>Sigma gets a disk ticket. Tries to clean NoteAlliedIT remotely.</p>
-        </div>
+    <!-- Career Ladder -->
+    <div class="collab-box" style="margin-top:40px">
+      <h3>Career Ladder — Specialists Level Up <span class="new-badge">NEW</span></h3>
+      <p style="color:#8b949e;font-size:13px;margin:8px 0 20px">Specialists earn XP from resolved tickets and peer reviews. 7 career levels with unlockable capabilities.</p>
+      <div class="career-ladder">
+        <div class="career-step"><div class="career-icon">🌱</div><div class="career-name">Estagiário</div><div class="career-pts">0 pts</div></div>
+        <div class="career-step"><div class="career-icon">🔵</div><div class="career-name">Júnior</div><div class="career-pts">15 pts</div></div>
+        <div class="career-step"><div class="career-icon">⭐</div><div class="career-name">Pleno</div><div class="career-pts">40 pts</div></div>
+        <div class="career-step"><div class="career-icon">🔶</div><div class="career-name">Sênior</div><div class="career-pts">90 pts</div></div>
+        <div class="career-step"><div class="career-icon">💎</div><div class="career-name">Tech Lead</div><div class="career-pts">200 pts</div></div>
+        <div class="career-step"><div class="career-icon">🏅</div><div class="career-name">Principal</div><div class="career-pts">400 pts</div></div>
+        <div class="career-step"><div class="career-icon">👑</div><div class="career-name">Distinguished</div><div class="career-pts">800 pts</div></div>
+      </div>
+      <div class="collab-flow" style="margin-top:20px">
+        <div class="flow-step"><div class="flow-num">⏸</div><p><strong>Pause</strong> a specialist and transfer tickets/skills to others. Resume anytime with full memory.</p></div>
         <div class="flow-arrow">→</div>
-        <div class="flow-step">
-          <div class="flow-num">2</div>
-          <p>Node unreachable. Sigma creates <code>PEDIR_AJUDA: Hermes</code> — needs relay access.</p>
-        </div>
+        <div class="flow-step"><div class="flow-num">🔴</div><p><strong>Deallocate</strong> permanently, moving all assets. History preserved in Knowledge Base.</p></div>
         <div class="flow-arrow">→</div>
-        <div class="flow-step">
-          <div class="flow-num">3</div>
-          <p>Hermes deploys MCP to node, relays the cleanup command. Problem solved.</p>
+        <div class="flow-step"><div class="flow-num">▶</div><p><strong>Rehabilitate</strong> a paused specialist. All tickets, skills, and memory returned automatically.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Wazuh SIEM -->
+<section id="wazuh" class="feature-section dark-section">
+  <div class="container">
+    <div class="section-label">Security · SIEM <span class="new-badge" style="background:rgba(248,81,73,.15);color:#f85149;border-color:rgba(248,81,73,.3)">NEW</span></div>
+    <h2 class="section-title">Wazuh integrated.<br><span class="gradient-text">Mr Robot responds in seconds.</span></h2>
+    <p class="section-sub">
+      CH8 connects directly to your Wazuh OpenSearch index. Real-time threat data flows into the
+      AI layer — Mr Robot analyzes, correlates, and acts autonomously.
+    </p>
+    <div class="wazuh-stats">
+      <div class="wazuh-stat red"><div class="ws-num" style="color:#f85149">43</div><div class="ws-lbl">HIGH alerts/24h</div></div>
+      <div class="wazuh-stat yellow"><div class="ws-num" style="color:#d29922">3,085</div><div class="ws-lbl">MEDIUM alerts/24h</div></div>
+      <div class="wazuh-stat green"><div class="ws-num" style="color:#3fb950">2</div><div class="ws-lbl">Agents monitored</div></div>
+      <div class="wazuh-stat blue"><div class="ws-num" style="color:#58a6ff">33k</div><div class="ws-lbl">Events indexed/day</div></div>
+    </div>
+    <div class="feature-grid-3">
+      <div class="feat-card">
+        <div class="feat-icon">🚨</div>
+        <div class="feat-title">Real-Time Threat Feed</div>
+        <div class="feat-desc">Live alert feed filtered by severity (critical/high/medium). Click any alert to create an ITSM ticket with <code>status=pending_auth</code> for review.</div>
+        <div class="feat-tags"><span>wazuh_alerts</span><span>level filter</span><span>auto-ticket</span></div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">🔍</div>
+        <div class="feat-title">AI Security Analysis</div>
+        <div class="feat-desc">Ask Mr Robot in natural language: "Is there an active brute force?" → receives live Wazuh data, correlates patterns, recommends iptables rules.</div>
+        <div class="feat-tags"><span>wazuh_summary</span><span>pattern analysis</span><span>NL queries</span></div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">🩹</div>
+        <div class="feat-title">CVE Vulnerability Scanner</div>
+        <div class="feat-desc">Wazuh vulnerability detector scans all agents. CVEs surface in the dashboard, get auto-assigned to Kronos for patch planning.</div>
+        <div class="feat-tags"><span>wazuh_cves</span><span>NVD</span><span>auto-assign Kronos</span></div>
+      </div>
+    </div>
+    <div class="code-block" style="margin-top:24px">
+      <pre><code><span style="color:#8b949e"># Ask Mr Robot about Wazuh in Turing chat</span>
+<span style="color:#3fb950">you →</span> quais são os ips atacando o cluster agora?
+
+<span style="color:#3fb950">mr_robot →</span> <span style="color:#58a6ff">wazuh_summary()</span> <span style="color:#8b949e">+ wazuh_alerts(level=10)</span>
+  🔴 198.199.81.128 — 2,634 tentativas SSH/24h (DigitalOcean NYC)
+  🔴 218.92.0.x — cluster de IPs chineses, 8,000+ eventos
+  → Bloqueio imediato: iptables -I INPUT -s 198.199.81.128 -j DROP
+  → Recomendação: fail2ban com threshold 5 tentativas</code></pre>
+    </div>
+  </div>
+</section>
+
+<!-- Cloudflare -->
+<section class="feature-section">
+  <div class="container">
+    <div class="section-label">DNS · Traffic · Security <span class="new-badge">NEW</span></div>
+    <h2 class="section-title">Cloudflare zones.<br><span class="gradient-text">All managed from CH8.</span></h2>
+    <p class="section-sub">
+      Connect your Cloudflare account once. CH8 pulls analytics, manages DNS records, monitors firewall events,
+      and stores historical traffic data in PostgreSQL for trend analysis.
+    </p>
+    <div class="feature-grid-3">
+      <div class="feat-card">
+        <div class="feat-icon">📊</div>
+        <div class="feat-title">Traffic Analytics</div>
+        <div class="feat-desc">Daily bar charts for requests and threats per zone. Top countries, HTTP status distribution, cache rate. 7/30-day views.</div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">🌐</div>
+        <div class="feat-title">DNS Management</div>
+        <div class="feat-desc">Full DNS record table with type color-coding (A=blue, CNAME=purple, MX=orange). Proxy status indicator, TTL, modification date.</div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">🛡</div>
+        <div class="feat-title">Firewall Events</div>
+        <div class="feat-desc">Top attacking IPs with event counts, action types (block/managed_challenge), country flags. Auto-correlates with Wazuh data.</div>
+      </div>
+    </div>
+    <div style="margin-top:16px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:16px;font-family:'JetBrains Mono',monospace;font-size:12px">
+      <span style="color:#8b949e"># Zones discovered automatically:</span><br>
+      <span style="color:#58a6ff">ch8ai.com.br</span> · <span style="color:#3fb950">10,026 req/7d</span> · govgpt.com.br · escolavalor.com.br · meajudai.com.br · nextgenprojectsai.com.br
+    </div>
+  </div>
+</section>
+
+<!-- Terminal Emulator -->
+<section id="terminal" class="feature-section dark-section">
+  <div class="container">
+    <div class="section-label">Node Terminal <span class="new-badge">NEW</span></div>
+    <h2 class="section-title">Every node.<br><span class="gradient-text">One click. Natural language.</span></h2>
+    <p class="section-sub">
+      Click ⌨ on any node card to open a full terminal. Type shell commands directly or switch to
+      Natural Language mode — Claude Haiku translates your intent and executes on the target node via Tailscale mesh.
+    </p>
+    <div class="terminal-demo" style="max-width:680px;margin:28px auto">
+      <div class="terminal-header">
+        <div class="terminal-dot" style="background:#ff5f57"></div>
+        <div class="terminal-dot" style="background:#febc2e"></div>
+        <div class="terminal-dot" style="background:#28c840"></div>
+        <span style="color:#8b949e;font-size:11px;margin-left:8px;font-family:monospace">kali@ch8:~$ — via Tailscale mesh</span>
+        <span style="margin-left:auto;font-size:10px;color:#3fb950;font-family:monospace">⚡ ONLINE</span>
+      </div>
+      <div class="terminal-body">
+        <div style="margin-bottom:6px;display:flex;gap:8px">
+          <span style="background:#21262d;border:1px solid #30363d;color:#e6edf3;padding:3px 10px;border-radius:5px;font-size:11px;cursor:pointer">$ Shell</span>
+          <span style="background:rgba(163,113,247,.2);border:1px solid rgba(163,113,247,.4);color:#a371f7;padding:3px 10px;border-radius:5px;font-size:11px">✨ Natural</span>
         </div>
-        <div class="flow-arrow">→</div>
-        <div class="flow-step">
-          <div class="flow-num">4</div>
-          <p>Both specialists save a new skill to the shared library. Next time: automatic.</p>
-        </div>
+        <br>
+        <div><span class="t-nl">[✨ NL]</span> <span class="t-dim">quais portas estão abertas?</span></div>
+        <div><span class="t-nl">[✨ NL]</span> <span class="t-dim">quais portas estão abertas?</span> <span style="color:#a371f7">⟶</span> <span class="t-cmd">netstat -tuln | grep LISTEN</span></div>
+        <div class="t-out">tcp  0.0.0.0:9443  LISTEN</div>
+        <div class="t-out">tcp  127.0.0.1:5432  LISTEN</div>
+        <div class="t-out">tcp  0.0.0.0:22  LISTEN</div>
+        <br>
+        <div><span class="t-nl">[✨ NL]</span> <span class="t-dim">quanto tempo o servidor está ligado?</span> <span style="color:#a371f7">⟶</span> <span class="t-cmd">uptime</span></div>
+        <div class="t-out"> 14:05:01 up 4 days, 12:36, 3 users, load average: 204.22, 169.84</div>
+        <br>
+        <div><span class="t-prompt">kali $</span> <span class="t-cmd">df -h</span></div>
+        <div class="t-out">Filesystem  Size  Used  Avail  Use%  Mounted on</div>
+        <div class="t-out">/dev/sdc1   5.3G  4.5G  817M   85%   /run/live/medium</div>
+      </div>
+    </div>
+    <div class="feature-grid-3" style="margin-top:0">
+      <div class="feat-card">
+        <div class="feat-icon">🌐</div>
+        <div class="feat-title">All Nodes</div>
+        <div class="feat-desc">Works on any online node via Tailscale mesh relay. Offline nodes show clear timeout message instead of hanging.</div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">✨</div>
+        <div class="feat-title">Natural Language</div>
+        <div class="feat-desc">Claude Haiku translates NL → shell in ~5s. "mostre os processos que mais consomem CPU" → <code>ps aux --sort=-%cpu | head -6</code>.</div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">📜</div>
+        <div class="feat-title">Command History</div>
+        <div class="feat-desc">↑↓ for history per session. Tab autocomplete for common commands. Ctrl+L to clear. ANSI color highlighting on output.</div>
       </div>
     </div>
   </div>
 </section>
 
 <!-- MCP Server -->
-<section id="mcp" class="feature-section dark-section">
+<section id="mcp" class="feature-section">
   <div class="container">
     <div class="section-label">Model Context Protocol</div>
-    <h2 class="section-title">19 tools. One line.<br><span class="gradient-text">Claude Code talks to your cluster.</span></h2>
+    <h2 class="section-title">25+ tools. One line.<br><span class="gradient-text">Claude Code talks to your cluster.</span></h2>
     <p class="section-sub">
-      CH8 runs a built-in MCP server on every node. Connect Claude Code (or any MCP client)
-      and get direct access to your entire infrastructure — databases, logs, tickets, nodes — without leaving your editor.
+      CH8 exposes your entire cluster as an MCP server. Every tool — ticket management, Wazuh queries,
+      node execution, knowledge base, cost analysis — available directly in Claude Desktop or Claude Code.
     </p>
-    <div class="mcp-layout">
-      <div class="mcp-connect">
-        <div class="code-block">
-          <div class="code-header">
-            <span class="code-lang">bash</span>
-            <span class="code-title">Connect Claude Code to your cluster</span>
-          </div>
-          <pre><code><span class="code-comment"># One command. Instant access to 19 tools.</span>
-claude mcp add --transport http ch8-cluster \
-  http://YOUR_NODE:8765/mcp
+    <div class="code-block">
+      <pre><code>claude mcp add --transport http ch8-cluster \
+  http://YOUR_NODE:8765/mcp</code></pre>
+    </div>
+    <div class="feature-grid-3" style="margin-top:24px">
+      <div class="feat-card">
+        <div class="feat-icon">🎫</div>
+        <div class="feat-title">ITSM Tools</div>
+        <div class="feat-desc">ticket_list, ticket_create, ticket_update. Filter by severity, status, node. Create tickets from Claude Code mid-task.</div>
+        <div class="feat-tags"><span>ticket_list</span><span>ticket_update</span><span>ticket_create</span></div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">🛡</div>
+        <div class="feat-title">Security Tools</div>
+        <div class="feat-desc">wazuh_summary, wazuh_alerts, wazuh_cves. Query live threat data without leaving your editor.</div>
+        <div class="feat-tags"><span>wazuh_summary</span><span>wazuh_alerts</span><span>wazuh_cves</span></div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">🖥</div>
+        <div class="feat-title">Execution Tools</div>
+        <div class="feat-desc">shell_exec, docker_exec, node_chat, file_read, file_write. Execute on any node in the cluster, not just local.</div>
+        <div class="feat-tags"><span>shell_exec</span><span>node_chat</span><span>docker_exec</span></div>
+      </div>
+    </div>
+  </div>
+</section>
 
-<span class="code-comment"># Now Claude Code can:</span>
-<span class="code-green">✓</span> Query your databases
-<span class="code-green">✓</span> Read cluster logs
-<span class="code-green">✓</span> Manage ITSM tickets
-<span class="code-green">✓</span> Search the knowledge base
-<span class="code-green">✓</span> Execute safe shell commands
-<span class="code-green">✓</span> Search the web (Brave API)</code></pre>
-        </div>
+<!-- Cost Analysis -->
+<section class="feature-section dark-section">
+  <div class="container">
+    <div class="section-label">FinOps · ROI Analysis <span class="new-badge">NEW</span></div>
+    <h2 class="section-title">R$1,445/month.<br><span class="gradient-text">Replaces R$167,500 in salaries.</span></h2>
+    <p class="section-sub">
+      CH8 calculates real Bedrock API costs per specialist (token pricing × routing distribution) against
+      market salaries for equivalent roles in Brazil. Updated automatically.
+    </p>
+    <div class="cost-compare">
+      <div class="cost-card red">
+        <div class="cost-num" style="color:#f85149">R$1.445</div>
+        <div class="cost-label">AI Platform Cost / month</div>
+        <div style="font-size:12px;color:#8b949e;margin-top:8px">API (Bedrock) + Infra share<br>R$17k / year</div>
       </div>
-      <div class="mcp-tools">
-        <h3>19 Tools Available</h3>
-        <div class="tools-grid">
-          <div class="tool-group">
-            <div class="tool-group-label">Nodes</div>
-            <span class="tool-tag">node_list</span>
-            <span class="tool-tag">node_execute</span>
-          </div>
-          <div class="tool-group">
-            <div class="tool-group-label">Databases</div>
-            <span class="tool-tag">postgres_query</span>
-            <span class="tool-tag">postgres_tables</span>
-          </div>
-          <div class="tool-group">
-            <div class="tool-group-label">Cache</div>
-            <span class="tool-tag">redis_get</span>
-            <span class="tool-tag">redis_keys</span>
-            <span class="tool-tag">redis_info</span>
-          </div>
-          <div class="tool-group">
-            <div class="tool-group-label">ITSM</div>
-            <span class="tool-tag">tickets_list</span>
-            <span class="tool-tag">ticket_create</span>
-            <span class="tool-tag">ticket_update</span>
-          </div>
-          <div class="tool-group">
-            <div class="tool-group-label">Knowledge</div>
-            <span class="tool-tag">knowledge_search</span>
-            <span class="tool-tag">knowledge_get</span>
-            <span class="tool-tag">knowledge_write</span>
-          </div>
-          <div class="tool-group">
-            <div class="tool-group-label">Observability</div>
-            <span class="tool-tag">logs_recent</span>
-            <span class="tool-tag">metrics_summary</span>
-          </div>
-          <div class="tool-group">
-            <div class="tool-group-label">Web</div>
-            <span class="tool-tag">web_search</span>
-            <span class="tool-tag">web_extract</span>
-          </div>
-          <div class="tool-group">
-            <div class="tool-group-label">Cluster</div>
-            <span class="tool-tag">cluster_health</span>
-            <span class="tool-tag">specialists_list</span>
-          </div>
-        </div>
+      <div class="cost-card blue">
+        <div class="cost-num" style="color:#58a6ff">R$167.500</div>
+        <div class="cost-label">Market Salary / month</div>
+        <div style="font-size:12px;color:#8b949e;margin-top:8px">17 specialists × CLT×14<br>R$2.3M / year</div>
       </div>
+      <div class="cost-card green">
+        <div class="cost-num" style="color:#3fb950">R$166k</div>
+        <div class="cost-label">Monthly Savings</div>
+        <div style="font-size:12px;color:#8b949e;margin-top:8px">6,938% ROI<br>R$1.99M / year</div>
+      </div>
+    </div>
+    <div style="font-size:12px;color:#8b949e;text-align:center;margin-top:8px">
+      Methodology: Bedrock pricing (Haiku $0.80/$4.00 · Sonnet $3/$15 per MTok) + R$1,200/mo infra ÷ specialists + market salary data (Glassdoor/LinkedIn BR 2026)
     </div>
   </div>
 </section>
@@ -446,112 +565,64 @@ claude mcp add --transport http ch8-cluster \
 <!-- Self-Healing Ops -->
 <section id="ops" class="feature-section">
   <div class="container">
-    <div class="section-label">Autonomous Operations</div>
-    <h2 class="section-title">Problems detected.<br>Problems fixed.<br><span class="gradient-text">You never knew they existed.</span></h2>
-    <div class="ops-flow">
-      <div class="ops-step">
-        <div class="ops-icon ops-detect">🔍</div>
-        <h3>Detect</h3>
-        <p>log_analyzer scans for patterns every 2 minutes. disk_full, service_down, anomalies across all nodes.</p>
+    <div class="section-label">Self-Healing Operations</div>
+    <h2 class="section-title">Problems fix themselves.<br><span class="gradient-text">Before you notice.</span></h2>
+    <p class="section-sub">
+      CH8 doesn't just monitor — it acts. When a disk fills, a service dies, a replica lags,
+      or an SSH daemon crashes, the right specialist is assigned a ticket and acts immediately.
+    </p>
+    <div class="feature-grid-3">
+      <div class="feat-card">
+        <div class="feat-icon">💾</div>
+        <div class="feat-title">Disk Management</div>
+        <div class="feat-desc">Auto-detects disks above 80%. Sigma creates a cleanup plan, executes on the target node, and reports savings in the ITSM ticket.</div>
       </div>
-      <div class="ops-conn"><div class="ops-line"></div></div>
-      <div class="ops-step">
-        <div class="ops-icon ops-ticket">🎫</div>
-        <h3>Ticket</h3>
-        <p>ITSM ticket auto-created with severity, node, root cause, and fix command. False positives filtered at source.</p>
+      <div class="feat-card">
+        <div class="feat-icon">🔄</div>
+        <div class="feat-title">Service Recovery</div>
+        <div class="feat-desc">Dead services get auto-restarted via <code>systemctl</code> or Docker. If the 3rd restart fails, Sigma escalates to Turing who calls for human review.</div>
       </div>
-      <div class="ops-conn"><div class="ops-line"></div></div>
-      <div class="ops-step">
-        <div class="ops-icon ops-assign">👤</div>
-        <h3>Assign</h3>
-        <p>Turing reads the ticket and delegates to the right specialist. Or the specialist_runner picks it up automatically.</p>
+      <div class="feat-card">
+        <div class="feat-icon">📈</div>
+        <div class="feat-title">Predictive Alerts</div>
+        <div class="feat-desc">Orion tracks trends: "CPU will reach 85% in 2h at current rate." Tickets created proactively, before incidents happen.</div>
       </div>
-      <div class="ops-conn"><div class="ops-line"></div></div>
-      <div class="ops-step">
-        <div class="ops-icon ops-fix">⚙</div>
-        <h3>Execute</h3>
-        <p>Specialist calls real tools — shell_exec, docker commands, db queries — across the affected nodes.</p>
+      <div class="feat-card">
+        <div class="feat-icon">🌍</div>
+        <div class="feat-title">Multi-Node HA</div>
+        <div class="feat-desc">When a node goes offline, the mesh relay detects it, creates an HA ticket, and attempts recovery via available peers. PostgreSQL failover handled automatically.</div>
       </div>
-      <div class="ops-conn"><div class="ops-line"></div></div>
-      <div class="ops-step">
-        <div class="ops-icon ops-learn">🧠</div>
-        <h3>Learn</h3>
-        <p>Resolution saved as a skill. Next time the same problem hits — it's fixed before you even see it.</p>
+      <div class="feat-card">
+        <div class="feat-icon">🔔</div>
+        <div class="feat-title">Telegram Alerts</div>
+        <div class="feat-desc">Critical events delivered to Telegram instantly. Turing summarizes daily: what happened, what was fixed, what needs your attention.</div>
       </div>
-    </div>
-
-    <div class="ops-stats">
-      <div class="ops-stat">
-        <div class="ops-stat-num">2<span>min</span></div>
-        <div class="ops-stat-label">Detection cycle</div>
-      </div>
-      <div class="ops-stat">
-        <div class="ops-stat-num">60<span>min</span></div>
-        <div class="ops-stat-label">Specialist cycle</div>
-      </div>
-      <div class="ops-stat">
-        <div class="ops-stat-num">450<span>+</span></div>
-        <div class="ops-stat-label">Tickets auto-resolved</div>
-      </div>
-      <div class="ops-stat">
-        <div class="ops-stat-num">1900<span>+</span></div>
-        <div class="ops-stat-label">KB articles generated</div>
+      <div class="feat-card">
+        <div class="feat-icon">🤝</div>
+        <div class="feat-title">Specialist Collaboration</div>
+        <div class="feat-desc">When stuck, specialists create help tickets for colleagues. Hermes helps Sigma with relay access. Mr Robot helps Nikolas with SSL. Automatic resolution paths.</div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- Architecture -->
+<!-- AI Testbed -->
 <section class="feature-section dark-section">
   <div class="container">
-    <div class="section-label">What's Running</div>
-    <h2 class="section-title">A complete AI-first<br><span class="gradient-text">infrastructure stack.</span></h2>
-    <div class="arch-grid">
-      <div class="arch-item">
-        <div class="arch-icon">🧠</div>
-        <h3>Orchestrator</h3>
-        <p>FastAPI + Bedrock. Routes chat to the right model. Executes tool calls. Streams responses. Multi-round agent loops.</p>
-      </div>
-      <div class="arch-item">
-        <div class="arch-icon">📊</div>
-        <h3>12 Dashboards</h3>
-        <p>Nodes, ITSM, Logs, Databases, Architecture, Security, Analytics, Turing, Specialists, Services, Assets, Lab.</p>
-      </div>
-      <div class="arch-item">
-        <div class="arch-icon">🗄</div>
-        <h3>Multi-DB Stack</h3>
-        <p>PostgreSQL 16 (primary + logical replica), MongoDB, Oracle, Redis — all monitored, replicated, and auto-maintained.</p>
-      </div>
-      <div class="arch-item">
-        <div class="arch-icon">🔒</div>
-        <h3>7-Layer Security</h3>
-        <p>Bearer auth, command sanitization, rate limiting, SQL injection detection, prompt injection filtering, audit log.</p>
-      </div>
-      <div class="arch-item">
-        <div class="arch-icon">🔌</div>
-        <h3>MCP Server</h3>
-        <p>FastMCP 3.3 on port 8765. Connect any MCP client (Claude Code, etc.) to 19 live cluster tools.</p>
-      </div>
-      <div class="arch-item">
-        <div class="arch-icon">📡</div>
-        <h3>Mesh Relay</h3>
-        <p>Peer-to-peer relay through control server. Reach any node, even behind NAT. Direct → relay → bridge fallback.</p>
-      </div>
-      <div class="arch-item">
-        <div class="arch-icon">🗣</div>
-        <h3>Voice Interface</h3>
-        <p>TTS (edge-tts neural voices) + STT (Whisper). Talk to any specialist by voice. Works offline on local hardware.</p>
-      </div>
-      <div class="arch-item">
-        <div class="arch-icon">📚</div>
-        <h3>Knowledge Vault</h3>
-        <p>1,900+ articles auto-generated from resolved tickets, lab projects, and specialist discoveries. Full-text search.</p>
-      </div>
-      <div class="arch-item">
-        <div class="arch-icon">🔐</div>
-        <h3>Encrypted Vault</h3>
-        <p>AES-256 Fernet for all credentials. Zero hardcoded secrets. Replicated encrypted backup to PostgreSQL.</p>
-      </div>
+    <div class="section-label">AI Lab <span class="new-badge">NEW</span></div>
+    <h2 class="section-title">AI Testbed.<br><span class="gradient-text">Experiment without risk.</span></h2>
+    <p class="section-sub">
+      One-command testbed for evaluating AI tools. LiteLLM proxy routing Bedrock+Ollama+LMStudio.
+      Open WebUI for LLM interaction. Weaviate vector DB. LangFuse tracing.
+    </p>
+    <div class="code-block">
+      <pre><code>cd docker/ai-testbed && docker compose up -d
+
+# Services started:
+# LiteLLM     :4000  — unified proxy (Bedrock + Ollama + LMStudio)
+# Open WebUI  :8888  — chat interface for all models
+# Weaviate    :8087  — vector DB for RAG experiments
+# LangFuse    :3100  — LLM call tracing & analytics</code></pre>
     </div>
   </div>
 </section>
@@ -559,187 +630,94 @@ claude mcp add --transport http ch8-cluster \
 <!-- Security -->
 <section id="security" class="feature-section">
   <div class="container">
-    <div class="section-label">Security</div>
-    <h2 class="section-title">7 layers. <span class="gradient-text">Pentest-validated.<br>Always on.</span></h2>
-    <div class="security-layers">
-      <div class="sec-layer">
-        <div class="sec-num">01</div>
-        <div class="sec-content">
-          <h3>Authentication</h3>
-          <p>Bearer token on every endpoint. Clerk MFA for the portal. Session management with automatic expiry.</p>
-        </div>
-        <div class="sec-badge pass">PASS</div>
+    <div class="section-label">Security Architecture</div>
+    <h2 class="section-title">7 layers.<br><span class="gradient-text">Mr Robot never sleeps.</span></h2>
+    <div class="feature-grid-3">
+      <div class="feat-card">
+        <div class="feat-icon">🔒</div>
+        <div class="feat-title">Tailscale Zero-Trust</div>
+        <div class="feat-desc">All inter-node communication encrypted end-to-end. No public ports required. Mesh relay handles nodes behind NAT.</div>
       </div>
-      <div class="sec-layer">
-        <div class="sec-num">02</div>
-        <div class="sec-content">
-          <h3>Command Sanitization</h3>
-          <p>Blocks <code>rm -rf</code>, fork bombs, /etc/shadow access, Docker socket injection before execution.</p>
-        </div>
-        <div class="sec-badge pass">PASS</div>
+      <div class="feat-card">
+        <div class="feat-icon">🛡</div>
+        <div class="feat-title">Wazuh SIEM</div>
+        <div class="feat-desc">Full Wazuh integration. Mr Robot queries threats in real-time via OpenSearch API. CVE scanner, brute force detection, compliance.</div>
       </div>
-      <div class="sec-layer">
-        <div class="sec-num">03</div>
-        <div class="sec-content">
-          <h3>Zero Hardcoded Credentials</h3>
-          <p>All secrets in AES-256 vault. DB URLs, API keys, passwords — never in code, logs, or environment variables.</p>
-        </div>
-        <div class="sec-badge pass">PASS</div>
+      <div class="feat-card">
+        <div class="feat-icon">🔑</div>
+        <div class="feat-title">Bearer Token Auth</div>
+        <div class="feat-desc">All APIs protected. Session tokens validated against PostgreSQL. Terminal popup windows inherit session tokens securely.</div>
       </div>
-      <div class="sec-layer">
-        <div class="sec-num">04</div>
-        <div class="sec-content">
-          <h3>Rate Limiting</h3>
-          <p>Redis sliding window. 60/min on /execute, 30/min on /chat. Localhost gets 10x multiplier.</p>
-        </div>
-        <div class="sec-badge pass">PASS</div>
+      <div class="feat-card">
+        <div class="feat-icon">🔍</div>
+        <div class="feat-title">Prompt Injection Guard</div>
+        <div class="feat-desc">Every incoming message scanned for injection patterns. High-severity detections are blocked and audited to the ITSM.</div>
       </div>
-      <div class="sec-layer">
-        <div class="sec-num">05</div>
-        <div class="sec-content">
-          <h3>SQL Injection Prevention</h3>
-          <p>25+ patterns blocked: UNION SELECT, DROP TABLE, pg_sleep, COPY TO — before any DB contact.</p>
-        </div>
-        <div class="sec-badge pass">PASS</div>
+      <div class="feat-card">
+        <div class="feat-icon">📋</div>
+        <div class="feat-title">ESAA Audit Trail</div>
+        <div class="feat-desc">Every agent action logged: Event → Specialist → Action → Audit. Full traceability for compliance. Stored in PostgreSQL.</div>
       </div>
-      <div class="sec-layer">
-        <div class="sec-num">06</div>
-        <div class="sec-content">
-          <h3>Prompt Injection Filtering</h3>
-          <p>20+ jailbreak patterns detected and blocked at the /chat layer. Role manipulation attempts logged and blocked.</p>
-        </div>
-        <div class="sec-badge pass">PASS</div>
-      </div>
-      <div class="sec-layer">
-        <div class="sec-num">07</div>
-        <div class="sec-content">
-          <h3>Full Audit Log</h3>
-          <p>Every execution, every block, every auth event. 11,500+ entries. Immutable. Queryable.</p>
-        </div>
-        <div class="sec-badge pass">PASS</div>
-      </div>
-    </div>
-    <div class="pentest-badge">
-      <span class="pentest-icon">🔐</span>
-      <div>
-        <strong>12/12 pentest checks passed</strong>
-        <span>auth · RCE · path traversal · docker injection · SQL injection · prompt injection · fork bomb · rate limit · relay auth · curl|bash</span>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- Cost -->
-<section class="feature-section dark-section">
-  <div class="container">
-    <div class="cost-compare">
-      <div>
-        <div class="section-label">FinOps</div>
-        <h2 class="section-title">Enterprise AI ops<br>for <span class="gradient-text">$189/month.</span></h2>
-        <p style="color:#aaa;margin-bottom:32px">
-          The same infrastructure on managed cloud would cost $660/month. CH8 saves 95% by
-          running on hardware you already own. The AI models cost $33/month total — less
-          than a Netflix subscription.
-        </p>
-        <div class="cost-breakdown">
-          <div class="cost-item">
-            <span>Hosting (VPS + cloud)</span>
-            <span class="cost-val">$156/mo</span>
-          </div>
-          <div class="cost-item">
-            <span>AI tokens (Bedrock Sonnet/Opus)</span>
-            <span class="cost-val">$33/mo</span>
-          </div>
-          <div class="cost-item cost-total">
-            <span>Total</span>
-            <span class="cost-val gradient-text">$189/mo</span>
-          </div>
-          <div class="cost-item cost-saving">
-            <span>vs cloud equivalent ($660)</span>
-            <span class="cost-val" style="color:#10b981">Save $471/mo · 95%</span>
-          </div>
-        </div>
-        <p style="font-size:12px;color:#555;margin-top:16px">
-          Hardware (MacBooks, desktops, Raspberry Pi) amortized separately — already purchased.
-        </p>
-      </div>
-      <div class="cost-nodes">
-        <h3 style="color:#aaa;font-size:12px;text-transform:uppercase;letter-spacing:.1em;margin-bottom:16px">14 Nodes in the cluster</h3>
-        <div class="node-list">
-          <div class="node-item"><span class="node-dot green"></span>manager1 · Hetzner · Germany</div>
-          <div class="node-item"><span class="node-dot green"></span>vmi3201672 · Contabo · Germany</div>
-          <div class="node-item"><span class="node-dot green"></span>ip-172-31-6-3 · AWS EC2 · us-east-1</div>
-          <div class="node-item"><span class="node-dot green"></span>ALDLUBUDW01 · Azure · Microsoft</div>
-          <div class="node-item"><span class="node-dot green"></span>MacBook Pro M1 · Home Office</div>
-          <div class="node-item"><span class="node-dot green"></span>MacBook Air M1 · Home Office</div>
-          <div class="node-item"><span class="node-dot green"></span>CPQD8NR2JG4 · Corporate · 14vCPU</div>
-          <div class="node-item"><span class="node-dot green"></span>kali · Desktop · Home Office</div>
-          <div class="node-item"><span class="node-dot green"></span>lenovo · Desktop · 8vCPU</div>
-          <div class="node-item"><span class="node-dot green"></span>NoteAlliedIT · i7 Notebook</div>
-          <div class="node-item"><span class="node-dot green"></span>raspberrypi · RPi 4 · 2GB RAM</div>
-          <div class="node-item"><span class="node-dot green"></span>Moto G54 5G · Android · Tailscale</div>
-        </div>
+      <div class="feat-card">
+        <div class="feat-icon">🔐</div>
+        <div class="feat-title">Vault Encryption</div>
+        <div class="feat-desc">Credentials (Cloudflare tokens, Telegram keys, DB passwords) encrypted at rest via Fernet. Never in environment variables.</div>
       </div>
     </div>
   </div>
 </section>
 
 <!-- Install -->
-<section id="install" class="feature-section">
+<section id="install" class="feature-section dark-section">
   <div class="container">
     <div class="section-label">Get Started</div>
-    <h2 class="section-title">One command.<br><span class="gradient-text">60 seconds. Running.</span></h2>
+    <h2 class="section-title">Deploy in 60 seconds.<br><span class="gradient-text">Any machine. Any OS.</span></h2>
     <div class="install-steps">
       <div class="install-step">
-        <div class="install-num">1</div>
-        <div class="install-content">
-          <h3>Install the agent</h3>
-          <div class="code-block">
-            <pre><code>curl -fsSL https://ch8agent.ch8ai.com.br/install.sh | bash</code></pre>
-          </div>
+        <div class="step-num">01</div>
+        <div class="step-content">
+          <h3>Install CH8 Agent</h3>
+          <div class="code-block"><pre><code>curl -fsSL https://ch8ai.com.br/install.sh | bash
+# or: pip install ch8-agent</code></pre></div>
         </div>
       </div>
       <div class="install-step">
-        <div class="install-num">2</div>
-        <div class="install-content">
-          <h3>Join your network</h3>
-          <div class="code-block">
-            <pre><code>ch8 login --token YOUR_TOKEN
-ch8 up</code></pre>
-          </div>
+        <div class="step-num">02</div>
+        <div class="step-content">
+          <h3>Start the cluster</h3>
+          <div class="code-block"><pre><code>ch8 up --token YOUR_NETWORK_TOKEN
+# connects to ch8ai.com.br control server</code></pre></div>
         </div>
       </div>
       <div class="install-step">
-        <div class="install-num">3</div>
-        <div class="install-content">
-          <h3>Talk to Turing</h3>
-          <div class="code-block">
-            <pre><code><span class="code-comment"># Dashboard</span>
-open https://control.ch8ai.com.br/turing
-
-<span class="code-comment"># Or Claude Code</span>
-claude mcp add --transport http ch8 \
-  http://localhost:8765/mcp</code></pre>
-          </div>
+        <div class="step-num">03</div>
+        <div class="step-content">
+          <h3>Connect Claude (optional)</h3>
+          <div class="code-block"><pre><code>claude mcp add --transport http ch8 \
+  http://localhost:8765/mcp
+# 25+ tools now available in Claude Code</code></pre></div>
         </div>
       </div>
-    </div>
-    <div class="install-note">
-      Runs on Ubuntu, Debian, macOS (M1/M2/M3), Raspberry Pi, Android (Termux).
-      Supports x86_64 and ARM64. Minimum 512MB RAM.
+      <div class="install-step">
+        <div class="step-num">04</div>
+        <div class="step-content">
+          <h3>Open the dashboard</h3>
+          <div class="code-block"><pre><code>open https://control.ch8ai.com.br
+# Nodes · Specialists · Wazuh · Cloudflare · Terminal</code></pre></div>
+        </div>
+      </div>
     </div>
   </div>
 </section>
 
 <!-- CTA -->
 <section class="cta-section">
-  <div class="cta-glow"></div>
   <div class="container">
-    <h2>Stop being the operator.<br><span class="gradient-text">Start being the CEO.</span></h2>
-    <p>Your cluster is waiting. Your AI team is ready to hire.</p>
-    <div class="cta-actions">
-      <a href="https://app.ch8ai.com.br" class="btn-primary btn-large" target="_blank">Get Access →</a>
-      <a href="https://control.ch8ai.com.br" class="btn-ghost" target="_blank">Live Demo</a>
+    <h2>Your AI company starts today.</h2>
+    <p>17 AI specialists. Wazuh SIEM. Cloudflare DNS. Browser terminal. R$1,445/month. R$166k/month savings vs hiring.</p>
+    <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin-top:28px">
+      <a href="#install" class="btn-primary" style="font-size:16px;padding:14px 32px">Deploy Now — Free</a>
+      <a href="https://control.ch8ai.com.br" class="btn-ghost" style="font-size:16px;padding:14px 32px" target="_blank">Live Dashboard →</a>
     </div>
   </div>
 </section>
@@ -747,38 +725,18 @@ claude mcp add --transport http ch8 \
 <!-- Footer -->
 <footer class="footer">
   <div class="container">
-    <div class="footer-top">
-      <div class="footer-brand">
-        <span class="logo-text">CH8<span class="logo-accent">.</span></span>
-        <span class="logo-sub">AGENT</span>
-        <p>The autonomous AI ops platform for distributed infrastructure.</p>
-      </div>
-      <div class="footer-links">
-        <div>
-          <h4>Product</h4>
-          <a href="#turing">Turing CTO-AI</a>
-          <a href="#specialists">AI Specialists</a>
-          <a href="#mcp">MCP Server</a>
-          <a href="#ops">Self-Healing Ops</a>
-        </div>
-        <div>
-          <h4>Platform</h4>
-          <a href="https://control.ch8ai.com.br" target="_blank">Dashboard</a>
-          <a href="https://app.ch8ai.com.br" target="_blank">Auth Portal</a>
-          <a href="https://control.ch8ai.com.br/itsm" target="_blank">ITSM</a>
-          <a href="https://control.ch8ai.com.br/knowledge" target="_blank">Knowledge Base</a>
-        </div>
-        <div>
-          <h4>Download</h4>
-          <a href="/downloads/ch8-extension.zip">Chrome Extension</a>
-          <a href="https://github.com/hudsonrj/ch8-cluster-agent" target="_blank">GitHub</a>
-        </div>
-      </div>
+    <div class="footer-brand">
+      <span class="logo-text">CH8<span class="logo-accent">.</span></span>
+      <span class="logo-sub">AGENT</span>
     </div>
-    <div class="footer-bottom">
-      <span>CH8 Agent · Built on real hardware · Powered by Claude</span>
-      <span>© 2026 CH8 Hub</span>
+    <div class="footer-links">
+      <a href="https://github.com/hudsonrj/ch8-cluster-agent" target="_blank">GitHub</a>
+      <a href="https://control.ch8ai.com.br" target="_blank">Dashboard</a>
+      <a href="https://control.ch8ai.com.br/wazuh" target="_blank">Wazuh SOC</a>
+      <a href="https://control.ch8ai.com.br/cloudflare" target="_blank">Cloudflare</a>
+      <a href="mailto:hudson@ch8ai.com.br">Contact</a>
     </div>
+    <div class="footer-copy">© 2026 CH8 Agent · Hudson Santos · MIT License</div>
   </div>
 </footer>
 
