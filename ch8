@@ -61,6 +61,11 @@ def cmd_help():
     print(f"  {Colors.YELLOW}ch8{Colors.NC}                - Open Hermes AI terminal (default)")
     print(f"  {Colors.YELLOW}ch8 shell{Colors.NC}          - Open Hermes AI terminal")
     print()
+    print(f"{Colors.GREEN}Service (autostart){Colors.NC}\n")
+    print(f"  {Colors.YELLOW}ch8 service install{Colors.NC}   - Install & enable autostart (systemd/launchd/schtasks)")
+    print(f"  {Colors.YELLOW}ch8 service uninstall{Colors.NC} - Remove autostart")
+    print(f"  {Colors.YELLOW}ch8 service status{Colors.NC}    - Show service status")
+    print()
 
 
 # ------------------------------------------------------------------ #
@@ -1397,6 +1402,167 @@ def cmd_shell():
                 messages.append({"role": "assistant", "content": response})
 
 
+def cmd_service(subcommand=None):
+    """Manage ch8 as a system service (systemd / launchd / Windows Task Scheduler)."""
+    sub = (subcommand or "status").lower()
+
+    ch8_bin  = str(Path(__file__).resolve())
+    py_bin   = sys.executable
+    inst_dir = str(Path(__file__).resolve().parent)
+    svc_name = "ch8-agent"
+
+    # ── Linux: systemd ──────────────────────────────────────────────
+    if sys.platform.startswith("linux"):
+        unit = f"""[Unit]
+Description=CH8 Agent - Autonomous AI Node
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart={py_bin} {ch8_bin} up
+ExecStop={py_bin} {ch8_bin} down
+WorkingDirectory={inst_dir}
+Environment=PYTHONPATH={inst_dir}
+Restart=on-failure
+RestartSec=15
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier={svc_name}
+
+[Install]
+WantedBy=multi-user.target
+"""
+        unit_path = Path(f"/etc/systemd/system/{svc_name}.service")
+        unit_user  = Path.home() / f".config/systemd/user/{svc_name}.service"
+
+        if sub == "install":
+            # Try system-wide first, fallback to user
+            use_sudo = os.geteuid() == 0
+            if use_sudo:
+                unit_path.parent.mkdir(parents=True, exist_ok=True)
+                unit_path.write_text(unit)
+                subprocess.run(["systemctl", "daemon-reload"], check=True)
+                subprocess.run(["systemctl", "enable", "--now", svc_name], check=True)
+                print(f"{Colors.GREEN}✓ {svc_name} instalado e iniciado (system){Colors.NC}")
+                print(f"  journalctl -u {svc_name} -f")
+            else:
+                unit_user.parent.mkdir(parents=True, exist_ok=True)
+                unit_user.write_text(unit)
+                subprocess.run(["systemctl", "--user", "daemon-reload"], check=True)
+                subprocess.run(["systemctl", "--user", "enable", "--now", svc_name], check=True)
+                # Enable linger so service survives logout
+                subprocess.run(["loginctl", "enable-linger", str(os.getuid())], capture_output=True)
+                print(f"{Colors.GREEN}✓ {svc_name} instalado e iniciado (user){Colors.NC}")
+                print(f"  journalctl --user -u {svc_name} -f")
+
+        elif sub == "uninstall":
+            for scope in ([], ["--user"]):
+                try:
+                    subprocess.run(["systemctl"] + scope + ["stop", svc_name], capture_output=True)
+                    subprocess.run(["systemctl"] + scope + ["disable", svc_name], capture_output=True)
+                except Exception:
+                    pass
+            for p in (unit_path, unit_user):
+                p.unlink(missing_ok=True)
+            subprocess.run(["systemctl", "daemon-reload"], capture_output=True)
+            subprocess.run(["systemctl", "--user", "daemon-reload"], capture_output=True)
+            print(f"{Colors.GREEN}✓ {svc_name} removido{Colors.NC}")
+
+        elif sub == "status":
+            r = subprocess.run(["systemctl", "status", svc_name, "--no-pager"],
+                               capture_output=True, text=True)
+            if r.returncode != 0:
+                r = subprocess.run(["systemctl", "--user", "status", svc_name, "--no-pager"],
+                                   capture_output=True, text=True)
+            print(r.stdout or r.stderr)
+
+        else:
+            print(f"Uso: ch8 service [install|uninstall|status]")
+
+    # ── macOS: launchd ──────────────────────────────────────────────
+    elif sys.platform == "darwin":
+        label    = f"com.ch8.{svc_name}"
+        plist_p  = Path.home() / "Library/LaunchAgents" / f"{label}.plist"
+        log_out  = str(Path.home() / ".config/ch8/ch8-agent.log")
+        plist    = f"""<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>             <string>{label}</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>{py_bin}</string>
+    <string>{ch8_bin}</string>
+    <string>up</string>
+  </array>
+  <key>WorkingDirectory</key>  <string>{inst_dir}</string>
+  <key>RunAtLoad</key>         <true/>
+  <key>KeepAlive</key>         <true/>
+  <key>StandardOutPath</key>   <string>{log_out}</string>
+  <key>StandardErrorPath</key> <string>{log_out}</string>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PYTHONPATH</key><string>{inst_dir}</string>
+  </dict>
+</dict>
+</plist>
+"""
+        if sub == "install":
+            plist_p.parent.mkdir(parents=True, exist_ok=True)
+            plist_p.write_text(plist)
+            subprocess.run(["launchctl", "load", "-w", str(plist_p)], check=True)
+            print(f"{Colors.GREEN}✓ {label} instalado (launchd){Colors.NC}")
+
+        elif sub == "uninstall":
+            subprocess.run(["launchctl", "unload", "-w", str(plist_p)], capture_output=True)
+            plist_p.unlink(missing_ok=True)
+            print(f"{Colors.GREEN}✓ {label} removido{Colors.NC}")
+
+        elif sub == "status":
+            r = subprocess.run(["launchctl", "list", label], capture_output=True, text=True)
+            print(r.stdout or r.stderr or f"{label}: not found")
+
+        else:
+            print("Uso: ch8 service [install|uninstall|status]")
+
+    # ── Windows: Task Scheduler ─────────────────────────────────────
+    elif sys.platform == "win32":
+        task = "CH8 Agent"
+        if sub == "install":
+            cmd_str = f'"{py_bin}" "{ch8_bin}" up'
+            r = subprocess.run(
+                ["schtasks", "/create", "/tn", task, "/tr", cmd_str,
+                 "/sc", "onlogon", "/rl", "highest", "/f"],
+                capture_output=True, text=True,
+            )
+            if r.returncode == 0:
+                print(f"{Colors.GREEN}✓ Task '{task}' criada (Task Scheduler){Colors.NC}")
+                subprocess.run(["schtasks", "/run", "/tn", task], capture_output=True)
+            else:
+                print(f"{Colors.RED}Erro: {r.stderr.strip()}{Colors.NC}")
+                print("Execute como Administrador.")
+
+        elif sub == "uninstall":
+            subprocess.run(["schtasks", "/end", "/tn", task], capture_output=True)
+            r = subprocess.run(["schtasks", "/delete", "/tn", task, "/f"],
+                               capture_output=True, text=True)
+            print(f"{Colors.GREEN}✓ Task removida{Colors.NC}" if r.returncode == 0
+                  else f"{Colors.RED}{r.stderr.strip()}{Colors.NC}")
+
+        elif sub == "status":
+            r = subprocess.run(["schtasks", "/query", "/tn", task, "/fo", "list"],
+                               capture_output=True, text=True)
+            print(r.stdout or r.stderr)
+
+        else:
+            print("Uso: ch8 service [install|uninstall|status]")
+
+    else:
+        print(f"{Colors.RED}Plataforma não suportada: {sys.platform}{Colors.NC}")
+
+
 def main():
     _load_env()
 
@@ -1443,6 +1609,7 @@ def main():
         'doctor':   cmd_doctor,
         'delete':   lambda: cmd_delete(args.subcommand),
         'help':     cmd_help,
+        'service':  lambda: cmd_service(args.subcommand),
         # Hermes terminal
         'shell':    cmd_shell,
         'terminal': cmd_shell,
