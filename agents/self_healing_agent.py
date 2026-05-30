@@ -248,22 +248,37 @@ def fix_memory(issue: dict) -> bool:
 def restart_orchestrator() -> bool:
     """Restart the orchestrator agent."""
     log.info("Attempting to restart orchestrator")
-    import psutil
-    for proc in psutil.process_iter(['pid', 'cmdline']):
-        try:
-            if 'orchestrator.py' in ' '.join(proc.info.get('cmdline', [])):
-                proc.kill()
-                time.sleep(3)
-                break
-        except: pass
-    
+
     pid_file = CONFIG_DIR / "orchestrator.pid"
-    if pid_file.exists(): pid_file.unlink()
-    
-    stdout, _, rc = _run(
-        f"nohup python3 /data/ch8-agent/agents/orchestrator.py >> {CONFIG_DIR}/orchestrator.log 2>&1 &",
-        timeout=5
-    )
+    if pid_file.exists():
+        try:
+            pid = int(pid_file.read_text().strip())
+            import psutil as _ps
+            _ps.Process(pid).kill()
+            time.sleep(1)
+        except Exception:
+            pass
+        pid_file.unlink(missing_ok=True)
+
+    # Resolve orchestrator path relative to this file (works on any install location)
+    orch = Path(__file__).parent / "orchestrator.py"
+    if not orch.exists():
+        log.error(f"orchestrator.py not found at {orch}")
+        return False
+
+    install_dir = str(orch.parent.parent)
+    import sys as _sys, subprocess as _sp
+    env = {**__import__('os').environ, "PYTHONPATH": install_dir}
+    popen_kw = dict(cwd=install_dir, env=env,
+                    stdout=open(CONFIG_DIR / "orchestrator.log", "a"),
+                    stderr=_sp.STDOUT)
+    if _sys.platform == "win32":
+        popen_kw["creationflags"] = _sp.DETACHED_PROCESS | _sp.CREATE_NEW_PROCESS_GROUP | _sp.CREATE_NO_WINDOW
+    else:
+        popen_kw["start_new_session"] = True
+    proc = _sp.Popen([_sys.executable, str(orch)], **popen_kw)
+    pid_file.write_text(str(proc.pid))
+    log.info(f"Orchestrator restarted (PID {proc.pid})")
     time.sleep(8)
     return check_orchestrator() == []
 
