@@ -2518,7 +2518,10 @@ import asyncio as _asyncio
 @app.on_event("startup")
 async def _keepalive():
     """Refresh agent state every 30s so it never expires from the dashboard."""
+    _update_counter = 0
+
     async def _loop():
+        nonlocal _update_counter
         while True:
             try:
                 # Run blocking _get_context() in thread to avoid freezing event loop
@@ -2568,6 +2571,30 @@ async def _keepalive():
                     pass
             except Exception:
                 pass
+
+            # ── Auto-update check every 20 cycles (~10 min) ─────────
+            _update_counter += 1
+            if _update_counter % 20 == 0:
+                try:
+                    _repo = str(Path(__file__).parent.parent)
+                    _remote = subprocess.check_output(
+                        ["git", "-C", _repo, "ls-remote", "origin", "HEAD"],
+                        timeout=10, stderr=subprocess.DEVNULL
+                    ).decode().split()[0]
+                    _local = subprocess.check_output(
+                        ["git", "-C", _repo, "rev-parse", "HEAD"],
+                        timeout=5, stderr=subprocess.DEVNULL
+                    ).decode().strip()
+                    if _remote and _local and _remote != _local:
+                        log.info(f"auto-update: remote={_remote[:8]} local={_local[:8]} — pulling")
+                        import httpx as _hx_up
+                        async with _hx_up.AsyncClient(timeout=60) as _c:
+                            await _c.post("http://127.0.0.1:7879/update",
+                                          json={"ref": "master"},
+                                          headers={"Authorization": "Bearer local"})
+                except Exception:
+                    pass
+
             await _asyncio.sleep(30)
     _asyncio.create_task(_loop())
 
