@@ -135,6 +135,8 @@ class ConnectDaemon:
                 self._ha_standby = StandbyHA(master)
                 tasks.append(self._ha_standby.run())
 
+            tasks.append(self._watchdog_loop())
+
             # Run all background tasks concurrently
             await asyncio.gather(*tasks)
         finally:
@@ -188,6 +190,49 @@ class ConnectDaemon:
                     pass
 
             await asyncio.sleep(HEARTBEAT_SECS)
+
+    async def _watchdog_loop(self) -> None:
+        """Restart orchestrator and other critical agents if they die unexpectedly."""
+        import subprocess as _sp
+        _AGENTS = [
+            ("orchestrator", "orchestrator.py"),
+        ]
+        while not self._stop_event.is_set():
+            await asyncio.sleep(30)
+            for name, script in _AGENTS:
+                pid_file = CONFIG_DIR / f"{name}.pid"
+                alive = False
+                if pid_file.exists():
+                    try:
+                        pid = int(pid_file.read_text().strip())
+                        os.kill(pid, 0)  # signal 0 = check existence
+                        alive = True
+                    except (OSError, ValueError):
+                        pid_file.unlink(missing_ok=True)
+                if not alive:
+                    script_path = Path(__file__).parent.parent / "agents" / script
+                    if not script_path.exists():
+                        continue
+                    install_dir = str(Path(__file__).parent.parent)
+                    env = {**os.environ, "PYTHONPATH": install_dir}
+                    log_f = CONFIG_DIR / f"{name}.log"
+                    try:
+                        popen_kw = dict(
+                            cwd=install_dir, env=env,
+                            stdout=open(log_f, "a"), stderr=_sp.STDOUT,
+                        )
+                        if sys.platform == "win32":
+                            popen_kw["creationflags"] = (
+                                _sp.DETACHED_PROCESS | _sp.CREATE_NEW_PROCESS_GROUP |
+                                _sp.CREATE_NO_WINDOW
+                            )
+                        else:
+                            popen_kw["start_new_session"] = True
+                        proc = _sp.Popen([sys.executable, str(script_path)], **popen_kw)
+                        pid_file.write_text(str(proc.pid))
+                        log.info(f"watchdog: restarted {name} (PID {proc.pid})")
+                    except Exception as ex:
+                        log.warning(f"watchdog: failed to restart {name}: {ex}")
 
     async def _peer_discovery_loop(self) -> None:
         while not self._stop_event.is_set():

