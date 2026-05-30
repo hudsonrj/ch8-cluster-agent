@@ -260,6 +260,27 @@ BUILTIN_TOOLS = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "hermes_exec",
+            "description": (
+                "Execute a task via Hermes AI agent (oneshot mode). "
+                "Available when Hermes is installed on this node. "
+                "Use for: complex multi-step coding, deep research, "
+                "multi-file edits, or any task that benefits from Hermes skills/tools."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "task":     {"type": "string", "description": "Task description for Hermes to execute autonomously"},
+                    "toolsets": {"type": "string", "description": "Optional Hermes toolsets: web, terminal, editor, github, etc."},
+                    "model":    {"type": "string", "description": "Optional model override"},
+                },
+                "required": ["task"],
+            },
+        },
+    },
 ]
 
 # Add web tools if available
@@ -424,6 +445,7 @@ def execute_tool(name: str, args: dict) -> dict:
         "web_extract":     _exec_web_extract,
         "calendar_create": _exec_calendar_create,
         "openclaw_chat":   _exec_openclaw_chat,
+        "hermes_exec":     _exec_openclaw_chat,   # hermes_exec is the new name for the same impl
         "ticket_list":     _exec_ticket_list,
         "ticket_update":   _exec_ticket_update,
         "ticket_create":   _exec_ticket_create,
@@ -704,25 +726,74 @@ def _exec_web_extract(args: dict) -> dict:
         return {"error": str(e)}
 
 
+def _detect_hermes() -> tuple[str, str]:
+    """Return (binary_path, flavour) where flavour is 'hermes' or 'openclaw', or ('', '')."""
+    import shutil
+    for name in ("hermes", "openclaw"):
+        p = shutil.which(name)
+        if p:
+            return p, name
+    # Common install locations
+    import pathlib
+    for candidate in [
+        pathlib.Path.home() / ".hermes" / "bin" / "hermes",
+        pathlib.Path.home() / ".local" / "bin" / "hermes",
+        pathlib.Path("/usr/local/bin/hermes"),
+        pathlib.Path.home() / ".openclaw" / "bin" / "openclaw",
+    ]:
+        if candidate.exists():
+            return str(candidate), candidate.stem
+    return "", ""
+
+
 def _exec_openclaw_chat(args: dict) -> dict:
-    """Call an OpenClaw agent via the local gateway CLI."""
-    try:
-        import subprocess
+    """Execute a task via Hermes agent (oneshot -z mode) or fall back to OpenClaw gateway."""
+    message = args.get("message", "") or args.get("task", "")
+    toolsets = args.get("toolsets", "")
+    model = args.get("model", "")
+    if not message:
+        return {"error": "message or task required"}
+
+    bin_path, flavour = _detect_hermes()
+    if not bin_path:
+        return {"error": "Hermes/OpenClaw not found on this node. Install with: pip install hermes-agent"}
+
+    if flavour == "hermes":
+        # Hermes: oneshot mode (-z) — clean stdout output
+        cmd = [bin_path, "-z", message]
+        if toolsets:
+            cmd += ["--toolsets", toolsets]
+        if model:
+            cmd += ["--model", model]
+    else:
+        # Legacy OpenClaw gateway protocol
         agent_id = args.get("agent_id") or args.get("agent", "cluster-master")
-        message = args.get("message", "")
-        if not message:
-            return {"error": "message required"}
-        result = subprocess.run(
-            ["openclaw", "agent", "--agent", agent_id, "--message", message, "--json"],
-            capture_output=True, text=True, timeout=60
-        )
-        if result.returncode == 0:
+        cmd = [bin_path, "agent", "--agent", agent_id, "--message", message, "--json"]
+
+    run_kw = dict(capture_output=True, text=True, timeout=300)
+    if sys.platform == "win32":
+        run_kw["creationflags"] = subprocess.CREATE_NO_WINDOW
+
+    try:
+        r = subprocess.run(cmd, **run_kw)
+        if flavour == "openclaw" and r.returncode == 0:
             import json as _j
-            d = _j.loads(result.stdout)
-            payloads = d.get("result", {}).get("payloads", [])
-            reply = " ".join(p.get("text", "") for p in payloads)
-            return {"ok": True, "agent": agent_id, "reply": reply, "run_id": d.get("runId")}
-        return {"ok": False, "error": result.stderr[:200] or result.stdout[:200]}
+            try:
+                d = _j.loads(r.stdout)
+                payloads = d.get("result", {}).get("payloads", [])
+                reply = " ".join(p.get("text", "") for p in payloads)
+                return {"ok": True, "agent": flavour, "reply": reply}
+            except Exception:
+                pass
+        return {
+            "ok": r.returncode == 0,
+            "agent": flavour,
+            "output": r.stdout[:8000],
+            "stderr": r.stderr[:1000] if r.returncode != 0 else "",
+            "exit_code": r.returncode,
+        }
+    except subprocess.TimeoutExpired:
+        return {"error": f"{flavour} task timed out (300s)"}
     except Exception as e:
         return {"error": str(e)}
 

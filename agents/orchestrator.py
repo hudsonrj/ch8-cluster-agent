@@ -159,6 +159,52 @@ def _migrate_model_id():
 _migrate_model_id()
 
 
+# ── Hermes / OpenClaw detection ───────────────────────────────────────────────
+
+def _detect_hermes_bin() -> tuple[str, str]:
+    """Return (binary_path, flavour) — flavour is 'hermes' or 'openclaw' or ''."""
+    import shutil
+    for name in ("hermes", "openclaw"):
+        p = shutil.which(name)
+        if p:
+            return p, name
+    for candidate in [
+        Path.home() / ".hermes"  / "bin" / "hermes",
+        Path.home() / ".local"   / "bin" / "hermes",
+        Path("/usr/local/bin/hermes"),
+        Path.home() / ".openclaw" / "bin" / "openclaw",
+    ]:
+        if candidate.exists():
+            return str(candidate), candidate.stem
+    return "", ""
+
+_HERMES_BIN, _HERMES_FLAVOUR = _detect_hermes_bin()
+
+if _HERMES_BIN:
+    log.info(f"Hermes integration: found {_HERMES_FLAVOUR} at {_HERMES_BIN}")
+    def _update_hermes_state():
+        try:
+            import subprocess as _sp
+            ver = _sp.run([_HERMES_BIN, "--version"], capture_output=True, text=True, timeout=5).stdout.strip()
+        except Exception:
+            ver = _HERMES_FLAVOUR
+        def _upd(state):
+            agents = [a for a in state.get("agents", []) if a.get("name") != _HERMES_FLAVOUR]
+            agents.append({
+                "name":       _HERMES_FLAVOUR,
+                "status":     "idle",
+                "task":       f"Hermes agent — {ver}",
+                "model":      "hermes",
+                "platform":   "hermes",
+                "autonomous": True,
+                "updated_at": int(time.time()),
+                "tools":      ["hermes_exec", "shell", "editor", "web", "terminal"],
+            })
+            state["agents"] = agents
+        _atomic_update_state(_upd)
+    _update_hermes_state()
+
+
 # ── AI provider ──────────────────────────────────────────────────────────────
 
 _ai_info_cache: dict = {}
@@ -316,6 +362,20 @@ def _get_context() -> dict:
     return ctx
 
 
+def _hermes_prompt_section() -> str:
+    """Return system prompt section for Hermes if installed, else empty string."""
+    if not _HERMES_BIN:
+        return ""
+    return f"""
+
+## Hermes agent ({_HERMES_FLAVOUR}) — disponível neste nó
+hermes_exec — delega tarefas complexas ao Hermes (coding multi-arquivo, pesquisa profunda, edição com skills)
+```tool_call
+{{"name": "hermes_exec", "args": {{"task": "descrição da tarefa", "toolsets": "terminal,editor"}}}}
+```
+Use hermes_exec quando: alterações em múltiplos arquivos, pesquisa web com execução, tarefas que precisam das skills do Hermes."""
+
+
 def _build_system_prompt(ctx: dict) -> str:
     containers_txt = "\n".join(
         f"  - {c['name']} [{c['image']}] {c['status']}  {c['ports']}"
@@ -346,6 +406,8 @@ def _build_system_prompt(ctx: dict) -> str:
         peers_section = "\n".join(peer_lines)
     else:
         peers_section = "  (no peers discovered yet)"
+
+    hermes_section = _hermes_prompt_section()
 
     return f"""You are CH8 agent for node {ctx['hostname']}. You execute tasks on this server and coordinate with other nodes.
 
@@ -414,6 +476,7 @@ then ticket_update for each duplicate with status=closed, note="duplicate"
 ```
 
 Local tools: shell_exec, file_write, file_read, docker_exec, service_restart, http_request, security_scan, node_info
+{hermes_section}
 
 ## Delegation tool: node_chat
 Use node_chat to send tasks to other nodes and get their responses.
