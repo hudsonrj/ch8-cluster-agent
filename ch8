@@ -1162,7 +1162,7 @@ def cmd_shell():
 
     print()
     print(f"{Colors.BLUE}  ╔{'═' * (w - 2)}╗{X}")
-    print(f"{Colors.BLUE}  ║{X}  ⚡ {W}HERMES{X}{Colors.BLUE} · CH8 Agent Shell{' ' * (w - 32)}║{X}")
+    print(f"{Colors.BLUE}  ║{X}  ⚡ {W}CH8 Shell{X}{Colors.BLUE} · agente autônomo{' ' * (w - 33)}║{X}")
     print(f"{Colors.BLUE}  ║{X}  {D}node : {W}{hn}{X}{' ' * (w - 10 - len(hn))}{Colors.BLUE}║{X}")
     print(f"{Colors.BLUE}  ║{X}  {D}model: {ml}{X}{' ' * (w - 10 - len(ml))}{Colors.BLUE}║{X}")
     print(f"{Colors.BLUE}  ╚{'═' * (w - 2)}╝{X}")
@@ -1220,7 +1220,7 @@ def cmd_shell():
 
     while True:
         try:
-            user_input = input(f"{Colors.BLUE}hermes{X} {W}❯{X} ").strip()
+            user_input = input(f"{Colors.BLUE}ch8{X} {W}❯{X} ").strip()
         except (KeyboardInterrupt, EOFError):
             print(f"\n  {D}até logo{X}\n")
             break
