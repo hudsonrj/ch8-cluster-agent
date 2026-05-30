@@ -1161,11 +1161,11 @@ def cmd_shell():
     ml = mdl[:w - 11]
 
     print()
-    print(f"{G}  ╔{'═' * (w - 2)}╗{X}")
-    print(f"{G}  ║{X}  ⚡ {W}HERMES{X}{G} · CH8 Agent Shell{' ' * (w - 32)}║{X}")
-    print(f"{G}  ║{X}  {D}node : {W}{hn}{X}{' ' * (w - 10 - len(hn))}{G}║{X}")
-    print(f"{G}  ║{X}  {D}model: {ml}{X}{' ' * (w - 10 - len(ml))}{G}║{X}")
-    print(f"{G}  ╚{'═' * (w - 2)}╝{X}")
+    print(f"{Colors.BLUE}  ╔{'═' * (w - 2)}╗{X}")
+    print(f"{Colors.BLUE}  ║{X}  ⚡ {W}HERMES{X}{Colors.BLUE} · CH8 Agent Shell{' ' * (w - 32)}║{X}")
+    print(f"{Colors.BLUE}  ║{X}  {D}node : {W}{hn}{X}{' ' * (w - 10 - len(hn))}{Colors.BLUE}║{X}")
+    print(f"{Colors.BLUE}  ║{X}  {D}model: {ml}{X}{' ' * (w - 10 - len(ml))}{Colors.BLUE}║{X}")
+    print(f"{Colors.BLUE}  ╚{'═' * (w - 2)}╝{X}")
     print(f"  {D}/help para comandos · Ctrl+C para sair{X}\n")
 
     messages = []
@@ -1188,7 +1188,7 @@ def cmd_shell():
                     if resp.status_code != 200:
                         print(f"\n{R}  ✗ erro {resp.status_code}{X}")
                         return ""
-                    print(f"{G}", end="", flush=True)
+                    print(f"{Colors.BLUE}", end="", flush=True)
                     for line in resp.iter_lines():
                         if not line or not line.startswith("data: "):
                             continue
@@ -1220,7 +1220,7 @@ def cmd_shell():
 
     while True:
         try:
-            user_input = input(f"{G}hermes{X} {W}❯{X} ").strip()
+            user_input = input(f"{Colors.BLUE}hermes{X} {W}❯{X} ").strip()
         except (KeyboardInterrupt, EOFError):
             print(f"\n  {D}até logo{X}\n")
             break
