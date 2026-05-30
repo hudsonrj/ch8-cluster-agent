@@ -136,6 +136,29 @@ def _load_env_file():
 _load_env_file()
 
 
+# ── One-time model ID migration (runs on every startup, idempotent) ──────────
+def _migrate_model_id():
+    """Fix stale/invalid Bedrock model IDs in ai.json — safe to run always."""
+    _STALE = {
+        "us.anthropic.claude-sonnet-4-5-20250929-v1:0": "us.anthropic.claude-sonnet-4-20250514-v1:0",
+        "us.anthropic.claude-opus-4-7":                 "us.anthropic.claude-opus-4-5-20251001-v1:0",
+    }
+    ai_cfg = CONFIG_DIR / "ai.json"
+    try:
+        if not ai_cfg.exists():
+            return
+        data = json.loads(ai_cfg.read_text())
+        current = data.get("model", "")
+        if current in _STALE:
+            data["model"] = _STALE[current]
+            ai_cfg.write_text(json.dumps(data, indent=2))
+            log.info(f"model migration: {current} -> {data['model']}")
+    except Exception:
+        pass
+
+_migrate_model_id()
+
+
 # ── AI provider ──────────────────────────────────────────────────────────────
 
 _ai_info_cache: dict = {}

@@ -1117,6 +1117,29 @@ def cmd_shell():
 
     sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+    # ── Windows: enable VT/ANSI processing (Windows 10+ build 1511) ──
+    _ansi_ok = True
+    if sys.platform == 'win32':
+        try:
+            import ctypes
+            k32 = ctypes.windll.kernel32
+            # STD_OUTPUT_HANDLE = -11
+            # ENABLE_PROCESSED_OUTPUT | ENABLE_WRAP_AT_EOL | ENABLE_VIRTUAL_TERMINAL_PROCESSING
+            h = k32.GetStdHandle(-11)
+            mode = ctypes.c_ulong()
+            if k32.GetConsoleMode(h, ctypes.byref(mode)):
+                k32.SetConsoleMode(h, mode.value | 0x0007)
+            else:
+                _ansi_ok = False
+        except Exception:
+            _ansi_ok = False
+        if not _ansi_ok:
+            # Strip ANSI from Colors — plain terminal fallback
+            import re as _re_ansi
+            _strip = lambda s: _re_ansi.sub(r'\033\[[0-9;]*m', '', s)
+            for _attr in ('BLUE','GREEN','YELLOW','RED','NC'):
+                setattr(Colors, _attr, '')
+
     # ── prompt_toolkit (Hermes pattern) — auto-install if missing ──
     _pt_session = None
     _pt_patch   = contextlib.nullcontext  # no-op context manager fallback
