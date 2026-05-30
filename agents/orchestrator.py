@@ -138,7 +138,7 @@ _load_env_file()
 
 # ── One-time model ID migration (runs on every startup, idempotent) ──────────
 def _migrate_model_id():
-    """Fix stale/invalid Bedrock model IDs in ai.json — safe to run always."""
+    """Fix stale Bedrock IDs and fall back to Ollama if no AWS credentials."""
     _STALE = {
         "us.anthropic.claude-sonnet-4-5-20250929-v1:0": "us.anthropic.claude-sonnet-4-20250514-v1:0",
         "us.anthropic.claude-opus-4-7":                 "us.anthropic.claude-opus-4-5-20251001-v1:0",
@@ -148,11 +148,42 @@ def _migrate_model_id():
         if not ai_cfg.exists():
             return
         data = json.loads(ai_cfg.read_text())
+        changed = False
+
+        # Fix stale model IDs
         current = data.get("model", "")
         if current in _STALE:
             data["model"] = _STALE[current]
-            ai_cfg.write_text(json.dumps(data, indent=2))
+            changed = True
             log.info(f"model migration: {current} -> {data['model']}")
+
+        # If Bedrock configured but no AWS credentials → fall back to local Ollama
+        if data.get("provider") == "bedrock" and not os.environ.get("AWS_BEARER_TOKEN_BEDROCK"):
+            has_boto3_creds = False
+            try:
+                import boto3
+                boto3.Session().get_credentials()
+                creds = boto3.Session().get_credentials()
+                has_boto3_creds = creds is not None
+            except Exception:
+                pass
+            if not has_boto3_creds:
+                # Check if Ollama is available locally
+                try:
+                    r = httpx.get(f"{OLLAMA_URL}/api/tags", timeout=2)
+                    if r.status_code == 200:
+                        models = [m["name"] for m in r.json().get("models", [])]
+                        if models:
+                            data["provider"] = "ollama"
+                            data["model"]    = models[0]
+                            data["api_url"]  = OLLAMA_URL
+                            changed = True
+                            log.info(f"bedrock->ollama fallback (no creds): using {models[0]}")
+                except Exception:
+                    pass
+
+        if changed:
+            ai_cfg.write_text(json.dumps(data, indent=2))
     except Exception:
         pass
 
