@@ -1203,8 +1203,14 @@ Retorne SOMENTE código Python, sem markdown, sem explicação."""
                 env = {**os.environ, "PYTHONPATH": install_dir}
                 log_f = Path.home() / ".config" / "ch8" / f"{safe_name}.log"
                 pid_f = Path.home() / ".config" / "ch8" / f"{safe_name}.pid"
-                proc = subprocess.Popen([sys.executable, str(agent_file)], cwd=install_dir, env=env,
-                    stdout=open(log_f, "w"), stderr=subprocess.STDOUT, start_new_session=True)
+                _popen_kw = dict(cwd=install_dir, env=env,
+                    stdout=open(log_f, "w"), stderr=subprocess.STDOUT)
+                if sys.platform == "win32":
+                    _popen_kw["creationflags"] = (subprocess.DETACHED_PROCESS |
+                        subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.CREATE_NO_WINDOW)
+                else:
+                    _popen_kw["start_new_session"] = True
+                proc = subprocess.Popen([sys.executable, str(agent_file)], **_popen_kw)
                 pid_f.write_text(str(proc.pid))
 
                 # Wait and verify agent is still alive
@@ -2037,12 +2043,14 @@ Retorne SOMENTE código Python, sem markdown, sem explicação."""
         log_file = Path.home() / ".config" / "ch8" / f"{safe_name}.log"
         pid_file = Path.home() / ".config" / "ch8" / f"{safe_name}.pid"
 
-        proc = subprocess.Popen(
-            [sys.executable, str(agent_file)],
-            cwd=install_dir, env=env,
-            stdout=open(log_file, "w"), stderr=subprocess.STDOUT,
-            start_new_session=True,
-        )
+        _popen_kw2 = dict(cwd=install_dir, env=env,
+            stdout=open(log_file, "w"), stderr=subprocess.STDOUT)
+        if sys.platform == "win32":
+            _popen_kw2["creationflags"] = (subprocess.DETACHED_PROCESS |
+                subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.CREATE_NO_WINDOW)
+        else:
+            _popen_kw2["start_new_session"] = True
+        proc = subprocess.Popen([sys.executable, str(agent_file)], **_popen_kw2)
 
         # Write PID
         pid_file.write_text(str(proc.pid))

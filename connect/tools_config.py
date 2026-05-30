@@ -26,6 +26,7 @@ import json
 import logging
 import os
 import subprocess
+import sys
 from pathlib import Path
 from typing import Optional
 
@@ -464,7 +465,10 @@ def _exec_shell(args: dict) -> dict:
     except ImportError:
         pass
     try:
-        r = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=timeout)
+        _run_kw = dict(shell=True, capture_output=True, text=True, timeout=timeout)
+        if sys.platform == "win32":
+            _run_kw["creationflags"] = subprocess.CREATE_NO_WINDOW
+        r = subprocess.run(cmd, **_run_kw)
         return {"stdout": r.stdout[:4000], "stderr": r.stderr[:2000], "exit_code": r.returncode}
     except subprocess.TimeoutExpired:
         return {"error": f"Command timed out after {timeout}s"}

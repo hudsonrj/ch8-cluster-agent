@@ -170,7 +170,8 @@ def _start_agent(name, script_name, port_check=None):
     )
     if sys.platform == "win32":
         _popen_kwargs["creationflags"] = (
-            subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP
+            subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP |
+            subprocess.CREATE_NO_WINDOW
         )
     else:
         _popen_kwargs["start_new_session"] = True
@@ -192,7 +193,11 @@ def _stop_agent(name):
         return
     try:
         pid = int(pid_file.read_text().strip())
-        os.kill(pid, _signal.SIGTERM)
+        if sys.platform == "win32":
+            # SIGTERM on Windows calls TerminateProcess (forceful)
+            os.kill(pid, _signal.SIGTERM)
+        else:
+            os.kill(pid, _signal.SIGTERM)
     except (OSError, ValueError):
         pass
     pid_file.unlink(missing_ok=True)
@@ -451,15 +456,30 @@ def cmd_down():
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     from connect.daemon import get_daemon_pid, is_daemon_running, PID_FILE
     import signal as _signal
+    import time
 
-    # Stop agents first
-    _stop_agent("orchestrator")
-    _stop_agent("server-monitor")
-    _stop_agent("telegram")
+    config_dir = Path.home() / ".config" / "ch8"
+
+    # Stop ALL agents by scanning every .pid file in config dir
+    stopped = []
+    if config_dir.exists():
+        for pid_file in sorted(config_dir.glob("*.pid")):
+            # daemon PID handled separately below
+            if pid_file.name == PID_FILE.name:
+                continue
+            try:
+                pid = int(pid_file.read_text().strip())
+                os.kill(pid, _signal.SIGTERM)
+                stopped.append(pid_file.stem)
+            except (OSError, ValueError):
+                pass
+            pid_file.unlink(missing_ok=True)
+
+    if stopped:
+        print(f"{Colors.GREEN}✓ Stopped agents: {', '.join(stopped)}{Colors.NC}")
 
     pid = get_daemon_pid()
     if not pid or not is_daemon_running():
-        # Clean up stale PID file
         if PID_FILE.exists():
             PID_FILE.unlink(missing_ok=True)
         print(f"{Colors.YELLOW}CH8 Connect is not running.{Colors.NC}")
@@ -467,15 +487,12 @@ def cmd_down():
 
     try:
         os.kill(pid, _signal.SIGTERM)
-        # Wait for process to exit
-        import time
         for _ in range(10):
             time.sleep(0.3)
             try:
                 os.kill(pid, 0)
             except OSError:
                 break
-        # Clean PID file
         PID_FILE.unlink(missing_ok=True)
         print(f"{Colors.GREEN}✓ CH8 Connect stopped.{Colors.NC}")
     except OSError as e:
