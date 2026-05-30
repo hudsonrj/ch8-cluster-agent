@@ -1101,25 +1101,63 @@ def _load_env():
 
 
 def cmd_shell():
-    """Open the Hermes interactive AI terminal — connects to local orchestrator."""
+    """CH8 interactive shell — based on Hermes agent pattern.
+
+    Uses prompt_toolkit (same as Hermes) for persistent history, arrow keys,
+    and patch_stdout so streaming output never clobbers the input line.
+    Falls back to readline/input if prompt_toolkit is not installed.
+    """
+    import contextlib
     import httpx as _hx
     import json as _j
+    import re as _re
     import socket as _sock
-
-    # readline for history + arrow keys (best-effort, not on Windows)
-    try:
-        import readline as _rl
-        _rl.set_history_length(500)
-    except ImportError:
-        pass
+    import threading as _th
+    import time as _time
 
     sys.path.insert(0, str(Path(__file__).resolve().parent))
-    BASE = os.environ.get("CH8_AGENT_URL", "http://127.0.0.1:7879")
 
-    # Probe orchestrator
-    hostname = "local"
-    model_str = "auto"
-    provider_str = ""
+    # ── prompt_toolkit (Hermes pattern) — auto-install if missing ──
+    _pt_session = None
+    _pt_patch   = contextlib.nullcontext  # no-op context manager fallback
+    _hist_file  = Path.home() / ".config" / "ch8" / "shell_history"
+    _hist_file.parent.mkdir(parents=True, exist_ok=True)
+
+    def _try_load_pt():
+        nonlocal _pt_session, _pt_patch
+        from prompt_toolkit import PromptSession
+        from prompt_toolkit.history import FileHistory
+        from prompt_toolkit.patch_stdout import patch_stdout
+        _pt_session = PromptSession(history=FileHistory(str(_hist_file)))
+        _pt_patch   = patch_stdout
+
+    try:
+        _try_load_pt()
+    except ImportError:
+        try:
+            subprocess.run(
+                [sys.executable, "-m", "pip", "install", "--quiet",
+                 "--break-system-packages", "prompt_toolkit"],
+                capture_output=True, timeout=30,
+            )
+            _try_load_pt()
+        except Exception:
+            # Last resort: readline with file history
+            try:
+                import readline as _rl
+                try:
+                    _rl.read_history_file(str(_hist_file))
+                except Exception:
+                    pass
+                import atexit as _ae
+                _ae.register(lambda: _rl.write_history_file(str(_hist_file)))
+                _rl.set_history_length(500)
+            except ImportError:
+                pass
+
+    # ── Probe orchestrator ──────────────────────────────────────────
+    BASE = os.environ.get("CH8_AGENT_URL", "http://127.0.0.1:7879")
+    hostname, model_str, provider_str = "local", "auto", ""
     try:
         hostname = _sock.gethostname()
     except Exception:
@@ -1128,11 +1166,11 @@ def cmd_shell():
         r = _hx.get(f"{BASE}/health", timeout=3)
         if r.status_code == 200:
             d = r.json()
-            model_str = d.get("model", "") or "auto"
+            model_str    = d.get("model", "") or "auto"
             provider_str = d.get("provider", "")
     except _hx.ConnectError:
         print(f"\n{Colors.RED}  ✗ Orchestrator não está rodando em {BASE}{Colors.NC}")
-        print(f"  {Colors.YELLOW}Execute `ch8 up` para iniciar o agente.{Colors.NC}\n")
+        print(f"  {Colors.YELLOW}  Execute `ch8 up` para iniciar o agente.{Colors.NC}\n")
         return
     except Exception:
         pass
@@ -1144,35 +1182,58 @@ def cmd_shell():
         except Exception:
             return ""
 
-    token = _get_token()
+    token   = _get_token()
     headers = {"Authorization": f"Bearer {token}"} if token else {}
 
-    # Colors (reuse class but define short aliases)
-    G = Colors.GREEN
-    Y = Colors.YELLOW
-    R = Colors.RED
-    D = "\033[2m"
-    W = "\033[1m"
-    X = Colors.NC
+    # ── ANSI palette ────────────────────────────────────────────────
+    B  = Colors.BLUE
+    Y  = Colors.YELLOW
+    R  = Colors.RED
+    D  = "\033[2m"      # dim
+    W  = "\033[1m"      # bold
+    X  = Colors.NC      # reset
+    DY = "\033[2;33m"   # dim yellow  — tool call indicator
+    DG = "\033[2;37m"   # dim grey    — tool result block
 
-    mdl = f"{provider_str}/{model_str}" if provider_str and provider_str not in ("ollama", "") else model_str
-    w = 52
-    hn = hostname[:w - 10]
-    ml = mdl[:w - 11]
+    # Per-tool emoji (Hermes get_tool_emoji pattern)
+    _EMOJI = {
+        "shell_exec": "🔧", "file_read": "📄", "file_write": "✏️",
+        "http_request": "🌐", "docker_exec": "🐳", "service_restart": "♻️",
+        "node_chat": "📡", "node_info": "ℹ️",
+        "ticket_list": "🎫", "ticket_update": "🎫", "ticket_create": "🎫",
+        "wazuh_summary": "🛡️", "wazuh_alerts": "🚨", "wazuh_cves": "🔍",
+        "security_scan": "🔒", "web_search": "🔎", "web_extract": "📰",
+    }
 
-    print()
-    print(f"{Colors.BLUE}  ╔{'═' * (w - 2)}╗{X}")
-    print(f"{Colors.BLUE}  ║{X}  ⚡ {W}CH8 Shell{X}{Colors.BLUE} · agente autônomo{' ' * (w - 33)}║{X}")
-    print(f"{Colors.BLUE}  ║{X}  {D}node : {W}{hn}{X}{' ' * (w - 10 - len(hn))}{Colors.BLUE}║{X}")
-    print(f"{Colors.BLUE}  ║{X}  {D}model: {ml}{X}{' ' * (w - 10 - len(ml))}{Colors.BLUE}║{X}")
-    print(f"{Colors.BLUE}  ╚{'═' * (w - 2)}╝{X}")
-    print(f"  {D}/help para comandos · Ctrl+C para sair{X}\n")
+    # ── Spinner (Hermes KawaiiSpinner pattern) ──────────────────────
+    _FRAMES = ("⠋","⠙","⠹","⠸","⠼","⠴","⠦","⠧","⠇","⠏")
 
-    messages = []
+    class _Spinner:
+        def __init__(self):
+            self._ev = _th.Event()
+            self._t  = None
+        def start(self):
+            self._ev.clear()
+            self._t = _th.Thread(target=self._run, daemon=True)
+            self._t.start()
+        def stop(self):
+            self._ev.set()
+            if self._t:
+                self._t.join(timeout=0.3)
+            print(f"\r  \r", end="", flush=True)
+        def _run(self):
+            i = 0
+            while not self._ev.wait(0.08):
+                print(f"\r  {D}{_FRAMES[i % len(_FRAMES)]}{X}", end="", flush=True)
+                i += 1
 
+    # ── Stream + display ────────────────────────────────────────────
     def _stream(msgs):
         nonlocal token, headers
         full = ""
+        spinner = _Spinner()
+        in_tool_result = False   # inside ``` block after a tool call
+
         try:
             with _hx.Client(timeout=180) as client:
                 with client.stream(
@@ -1181,14 +1242,17 @@ def cmd_shell():
                     headers=headers,
                 ) as resp:
                     if resp.status_code == 401:
-                        # Refresh token once and retry
-                        token = _get_token()
+                        token   = _get_token()
                         headers = {"Authorization": f"Bearer {token}"} if token else {}
                         return _stream(msgs)
                     if resp.status_code != 200:
+                        spinner.stop()
                         print(f"\n{R}  ✗ erro {resp.status_code}{X}")
                         return ""
-                    print(f"{Colors.BLUE}", end="", flush=True)
+
+                    spinner.start()
+                    first_byte = True
+
                     for line in resp.iter_lines():
                         if not line or not line.startswith("data: "):
                             continue
@@ -1196,19 +1260,67 @@ def cmd_shell():
                         if raw == "[DONE]":
                             break
                         try:
-                            obj = _j.loads(raw)
-                            content = obj.get("message", {}).get("content", "")
-                            if content:
-                                print(content, end="", flush=True)
-                                full += content
+                            content = _j.loads(raw).get("message", {}).get("content", "")
                         except Exception:
-                            pass
-                    print(f"{X}", flush=True)
+                            continue
+                        if not content:
+                            continue
+
+                        if first_byte:
+                            spinner.stop()
+                            first_byte = False
+
+                        full += content
+
+                        # ── Hermes ┊ pattern: style tool lines differently ──
+                        m = _re.search(r"⚙ Executing `([^`]+)`", content)
+                        if m:
+                            name  = m.group(1)
+                            emoji = _EMOJI.get(name, "⚙")
+                            print(f"\n  {DY}{emoji}  {name}{X}", flush=True)
+                            in_tool_result = False
+                        elif "```" in content:
+                            # Toggle dim block for tool results (Hermes ┊ prefix)
+                            in_tool_result = not in_tool_result
+                            print(f"{DG}{content}{X}", end="", flush=True)
+                        elif in_tool_result:
+                            print(f"{DG}{content}{X}", end="", flush=True)
+                        else:
+                            print(f"{B}{content}{X}", end="", flush=True)
+
+                    spinner.stop()
+                    print(flush=True)
+
         except _hx.ConnectError:
+            spinner.stop()
             print(f"\n{R}  ✗ orchestrator desconectado{X}")
         except KeyboardInterrupt:
+            spinner.stop()
             print(f"{X}", flush=True)
         return full
+
+    # ── Banner ──────────────────────────────────────────────────────
+    mdl = f"{provider_str}/{model_str}" if provider_str and provider_str not in ("ollama", "") else model_str
+    w   = 52
+    hn  = hostname[:w - 10]
+    ml  = mdl[:w - 11]
+    pt_label = "prompt_toolkit" if _pt_session else "readline"
+    print()
+    print(f"{B}  ╔{'═' * (w - 2)}╗{X}")
+    print(f"{B}  ║{X}  ⚡ {W}CH8 Shell{X}{B} · agente autônomo{' ' * (w - 33)}║{X}")
+    print(f"{B}  ║{X}  {D}node : {W}{hn}{X}{' ' * (w - 10 - len(hn))}{B}║{X}")
+    print(f"{B}  ║{X}  {D}model: {ml}{X}{' ' * (w - 10 - len(ml))}{B}║{X}")
+    print(f"{B}  ╚{'═' * (w - 2)}╝{X}")
+    print(f"  {D}/help · Ctrl+C para sair · input: {pt_label}{X}\n")
+
+    # ── Prompt helper ────────────────────────────────────────────────
+    PROMPT_ANSI = f"{B}ch8{X} {W}❯{X} "
+
+    def _prompt():
+        if _pt_session:
+            from prompt_toolkit.formatted_text import ANSI as _ANSI
+            return _pt_session.prompt(_ANSI(PROMPT_ANSI))
+        return input(PROMPT_ANSI)
 
     HELP = f"""
   {Y}Comandos:{X}
@@ -1218,46 +1330,48 @@ def cmd_shell():
   {W}/exit{X}          — sair
 """
 
-    while True:
-        try:
-            user_input = input(f"{Colors.BLUE}ch8{X} {W}❯{X} ").strip()
-        except (KeyboardInterrupt, EOFError):
-            print(f"\n  {D}até logo{X}\n")
-            break
-
-        if not user_input:
-            continue
-
-        if user_input.startswith("/"):
-            cmd_word = user_input.lower().split()[0]
-            if cmd_word in ("/exit", "/quit", "/q", "/sair"):
+    # ── REPL (patch_stdout = Hermes pattern to keep input line clean) ─
+    messages = []
+    with _pt_patch():
+        while True:
+            try:
+                user_input = _prompt().strip()
+            except (KeyboardInterrupt, EOFError):
                 print(f"\n  {D}até logo{X}\n")
                 break
-            elif cmd_word == "/reset":
-                messages.clear()
-                print(f"  {D}conversa resetada{X}")
-            elif cmd_word == "/clear":
-                print("\033[2J\033[H", end="")
-            elif cmd_word == "/help":
-                print(HELP)
-            elif cmd_word == "/model":
-                parts = user_input.split(None, 1)
-                if len(parts) > 1:
-                    messages.clear()
-                    # Inject override as first user message hint
-                    messages.append({"role": "user", "content": f"[use model: {parts[1]}]"})
-                    messages.append({"role": "assistant", "content": f"OK, usando {parts[1]}."})
-                    print(f"  {D}model → {parts[1]}{X}")
-            else:
-                print(f"  {D}comando desconhecido. /help para ajuda{X}")
-            continue
 
-        messages.append({"role": "user", "content": user_input})
-        print()
-        response = _stream(messages)
-        print()
-        if response:
-            messages.append({"role": "assistant", "content": response})
+            if not user_input:
+                continue
+
+            if user_input.startswith("/"):
+                cmd_word = user_input.lower().split()[0]
+                if cmd_word in ("/exit", "/quit", "/q", "/sair"):
+                    print(f"\n  {D}até logo{X}\n")
+                    break
+                elif cmd_word == "/reset":
+                    messages.clear()
+                    print(f"  {D}conversa resetada{X}")
+                elif cmd_word == "/clear":
+                    print("\033[2J\033[H", end="")
+                elif cmd_word == "/help":
+                    print(HELP)
+                elif cmd_word == "/model":
+                    parts = user_input.split(None, 1)
+                    if len(parts) > 1:
+                        messages.clear()
+                        messages.append({"role": "user",      "content": f"[use model: {parts[1]}]"})
+                        messages.append({"role": "assistant", "content": f"OK, usando {parts[1]}."})
+                        print(f"  {D}model → {parts[1]}{X}")
+                else:
+                    print(f"  {D}comando desconhecido. /help para ajuda{X}")
+                continue
+
+            messages.append({"role": "user", "content": user_input})
+            print()
+            response = _stream(messages)
+            print()
+            if response:
+                messages.append({"role": "assistant", "content": response})
 
 
 def main():
