@@ -57,6 +57,10 @@ def cmd_help():
     print(f"  {Colors.YELLOW}ch8 doctor{Colors.NC}         - Diagnose system issues")
     print(f"  {Colors.YELLOW}ch8 help{Colors.NC}           - Show this help message")
     print()
+    print(f"{Colors.GREEN}Hermes Terminal{Colors.NC}\n")
+    print(f"  {Colors.YELLOW}ch8{Colors.NC}                - Open Hermes AI terminal (default)")
+    print(f"  {Colors.YELLOW}ch8 shell{Colors.NC}          - Open Hermes AI terminal")
+    print()
 
 
 # ------------------------------------------------------------------ #
@@ -1096,6 +1100,166 @@ def _load_env():
                     os.environ[key] = val
 
 
+def cmd_shell():
+    """Open the Hermes interactive AI terminal — connects to local orchestrator."""
+    import httpx as _hx
+    import json as _j
+    import socket as _sock
+
+    # readline for history + arrow keys (best-effort, not on Windows)
+    try:
+        import readline as _rl
+        _rl.set_history_length(500)
+    except ImportError:
+        pass
+
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    BASE = os.environ.get("CH8_AGENT_URL", "http://127.0.0.1:7879")
+
+    # Probe orchestrator
+    hostname = "local"
+    model_str = "auto"
+    provider_str = ""
+    try:
+        hostname = _sock.gethostname()
+    except Exception:
+        pass
+    try:
+        r = _hx.get(f"{BASE}/health", timeout=3)
+        if r.status_code == 200:
+            d = r.json()
+            model_str = d.get("model", "") or "auto"
+            provider_str = d.get("provider", "")
+    except _hx.ConnectError:
+        print(f"\n{Colors.RED}  ✗ Orchestrator não está rodando em {BASE}{Colors.NC}")
+        print(f"  {Colors.YELLOW}Execute `ch8 up` para iniciar o agente.{Colors.NC}\n")
+        return
+    except Exception:
+        pass
+
+    def _get_token():
+        try:
+            from connect.auth import get_access_token
+            return get_access_token()
+        except Exception:
+            return ""
+
+    token = _get_token()
+    headers = {"Authorization": f"Bearer {token}"} if token else {}
+
+    # Colors (reuse class but define short aliases)
+    G = Colors.GREEN
+    Y = Colors.YELLOW
+    R = Colors.RED
+    D = "\033[2m"
+    W = "\033[1m"
+    X = Colors.NC
+
+    mdl = f"{provider_str}/{model_str}" if provider_str and provider_str not in ("ollama", "") else model_str
+    w = 52
+    hn = hostname[:w - 10]
+    ml = mdl[:w - 11]
+
+    print()
+    print(f"{G}  ╔{'═' * (w - 2)}╗{X}")
+    print(f"{G}  ║{X}  ⚡ {W}HERMES{X}{G} · CH8 Agent Shell{' ' * (w - 32)}║{X}")
+    print(f"{G}  ║{X}  {D}node : {W}{hn}{X}{' ' * (w - 10 - len(hn))}{G}║{X}")
+    print(f"{G}  ║{X}  {D}model: {ml}{X}{' ' * (w - 10 - len(ml))}{G}║{X}")
+    print(f"{G}  ╚{'═' * (w - 2)}╝{X}")
+    print(f"  {D}/help para comandos · Ctrl+C para sair{X}\n")
+
+    messages = []
+
+    def _stream(msgs):
+        nonlocal token, headers
+        full = ""
+        try:
+            with _hx.Client(timeout=180) as client:
+                with client.stream(
+                    "POST", f"{BASE}/chat",
+                    json={"messages": msgs, "stream": True},
+                    headers=headers,
+                ) as resp:
+                    if resp.status_code == 401:
+                        # Refresh token once and retry
+                        token = _get_token()
+                        headers = {"Authorization": f"Bearer {token}"} if token else {}
+                        return _stream(msgs)
+                    if resp.status_code != 200:
+                        print(f"\n{R}  ✗ erro {resp.status_code}{X}")
+                        return ""
+                    print(f"{G}", end="", flush=True)
+                    for line in resp.iter_lines():
+                        if not line or not line.startswith("data: "):
+                            continue
+                        raw = line[6:]
+                        if raw == "[DONE]":
+                            break
+                        try:
+                            obj = _j.loads(raw)
+                            content = obj.get("message", {}).get("content", "")
+                            if content:
+                                print(content, end="", flush=True)
+                                full += content
+                        except Exception:
+                            pass
+                    print(f"{X}", flush=True)
+        except _hx.ConnectError:
+            print(f"\n{R}  ✗ orchestrator desconectado{X}")
+        except KeyboardInterrupt:
+            print(f"{X}", flush=True)
+        return full
+
+    HELP = f"""
+  {Y}Comandos:{X}
+  {W}/reset{X}         — limpar histórico da conversa
+  {W}/clear{X}         — limpar tela
+  {W}/model <nome>{X}  — trocar modelo (ex: /model claude-haiku-4-5)
+  {W}/exit{X}          — sair
+"""
+
+    while True:
+        try:
+            user_input = input(f"{G}hermes{X} {W}❯{X} ").strip()
+        except (KeyboardInterrupt, EOFError):
+            print(f"\n  {D}até logo{X}\n")
+            break
+
+        if not user_input:
+            continue
+
+        if user_input.startswith("/"):
+            cmd_word = user_input.lower().split()[0]
+            if cmd_word in ("/exit", "/quit", "/q", "/sair"):
+                print(f"\n  {D}até logo{X}\n")
+                break
+            elif cmd_word == "/reset":
+                messages.clear()
+                print(f"  {D}conversa resetada{X}")
+            elif cmd_word == "/clear":
+                print("\033[2J\033[H", end="")
+            elif cmd_word == "/help":
+                print(HELP)
+            elif cmd_word == "/model":
+                parts = user_input.split(None, 1)
+                if len(parts) > 1:
+                    messages.clear()
+                    # Inject override as first user message hint
+                    messages.append({"role": "user", "content": f"[use model: {parts[1]}]"})
+                    messages.append({"role": "assistant", "content": f"OK, usando {parts[1]}."})
+                    print(f"  {D}model → {parts[1]}{X}")
+            else:
+                print(f"  {D}comando desconhecido. /help para ajuda{X}")
+            continue
+
+        messages.append({"role": "user", "content": user_input})
+        print()
+        response = _stream(messages)
+        print()
+        if response:
+            messages.append({"role": "assistant", "content": response})
+
+
 def main():
     _load_env()
 
@@ -1113,7 +1277,7 @@ def main():
         description='CH8 Agent - Autonomous AI Orchestration',
         add_help=False
     )
-    parser.add_argument('command', nargs='?', default='help')
+    parser.add_argument('command', nargs='?', default='shell')
     parser.add_argument('subcommand', nargs='?', default=None)
     parser.add_argument('--token', default=None, help='Pre-auth token for headless enrollment')
 
@@ -1137,11 +1301,15 @@ def main():
         'worker': lambda: cmd_worker(args.subcommand),
         'master': cmd_master,
         # System
-        'setup':  cmd_setup,
-        'update': cmd_update,
-        'doctor': cmd_doctor,
-        'delete': lambda: cmd_delete(args.subcommand),
-        'help':   cmd_help,
+        'setup':    cmd_setup,
+        'update':   cmd_update,
+        'doctor':   cmd_doctor,
+        'delete':   lambda: cmd_delete(args.subcommand),
+        'help':     cmd_help,
+        # Hermes terminal
+        'shell':    cmd_shell,
+        'terminal': cmd_shell,
+        'chat':     cmd_shell,
     }
 
     if args.command in commands:

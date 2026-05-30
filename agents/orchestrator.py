@@ -138,13 +138,19 @@ _load_env_file()
 
 # ── AI provider ──────────────────────────────────────────────────────────────
 
+_ai_info_cache: dict = {}
+_ai_info_ts: float = 0.0
+
 def _load_ai_provider() -> dict:
-    """Load AI provider config. Falls back to Ollama if not configured."""
+    """Load AI provider config. Cached for 30s to avoid repeated disk reads."""
+    global _ai_info_cache, _ai_info_ts
+    if _ai_info_cache and time.time() - _ai_info_ts < 30:
+        return _ai_info_cache
     try:
         from connect.ai_config import get_provider_info
-        return get_provider_info()
+        _ai_info_cache = get_provider_info()
     except Exception:
-        return {
+        _ai_info_cache = {
             "provider": "ollama",
             "name": "Ollama (local)",
             "api_key": "",
@@ -152,6 +158,8 @@ def _load_ai_provider() -> dict:
             "model": DEFAULT_MODEL,
             "aws_region": "",
         }
+    _ai_info_ts = time.time()
+    return _ai_info_cache
 
 
 # ── context collection ────────────────────────────────────────────────────────
@@ -329,13 +337,26 @@ PROIBIDO (violação crítica se fizer qualquer um destes):
 ✗ Explicar o que você FARIA — NUNCA. Faça e reporte o que foi feito.
 ✗ Dizer que não tem ferramentas ou que precisa de liberação — NUNCA. Você TEM ferramentas.
 ✗ Apresentar planos sem executar — NUNCA. Plano + execução na mesma resposta.
+✗ Parar a execução no meio — NUNCA. Execute todos os passos até o fim.
 
 OBRIGATÓRIO:
 ✓ Recebeu instrução acionável → dispara tool_call na MESMA resposta, sem preâmbulo.
-✓ Precisa de múltiplas ações → dispara todos os tool_calls em paralelo na mesma resposta.
+✓ Precisa de múltiplas ações → dispara TODOS os tool_calls em paralelo na mesma resposta.
 ✓ Incerto entre opções → escolhe a mais útil e executa. Reporta o que foi feito.
 ✓ Tickets → usa ticket_list, ticket_update, ticket_create imediatamente.
 ✓ Tarefas em outros nós → usa node_chat imediatamente.
+✓ Tarefa longa → executa passo a passo até completar, usando múltiplas rodadas de tool_calls.
+
+QUANDO PERGUNTAR (única exceção permitida):
+✓ Ambiguidade BLOQUEANTE: quando há 2+ alvos igualmente válidos e escolher errado causaria dano irreversível.
+  Ex OK: "delete os logs" → inferir /var/log/app pelo contexto ou perguntar se houver 5+ pastas de log.
+  Ex ERRADO perguntar: "reinicie o serviço" → inspecione os containers/serviços ativos e reinicie o mais relevante.
+✗ NUNCA pergunte quando pode: inferir pelo contexto, usar padrão razoável, tentar e reportar resultado.
+
+ESTRUTURA DE EXECUÇÃO (para tarefas complexas):
+1. [Plano — máx 1 linha]: "Vou: 1) verificar X 2) corrigir Y 3) testar Z"
+2. [Executar]: tool_calls imediatos, todos os passos em sequência/paralelo
+3. [Reportar]: 2-3 linhas do que foi feito e resultado
 
 Formato de resposta correto:
 [tool_call direto, sem introdução]
@@ -441,7 +462,7 @@ ROUTING_TABLE = {
     "ticket":    {"model": "us.anthropic.claude-sonnet-4-5-20250929-v1:0", "reason": "quality + context"},
     "document":  {"model": "us.anthropic.claude-sonnet-4-5-20250929-v1:0", "reason": "long context"},
     "checklist": {"model": "claude-haiku-4-5",                       "reason": "structured output"},
-    "strategic": {"model": "claude-opus-4-7",                        "reason": "deep reasoning"},
+    "strategic": {"model": "claude-opus-4-6",                        "reason": "deep reasoning"},
     "default":   {"model": "us.anthropic.claude-sonnet-4-5-20250929-v1:0", "reason": "balanced quality"},
 }
 
@@ -482,8 +503,14 @@ def _classify_task(messages: list) -> str:
     return "default"
 
 
+_models_cache: set = set()
+_models_cache_ts: float = 0.0
+
 def _available_models() -> set:
-    """Get set of model IDs available on online nodes."""
+    """Get set of model IDs available on online nodes. Cached for 60s."""
+    global _models_cache, _models_cache_ts
+    if _models_cache and time.time() - _models_cache_ts < 60:
+        return _models_cache
     try:
         from connect.auth import CONTROL_URL, get_network_id, get_access_token
         import httpx as _httpx
@@ -498,10 +525,12 @@ def _available_models() -> set:
                 if n.get("status") == "online":
                     for m in n.get("models", []):
                         available.add(m)
+            _models_cache = available
+            _models_cache_ts = time.time()
             return available
     except Exception:
         pass
-    return set()
+    return _models_cache  # return stale cache on error rather than empty set
 
 
 def smart_route(messages: list, hint: str = "") -> tuple[str, str]:
@@ -518,9 +547,9 @@ def smart_route(messages: list, hint: str = "") -> tuple[str, str]:
     # Check if target model is available (for Ollama local models)
     # Bedrock models are always available via cloud
     bedrock_models = {
-        "claude-opus-4-7", "claude-haiku-4-5",
+        "claude-opus-4-6", "claude-haiku-4-5",
         "us.anthropic.claude-sonnet-4-5-20250929-v1:0",
-        "us.anthropic.claude-opus-4-7",
+        "us.anthropic.claude-opus-4-5-20251001-v1:0",
     }
     if target_model in bedrock_models:
         return target_model, f"[smart:{category}] {reason}"
@@ -637,12 +666,12 @@ def _normalize_bedrock_model(model: str) -> str:
     """Map short/invalid model IDs to valid Bedrock model ARN-style IDs."""
     _MAP = {
         # Opus
-        "claude-opus":                     "us.anthropic.claude-opus-4-7",
-        "claude-opus-4":                   "us.anthropic.claude-opus-4-7",
-        "claude-opus-4-7":                 "us.anthropic.claude-opus-4-7",
-        "claude-opus-4-6":                 "us.anthropic.claude-opus-4-7",
-        "anthropic.claude-opus-4-6-v1":    "us.anthropic.claude-opus-4-7",
-        "us.anthropic.claude-opus-4-5-20251001-v1:0": "us.anthropic.claude-opus-4-7",
+        "claude-opus":                     "us.anthropic.claude-opus-4-5-20251001-v1:0",
+        "claude-opus-4":                   "us.anthropic.claude-opus-4-5-20251001-v1:0",
+        "claude-opus-4-6":                 "us.anthropic.claude-opus-4-5-20251001-v1:0",
+        "claude-opus-4-7":                 "us.anthropic.claude-opus-4-5-20251001-v1:0",
+        "anthropic.claude-opus-4-6-v1":    "us.anthropic.claude-opus-4-5-20251001-v1:0",
+        "us.anthropic.claude-opus-4-7":    "us.anthropic.claude-opus-4-5-20251001-v1:0",
         # Sonnet
         "anthropic.claude-sonnet-4-6-v1":  "us.anthropic.claude-sonnet-4-20250514-v1:0",
         "claude-sonnet-4-6":               "us.anthropic.claude-sonnet-4-20250514-v1:0",
