@@ -463,7 +463,7 @@ ROUTING_TABLE = {
     "document":  {"model": "us.anthropic.claude-sonnet-4-5-20250929-v1:0", "reason": "long context"},
     "checklist": {"model": "claude-haiku-4-5",                       "reason": "structured output"},
     "strategic": {"model": "claude-opus-4-6",                        "reason": "deep reasoning"},
-    "default":   {"model": "us.anthropic.claude-sonnet-4-5-20250929-v1:0", "reason": "balanced quality"},
+    "default":   {"model": "us.anthropic.claude-sonnet-4-20250514-v1:0",    "reason": "balanced quality"},
 }
 
 # Keyword patterns → task category
@@ -548,7 +548,8 @@ def smart_route(messages: list, hint: str = "") -> tuple[str, str]:
     # Bedrock models are always available via cloud
     bedrock_models = {
         "claude-opus-4-6", "claude-haiku-4-5",
-        "us.anthropic.claude-sonnet-4-5-20250929-v1:0",
+        "us.anthropic.claude-sonnet-4-20250514-v1:0",
+        "us.anthropic.claude-sonnet-4-5-20250929-v1:0",  # legacy — normalized above
         "us.anthropic.claude-opus-4-5-20251001-v1:0",
     }
     if target_model in bedrock_models:
@@ -673,9 +674,10 @@ def _normalize_bedrock_model(model: str) -> str:
         "anthropic.claude-opus-4-6-v1":    "us.anthropic.claude-opus-4-5-20251001-v1:0",
         "us.anthropic.claude-opus-4-7":    "us.anthropic.claude-opus-4-5-20251001-v1:0",
         # Sonnet
-        "anthropic.claude-sonnet-4-6-v1":  "us.anthropic.claude-sonnet-4-20250514-v1:0",
-        "claude-sonnet-4-6":               "us.anthropic.claude-sonnet-4-20250514-v1:0",
-        "claude-sonnet-4":                 "us.anthropic.claude-sonnet-4-20250514-v1:0",
+        "anthropic.claude-sonnet-4-6-v1":          "us.anthropic.claude-sonnet-4-20250514-v1:0",
+        "claude-sonnet-4-6":                        "us.anthropic.claude-sonnet-4-20250514-v1:0",
+        "claude-sonnet-4":                          "us.anthropic.claude-sonnet-4-20250514-v1:0",
+        "us.anthropic.claude-sonnet-4-5-20250929-v1:0": "us.anthropic.claude-sonnet-4-20250514-v1:0",
         # Haiku
         "claude-haiku-4-5":                "us.anthropic.claude-haiku-4-5-20251001-v1:0",
         "anthropic.claude-haiku-4-5-v1":   "us.anthropic.claude-haiku-4-5-20251001-v1:0",
