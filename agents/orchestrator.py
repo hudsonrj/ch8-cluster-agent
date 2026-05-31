@@ -213,27 +213,6 @@ _HERMES_BIN, _HERMES_FLAVOUR = _detect_hermes_bin()
 
 if _HERMES_BIN:
     log.info(f"Hermes integration: found {_HERMES_FLAVOUR} at {_HERMES_BIN}")
-    def _update_hermes_state():
-        try:
-            import subprocess as _sp
-            ver = _sp.run([_HERMES_BIN, "--version"], capture_output=True, text=True, timeout=5).stdout.strip()
-        except Exception:
-            ver = _HERMES_FLAVOUR
-        def _upd(state):
-            agents = [a for a in state.get("agents", []) if a.get("name") != _HERMES_FLAVOUR]
-            agents.append({
-                "name":       _HERMES_FLAVOUR,
-                "status":     "idle",
-                "task":       f"Hermes agent — {ver}",
-                "model":      "hermes",
-                "platform":   "hermes",
-                "autonomous": True,
-                "updated_at": int(time.time()),
-                "tools":      ["hermes_exec", "shell", "editor", "web", "terminal"],
-            })
-            state["agents"] = agents
-        _atomic_update_state(_upd)
-    _update_hermes_state()
 
 
 # ── AI provider ──────────────────────────────────────────────────────────────
@@ -2608,6 +2587,29 @@ async def list_tools():
 # ── startup ───────────────────────────────────────────────────────────────────
 
 import asyncio as _asyncio
+
+@app.on_event("startup")
+async def _register_hermes():
+    """Register Hermes/OpenClaw in agent state on startup (deferred — needs _atomic_update_state)."""
+    if not _HERMES_BIN:
+        return
+    try:
+        ver = subprocess.run([_HERMES_BIN, "--version"],
+                             capture_output=True, text=True, timeout=5).stdout.strip()
+    except Exception:
+        ver = _HERMES_FLAVOUR
+    def _upd(state):
+        agents = [a for a in state.get("agents", []) if a.get("name") != _HERMES_FLAVOUR]
+        agents.append({
+            "name": _HERMES_FLAVOUR, "status": "idle",
+            "task": f"Hermes agent — {ver}", "model": "hermes",
+            "platform": "hermes", "autonomous": True,
+            "updated_at": int(time.time()),
+            "tools": ["hermes_exec", "shell", "editor", "web", "terminal"],
+        })
+        state["agents"] = agents
+    _atomic_update_state(_upd)
+
 
 @app.on_event("startup")
 async def _keepalive():
