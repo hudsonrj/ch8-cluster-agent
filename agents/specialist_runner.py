@@ -417,8 +417,43 @@ def _resolve_ticket_with_llm(specialist: dict, ticket: dict) -> dict:
 
     specialists_list = "Sigma (DevOps), Nikolas (DBA), Hermes (MCP), Mr Robot (Segurança), Jarvis (IA), Atlas (MongoDB), Orion (Performance), Lexus (Apps), Sitetc (Sites), Pesquisador (Web)"
 
-    system = (specialist['system_prompt'][:800] or
-              f"Você é {nome}, especialista em {specialist['domain']} no CH8 Hub Cluster.")
+    base_prompt = (specialist['system_prompt'][:800] or
+                   f"Você é {nome}, especialista em {specialist['domain']} no CH8 Hub Cluster.")
+
+    # Inject recent evaluation feedback so specialist learns and improves
+    eval_context = ""
+    try:
+        db_url = _get_db_url()
+        import psycopg2, psycopg2.extras as _pge
+        conn2 = psycopg2.connect(db_url)
+        cur2  = conn2.cursor(cursor_factory=_pge.RealDictCursor)
+        spec_tag = nome.lower().replace(" ", "-")
+        cur2.execute("""SELECT title, substring(content,1,400) as preview
+            FROM knowledge_articles
+            WHERE 'evaluation' = ANY(tags) AND %s = ANY(tags)
+            ORDER BY created_at DESC LIMIT 3""", (spec_tag,))
+        evals = cur2.fetchall()
+        conn2.close()
+        if evals:
+            snippets = []
+            import re as _re_ev
+            for ev in evals:
+                # Extract score and comment
+                ms = _re_ev.search(r'nota:(\d+(?:\.\d+)?)', ev.get('title',''))
+                mc = _re_ev.search(r'(?:Avaliação|Comentário).*?:\s*(.+?)(?:\n|$)', ev.get('preview',''))
+                ma = _re_ev.search(r'Plano de Ação.*?:\s*(.+?)(?:\n\n|\Z)', ev.get('preview',''), _re_ev.DOTALL)
+                score = ms.group(1) if ms else '?'
+                comment = mc.group(1).strip()[:120] if mc else ''
+                action  = ma.group(1).strip()[:100] if ma else ''
+                snippets.append(f"• Nota {score}: {comment}" + (f" → {action}" if action else ""))
+            eval_context = (
+                f"\n\n[FEEDBACK DAS SUAS AVALIAÇÕES RECENTES — use para melhorar]\n"
+                + "\n".join(snippets)
+            )
+    except Exception:
+        pass
+
+    system = base_prompt + eval_context
 
     user_msg = f"""[TICKET ATRIBUÍDO A VOCÊ — RESOLVER AGORA]
 
