@@ -445,6 +445,26 @@ def cmd_up(token=None):
         print(f"{Colors.GREEN}✓ CH8 Connect is up!{Colors.NC}")
         print(f"  Peers online: {len(state.get('peers', []))}")
         print(f"\nRun {Colors.YELLOW}ch8 nodes{Colors.NC} to see your cluster.")
+
+        # Auto-install systemd/launchd service if not already installed (silent)
+        if sys.platform.startswith("linux") or sys.platform == "darwin":
+            _svc_installed = False
+            if sys.platform.startswith("linux"):
+                _svc_installed = (
+                    Path("/etc/systemd/system/ch8-agent.service").exists() or
+                    (Path.home() / ".config/systemd/user/ch8-agent.service").exists()
+                )
+            elif sys.platform == "darwin":
+                _svc_installed = (
+                    Path.home() / "Library/LaunchAgents/com.ch8.ch8-agent.plist"
+                ).exists()
+            if not _svc_installed:
+                print(f"  {Colors.YELLOW}Configurando autostart...{Colors.NC}", end="", flush=True)
+                try:
+                    cmd_service("install")
+                    print(f" {Colors.GREEN}✓{Colors.NC}")
+                except Exception as _e:
+                    print(f" (skipped: {_e})")
     else:
         print(f"{Colors.RED}Daemon failed to start.{Colors.NC}")
         # Show last lines of daemon log
